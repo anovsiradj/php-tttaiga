@@ -1,0 +1,691 @@
+<?php
+require __DIR__ . '/app/construct.php';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Tasks - Taiga API</title>
+	<!-- Bootstrap CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+	<!-- Bootstrap Icons -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+	<!-- Custom CSS -->
+	<link href="assets/app.css" rel="stylesheet">
+</head>
+
+<body>
+
+	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
+
+	<div class="container mt-4">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<h1>Tasks</h1>
+			<div class="d-flex">
+				<button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal">
+					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+						<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+					</svg>
+					Bulk Create
+				</button>
+				<button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal">
+					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+						<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+					</svg>
+					Bulk Update
+				</button>
+				<input type="text" class="form-control me-2" id="searchInput" placeholder="Search tasks..." style="width: 250px;">
+				<select class="form-select me-2" id="projectSelect" style="width: 200px;">
+					<option value="">All Projects</option>
+				</select>
+				<select class="form-select me-2" id="userStorySelect" style="width: 200px;">
+					<option value="">All User Stories</option>
+				</select>
+				<select class="form-select me-2" id="statusSelect" style="width: 150px;">
+					<option value="">All Statuses</option>
+					<option value="new">New</option>
+					<option value="ready">Ready</option>
+					<option value="in progress">In Progress</option>
+					<option value="done">Done</option>
+					<option value="archived">Archived</option>
+					<option value="blocked">Blocked</option>
+				</select>
+				<button class="btn btn-outline-secondary" id="refreshBtn">
+					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+						<path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+						<path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+					</svg>
+				</button>
+			</div>
+		</div>
+
+		<div class="filter-section">
+			<div class="row">
+				<div class="col-md-3">
+					<strong>Total Tasks:</strong> <span id="totalTasks">0</span>
+				</div>
+				<div class="col-md-3">
+					<strong>Filtered:</strong> <span id="filteredTasks">0</span>
+				</div>
+				<div class="col-md-6 text-end">
+					<button class="btn btn-sm btn-outline-secondary me-2" id="selectAllBtn">Select All</button>
+					<button class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn">Clear Selection</button>
+				</div>
+			</div>
+		</div>
+
+		<div id="tasksContent">
+			<div class="loading-spinner">
+				<div class="spinner-border text-primary" role="status">
+					<span class="visually-hidden">Loading tasks...</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Bulk Create Task Modal -->
+	<div class="modal fade" id="bulkCreateTaskModal" tabindex="-1" aria-labelledby="bulkCreateTaskModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="bulkCreateTaskModalLabel">Bulk Create Tasks</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="bulkTaskTitles" class="form-label">Task Titles (one per line)</label>
+						<textarea class="form-control" id="bulkTaskTitles" rows="5" placeholder="Enter task titles, one per line\nExample:\nDesign database schema\nImplement user authentication\nCreate API endpoints"></textarea>
+						<div class="form-text">Enter each task title on a separate line</div>
+					</div>
+
+					<div class="row">
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label for="bulkTaskStatus" class="form-label">Status</label>
+								<select class="form-select" id="bulkTaskStatus">
+									<option value="">Select Status</option>
+									<option value="new">New</option>
+									<option value="ready">Ready</option>
+									<option value="in progress">In Progress</option>
+									<option value="done">Done</option>
+									<option value="archived">Archived</option>
+									<option value="blocked">Blocked</option>
+								</select>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="mb-3">
+								<label for="bulkTaskProject" class="form-label">Project</label>
+								<select class="form-select" id="bulkTaskProject">
+									<option value="">Loading projects...</option>
+								</select>
+							</div>
+						</div>
+					</div>
+
+					<div class="mb-3">
+						<label for="bulkTaskUserStory" class="form-label">User Story</label>
+						<select class="form-select" id="bulkTaskUserStory">
+							<option value="">Loading user stories...</option>
+						</select>
+					</div>
+
+					<div class="mb-3">
+						<label for="bulkTaskDescription" class="form-label">Description (applies to all tasks)</label>
+						<textarea class="form-control" id="bulkTaskDescription" rows="3" placeholder="Optional description that will be applied to all created tasks"></textarea>
+					</div>
+
+					<div id="bulkTaskPreview" class="alert alert-info">
+						<p class="mb-0">Preview will appear here after clicking "Preview"</p>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-info" id="previewBulkTaskCreate">Preview</button>
+					<button type="button" class="btn btn-success" id="submitBulkTaskCreate">Create Tasks</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Bulk Update Task Modal -->
+	<div class="modal fade" id="bulkUpdateTaskModal" tabindex="-1" aria-labelledby="bulkUpdateTaskModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="bulkUpdateTaskModalLabel">Bulk Update Tasks</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<div class="mb-3">
+						<label class="form-label">Select Tasks to Update</label>
+						<div id="bulkUpdateTaskList" class="border p-3" style="max-height: 200px; overflow-y: auto;">
+							<div class="text-center text-muted">
+								<div class="spinner-border spinner-border-sm" role="status">
+									<span class="visually-hidden">Loading tasks...</span>
+								</div>
+								<p class="mt-2 mb-0">Loading tasks...</p>
+							</div>
+						</div>
+						<div class="form-text">Select the tasks you want to update</div>
+					</div>
+
+					<div class="mb-3">
+						<label for="bulkUpdateTaskStatus" class="form-label">Update Status</label>
+						<select class="form-select" id="bulkUpdateTaskStatus">
+							<option value="">No Change</option>
+							<option value="new">New</option>
+							<option value="ready">Ready</option>
+							<option value="in progress">In Progress</option>
+							<option value="done">Done</option>
+							<option value="archived">Archived</option>
+							<option value="blocked">Blocked</option>
+						</select>
+						<div class="form-text">Leave as "No Change" to keep current status</div>
+					</div>
+
+					<div class="alert alert-warning">
+						<h6 class="alert-heading">⚠️ Warning</h6>
+						<p class="mb-0">This action will update all selected tasks with the chosen settings. This cannot be undone.</p>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary" id="submitBulkTaskUpdate">Update Tasks</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+	<script src="assets/app.js"></script>
+	<script src="assets/taiga.js"></script>
+	<script src="assets/theme.js"></script>
+
+	<script>
+		$(document).ready(function () {
+			const token = localStorage.getItem('taiga_token');
+			const userData = localStorage.getItem('taiga_user');
+
+			if (!token || !userData) {
+				window.location.href = 'login.php';
+				return;
+			}
+
+			const config = <?php echo json_encode(include 'app/configs/taiga.php'); ?>;
+			const apiUrl = localStorage.getItem('taiga_api_url') || config.servers.default.api_url;
+			const user = JSON.parse(userData);
+
+			// Load tasks and filters
+			loadTasks();
+			taigaLoadProjects(apiUrl, token);
+			loadUserStories();
+
+			// Event listeners
+			$('#searchInput').on('input', filterTasks);
+			$('#projectSelect').on('change', filterTasks);
+			$('#userStorySelect').on('change', filterTasks);
+			$('#statusSelect').on('change', filterTasks);
+			$('#refreshBtn').on('click', function () {
+				loadTasks();
+				taigaLoadProjects(apiUrl, token);
+				loadUserStories();
+			});
+
+			$('#selectAllBtn').on('click', function () {
+				$('#tasksContent input[type="checkbox"]').prop('checked', true);
+				updateSelectionCount();
+			});
+
+			$('#clearSelectionBtn').on('click', function () {
+				$('#tasksContent input[type="checkbox"]').prop('checked', false);
+				updateSelectionCount();
+			});
+
+
+
+			// Bulk Task Create functionality (same as in usor.php)
+			$('#bulkCreateTaskModal').on('show.bs.modal', function () {
+				populateBulkCreateTaskDropdowns();
+			});
+
+			$('#previewBulkTaskCreate').on('click', function () {
+				previewBulkTaskCreate();
+			});
+
+			$('#submitBulkTaskCreate').on('click', function () {
+				submitBulkTaskCreate();
+			});
+
+			// Bulk Task Update functionality (same as in usor.php)
+			$('#bulkUpdateTaskModal').on('show.bs.modal', function () {
+				populateBulkUpdateTaskDropdowns();
+			});
+
+			$('#submitBulkTaskUpdate').on('click', function () {
+				submitBulkTaskUpdate();
+			});
+
+			function loadTasks() {
+				$('#tasksContent').html(`
+			<div class="loading-spinner">
+				<div class="spinner-border text-primary" role="status">
+					<span class="visually-hidden">Loading tasks...</span>
+				</div>
+			</div>
+		`);
+
+				$.ajax({
+					url: apiUrl + '/tasks',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json'
+					},
+					success: function (tasks) {
+						displayTasks(tasks);
+					},
+					error: function (xhr) {
+						console.error('Failed to load tasks:', xhr);
+						$('#tasksContent').html(`
+					<div class="alert alert-danger">
+						Unable to load tasks. Please try again.
+					</div>
+				`);
+					}
+				});
+			}
+
+
+			function loadUserStories() {
+				$.ajax({
+					url: apiUrl + '/userstories',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json'
+					},
+					success: function (userStories) {
+						let html = '<option value="">All User Stories</option>';
+						userStories.forEach(us => {
+							html += `<option value="${us.id}">#${us.ref}: ${us.subject}</option>`;
+						});
+						$('#userStorySelect').html(html);
+					},
+					error: function (xhr) {
+						console.error('Failed to load user stories:', xhr);
+					}
+				});
+			}
+
+			function displayTasks(tasks) {
+				$('#totalTasks').text(tasks.length);
+				$('#filteredTasks').text(tasks.length);
+
+				if (tasks.length === 0) {
+					$('#tasksContent').html(`
+				<div class="alert alert-info">
+					No tasks found.
+				</div>
+			`);
+					return;
+				}
+
+				let html = '<div class="row">';
+				tasks.forEach(task => {
+					const statusClass = getStatusClass(task.status);
+					const createdDate = task.created_date ? new Date(task.created_date).toLocaleDateString() : 'Unknown';
+
+					html += `
+				<div class="col-md-6 col-lg-4 mb-3">
+					<div class="card task-card" data-task-id="${task.id}">
+						<div class="card-body">
+							<div class="d-flex justify-content-between align-items-start mb-2">
+								<div class="form-check">
+									<input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" id="task-${task.id}">
+									<label class="form-check-label" for="task-${task.id}"></label>
+								</div>
+								<span class="badge status-badge bg-${statusClass}">
+									${task.status || 'Unknown'}
+								</span>
+							</div>
+							
+							<h6 class="card-title mb-2">${task.subject || 'Untitled Task'}</h6>
+							
+							${task.description ? `
+								<p class="card-text task-description text-muted small mb-2">
+									${task.description}
+								</p>
+							` : ''}
+							
+							<div class="d-flex justify-content-between align-items-center">
+								<small class="text-muted">Ref: #${task.ref}</small>
+								<small class="text-muted">${createdDate}</small>
+							</div>
+							
+							${task.user_story ? `
+								<small class="text-muted d-block mt-2">User Story: #${task.user_story}</small>
+							` : ''}
+							
+							${task.project ? `
+								<small class="text-muted d-block">Project ID: ${task.project}</small>
+							` : ''}
+							
+							<div class="mt-3">
+								<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary">
+									View User Story
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+				});
+				html += '</div>';
+
+				$('#tasksContent').html(html);
+
+				// Add click event to checkboxes
+				$('.task-checkbox').on('change', updateSelectionCount);
+
+				// Add click event to cards (excluding checkbox area)
+				$('.task-card').on('click', function (e) {
+					if (!$(e.target).is('.form-check, .form-check-input, .form-check-label')) {
+						const taskId = $(this).data('task-id');
+						// You could implement a task detail view here
+						console.log('Clicked task:', taskId);
+					}
+				});
+			}
+
+			function filterTasks() {
+				const searchText = $('#searchInput').val().toLowerCase();
+				const projectId = $('#projectSelect').val();
+				const userStoryId = $('#userStorySelect').val();
+				const status = $('#statusSelect').val();
+
+				$.ajax({
+					url: apiUrl + '/tasks',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json'
+					},
+					success: function (tasks) {
+						let filteredTasks = tasks;
+
+						// Apply filters
+						if (searchText) {
+							filteredTasks = filteredTasks.filter(task =>
+								(task.subject && task.subject.toLowerCase().includes(searchText)) ||
+								(task.description && task.description.toLowerCase().includes(searchText))
+							);
+						}
+
+						if (projectId) {
+							filteredTasks = filteredTasks.filter(task => task.project == projectId);
+						}
+
+						if (userStoryId) {
+							filteredTasks = filteredTasks.filter(task => task.user_story == userStoryId);
+						}
+
+						if (status) {
+							filteredTasks = filteredTasks.filter(task => task.status && task.status.toLowerCase() === status);
+						}
+
+						$('#filteredTasks').text(filteredTasks.length);
+						displayTasks(filteredTasks);
+					},
+					error: function (xhr) {
+						console.error('Failed to filter tasks:', xhr);
+					}
+				});
+			}
+
+			function updateSelectionCount() {
+				const selectedCount = $('#tasksContent input:checked').length;
+				$('#selectionCount').text(selectedCount);
+			}
+
+			function getStatusClass(status) {
+				if (!status || typeof status !== 'string') return 'secondary';
+
+				const statusLower = status.toLowerCase();
+				switch (statusLower) {
+					case 'new': return 'new';
+					case 'ready': return 'ready';
+					case 'in progress': return 'in-progress';
+					case 'done': return 'done';
+					case 'archived': return 'archived';
+					case 'blocked': return 'blocked';
+					default: return 'secondary';
+				}
+			}
+
+			// Bulk operations functions (same as in usor.php)
+			function populateBulkCreateTaskDropdowns() {
+				// Populate project dropdown
+				$.ajax({
+					url: apiUrl + '/projects',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json'
+					},
+					success: function (projects) {
+						let html = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							html += `<option value="${project.id}">${project.name}</option>`;
+						});
+						$('#bulkTaskProject').html(html);
+					}
+				});
+
+				// Populate user story dropdown
+				$.ajax({
+					url: apiUrl + '/userstories',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json'
+					},
+					success: function (userStories) {
+						let html = '<option value="">Select User Story</option>';
+						userStories.forEach(us => {
+							html += `<option value="${us.id}">#${us.ref}: ${us.subject}</option>`;
+						});
+						$('#bulkTaskUserStory').html(html);
+					}
+				});
+
+				// Populate status dropdown
+				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
+				let statusHtml = '<option value="">Select Status</option>';
+				statusOptions.forEach(status => {
+					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
+				});
+				$('#bulkTaskStatus').html(statusHtml);
+			}
+
+			function populateBulkUpdateTaskDropdowns() {
+				// Populate status dropdown for bulk update
+				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
+				let statusHtml = '<option value="">No Change</option>';
+				statusOptions.forEach(status => {
+					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
+				});
+				$('#bulkUpdateTaskStatus').html(statusHtml);
+
+				// Load all tasks for selection
+				loadAllTasksForBulkUpdate();
+			}
+
+			function previewBulkTaskCreate() {
+				const taskTitles = $('#bulkTaskTitles').val().trim();
+				if (!taskTitles) {
+					alert('Please enter task titles');
+					return;
+				}
+
+				const taskLines = taskTitles.split('\n').filter(line => line.trim());
+				let previewHtml = `<p>${taskLines.length} tasks will be created:</p>`;
+				previewHtml += '<ul class="list-group">';
+
+				taskLines.forEach((title, index) => {
+					previewHtml += `<li class="list-group-item">${index + 1}. ${title}</li>`;
+				});
+
+				previewHtml += '</ul>';
+				$('#bulkTaskPreview').html(previewHtml);
+			}
+
+			function submitBulkTaskCreate() {
+				const taskTitles = $('#bulkTaskTitles').val().trim();
+				const status = $('#bulkTaskStatus').val();
+				const description = $('#bulkTaskDescription').val().trim();
+				const projectId = $('#bulkTaskProject').val();
+				const userStoryId = $('#bulkTaskUserStory').val();
+
+				if (!taskTitles) {
+					alert('Please enter task titles');
+					return;
+				}
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+
+				if (!userStoryId) {
+					alert('Please select a user story');
+					return;
+				}
+
+				const taskLines = taskTitles.split('\n').filter(line => line.trim());
+				if (taskLines.length === 0) {
+					alert('No valid tasks to create');
+					return;
+				}
+
+				// Create tasks sequentially
+				const promises = taskLines.map((title, index) => {
+					const taskData = {
+						subject: title.trim(),
+						status: status || 'new',
+						description: description,
+						user_story: userStoryId,
+						project: projectId
+					};
+
+					return $.ajax({
+						url: apiUrl + '/tasks',
+						type: 'POST',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json'
+						},
+						data: JSON.stringify(taskData)
+					});
+				});
+
+				// Execute all promises
+				Promise.all(promises)
+					.then(() => {
+						alert(`Successfully created ${taskLines.length} tasks!`);
+						$('#bulkCreateTaskModal').modal('hide');
+						loadTasks(); // Reload tasks list
+					})
+					.catch(error => {
+						console.error('Failed to create tasks:', error);
+						alert('Failed to create some tasks. Please check the console for details.');
+					});
+			}
+
+			function loadAllTasksForBulkUpdate() {
+				// Load all tasks for bulk update selection
+				$.ajax({
+					url: apiUrl + '/tasks',
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json'
+					},
+					success: function (tasks) {
+						let tasksHtml = '';
+						tasks.forEach(task => {
+							tasksHtml += `
+						<div class="form-check">
+							<input class="form-check-input" type="checkbox" value="${task.id}" id="bulk-task-${task.id}">
+							<label class="form-check-label" for="bulk-task-${task.id}">
+								#${task.ref}: ${task.subject}
+							</label>
+						</div>
+					`;
+						});
+						$('#bulkUpdateTaskList').html(tasksHtml || '<p>No tasks available for update.</p>');
+					},
+					error: function (xhr) {
+						console.error('Failed to load tasks:', xhr);
+						$('#bulkUpdateTaskList').html('<p class="text-danger">Failed to load tasks.</p>');
+					}
+				});
+			}
+
+			function submitBulkTaskUpdate() {
+				const selectedTasks = [];
+				$('#bulkUpdateTaskList input:checked').each(function () {
+					selectedTasks.push($(this).val());
+				});
+
+				if (selectedTasks.length === 0) {
+					alert('Please select at least one task to update');
+					return;
+				}
+
+				const updateData = {};
+				const status = $('#bulkUpdateTaskStatus').val();
+
+				if (status) updateData.status = status;
+
+				if (Object.keys(updateData).length === 0) {
+					alert('Please select at least one field to update');
+					return;
+				}
+
+				// Update tasks sequentially
+				const promises = selectedTasks.map(taskId => {
+					return $.ajax({
+						url: apiUrl + '/tasks/' + taskId,
+						type: 'PATCH',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json'
+						},
+						data: JSON.stringify(updateData)
+					});
+				});
+
+				// Execute all promises
+				Promise.all(promises)
+					.then(() => {
+						alert(`Successfully updated ${selectedTasks.length} tasks!`);
+						$('#bulkUpdateTaskModal').modal('hide');
+						loadTasks(); // Reload tasks list
+					})
+					.catch(error => {
+						console.error('Failed to update tasks:', error);
+						alert('Failed to update some tasks. Please check the console for details.');
+					});
+			}
+		});
+	</script>
+
+</body>
+
+</html>

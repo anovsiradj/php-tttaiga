@@ -1,0 +1,4 @@
+/.env
+/app/configs/taiga.*.php
+
+/vendor/

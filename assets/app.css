@@ -1,0 +1,229 @@
+/* Common styles extracted from duplicated CSS across all pages */
+
+/* Base styles */
+:root {
+	--card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	--card-shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-bs-theme="dark"] {
+	--card-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+	--card-shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+body {
+	background-color: var(--bs-body-bg);
+}
+
+.navbar-brand {
+	color: #e4405f !important;
+	font-weight: bold;
+}
+
+/* Loading spinner */
+.loading-spinner {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 300px;
+}
+
+.loading-spinner.large {
+	height: 400px;
+}
+
+/* Card hover effects */
+.project-card,
+.usor-card,
+.epic-card,
+.task-card,
+.user-story-card {
+	transition: transform 0.2s, box-shadow 0.2s;
+	cursor: pointer;
+}
+
+.project-card:hover,
+.usor-card:hover,
+.epic-card:hover,
+.task-card:hover,
+.user-story-card:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--card-shadow-hover);
+}
+
+/* Side border cards */
+.task-card,
+.user-story-card,
+.usor-card {
+	border-left: 4px solid #007bff;
+}
+
+.task-card:hover,
+.user-story-card:hover {
+	transform: translateX(4px);
+}
+
+/* Description truncation */
+.project-description,
+.usor-description,
+.epic-description,
+.task-description {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.project-description {
+	-webkit-line-clamp: 3;
+}
+
+.task-description {
+	-webkit-line-clamp: 2;
+}
+
+.usor-description,
+.epic-description {
+	-webkit-line-clamp: 3;
+}
+
+/* Status badges */
+.status-badge {
+	font-size: 0.75rem;
+	padding: 0.25rem 0.5rem;
+}
+
+.status-badge.large {
+	font-size: 0.9rem;
+	padding: 0.5rem 1rem;
+}
+
+/* Status background colors */
+.bg-new { background-color: #17a2b8; }
+.bg-in-progress { background-color: #007bff; }
+.bg-done { background-color: #28a745; }
+.bg-archived { background-color: #6c757d; }
+.bg-ready { background-color: #6f42c1; }
+.bg-blocked { background-color: #dc3545; }
+
+/* Header sections */
+.project-header,
+.usor-header,
+.epic-header {
+	background: linear-gradient(135deg, var(--header-start) 0%, var(--header-end) 100%);
+	color: white;
+	padding: 2rem 0;
+	margin-bottom: 2rem;
+}
+
+.project-header {
+	--header-start: #667eea;
+	--header-end: #764ba2;
+}
+
+.usor-header {
+	--header-start: #007bff;
+	--header-end: #0056b3;
+}
+
+.epic-header {
+	--header-start: #fd7e14;
+	--header-end: #f76707;
+}
+
+/* Stats cards */
+.stats-card {
+	background: var(--bs-body-bg);
+	border-radius: 8px;
+	padding: 1.5rem;
+	box-shadow: var(--card-shadow);
+	border: 1px solid var(--bs-border-color);
+	height: 100%;
+}
+
+.stat-number {
+	font-size: 2rem;
+	font-weight: bold;
+}
+
+.stat-number.project { color: #e4405f; }
+.stat-number.usor { color: #007bff; }
+.stat-number.epic { color: #fd7e14; }
+
+/* Back buttons */
+.back-btn {
+	color: rgba(255, 255, 255, 0.8);
+	text-decoration: none;
+}
+
+.back-btn:hover {
+	color: white;
+}
+
+.back-btn.dark {
+	color: #6c757d;
+}
+
+.back-btn.dark:hover {
+	color: #495057;
+}
+
+/* Description content */
+.description-content {
+	white-space: pre-wrap;
+	line-height: 1.6;
+}
+
+/* Member avatar */
+.member-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+/* Filter section */
+.filter-section {
+	background: var(--bs-body-bg);
+	border-radius: 8px;
+	padding: 1.5rem;
+	margin-bottom: 1.5rem;
+	box-shadow: var(--card-shadow);
+	border: 1px solid var(--bs-border-color);
+}
+
+/* Login page specific */
+body.login-page {
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.login-card {
+	max-width: 400px;
+	width: 100%;
+	padding: 2rem;
+	box-shadow: var(--card-shadow);
+	background: var(--bs-body-bg);
+	border-radius: 8px;
+	border: 1px solid var(--bs-border-color);
+}
+
+.taiga-logo {
+	color: #e4405f;
+	font-weight: bold;
+	font-size: 2rem;
+	text-align: center;
+	margin-bottom: 1.5rem;
+}
+
+/* Profile card */
+.profile-card {
+	max-width: 600px;
+	margin: 2rem auto;
+	background: var(--bs-body-bg);
+	padding: 2rem;
+	border-radius: 8px;
+	box-shadow: var(--card-shadow);
+	border: 1px solid var(--bs-border-color);
+}
