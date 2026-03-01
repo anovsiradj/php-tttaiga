@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/app/construct.php';
+require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
@@ -218,7 +218,7 @@ require __DIR__ . '/app/construct.php';
 
 				let html = '<div class="row">';
 				issues.forEach(issue => {
-					const statusClass = getStatusClass(issue.status);
+					const statusClass = taigaGetIssueStatusClass(issue.status);
 					const createdDate = issue.created_date ? new Date(issue.created_date).toLocaleDateString() : 'Unknown';
 
 					html += `
@@ -323,21 +323,7 @@ require __DIR__ . '/app/construct.php';
 				$('#selectionCount').text(selectedCount);
 			}
 
-			function getStatusClass(status) {
-				if (!status || typeof status !== 'string') return 'secondary';
 
-				const statusLower = status.toLowerCase();
-				switch (statusLower) {
-					case 'new': return 'info';
-					case 'in progress': return 'warning';
-					case 'ready for test': return 'primary';
-					case 'closed': return 'success';
-					case 'needs info': return 'secondary';
-					case 'rejected': return 'danger';
-					case 'postponed': return 'dark';
-					default: return 'secondary';
-				}
-			}
 		});
 	</script>
 

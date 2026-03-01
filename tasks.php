@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/app/construct.php';
+require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
@@ -338,7 +338,7 @@ require __DIR__ . '/app/construct.php';
 
 				let html = '<div class="row">';
 				tasks.forEach(task => {
-					const statusClass = getStatusClass(task.status);
+					const statusClass = taigaGetStatusClass(task.status);
 					const createdDate = task.created_date ? new Date(task.created_date).toLocaleDateString() : 'Unknown';
 
 					html += `
@@ -453,20 +453,7 @@ require __DIR__ . '/app/construct.php';
 				$('#selectionCount').text(selectedCount);
 			}
 
-			function getStatusClass(status) {
-				if (!status || typeof status !== 'string') return 'secondary';
 
-				const statusLower = status.toLowerCase();
-				switch (statusLower) {
-					case 'new': return 'new';
-					case 'ready': return 'ready';
-					case 'in progress': return 'in-progress';
-					case 'done': return 'done';
-					case 'archived': return 'archived';
-					case 'blocked': return 'blocked';
-					default: return 'secondary';
-				}
-			}
 
 			// Bulk operations functions (same as in usor.php)
 			function populateBulkCreateTaskDropdowns() {

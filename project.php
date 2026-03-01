@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/app/construct.php';
+require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>

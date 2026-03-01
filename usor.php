@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/app/construct.php';
+require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
@@ -118,6 +118,7 @@ require __DIR__ . '/app/construct.php';
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 	<script src="assets/app.js"></script>
+	<script src="assets/taiga.js"></script>
 	<script src="assets/theme.js"></script>
 
 	<script>
@@ -195,7 +196,7 @@ require __DIR__ . '/app/construct.php';
 			}
 
 			function displayUsorHeader(usor) {
-				const statusClass = getStatusClass(usor.status);
+				const statusClass = taigaGetStatusClass(usor.status);
 				const headerHtml = `
 			<h1 class="display-4 mb-2">${usor.subject || 'Untitled Story'}</h1>
 			<p class="lead mb-0">Ref: #${usor.ref}</p>
@@ -291,7 +292,7 @@ require __DIR__ . '/app/construct.php';
 
 				let html = '';
 				tasks.forEach(task => {
-					const statusClass = getStatusClass(task.status);
+					const statusClass = taigaGetStatusClass(task.status);
 					html += `
 				<div class="card task-card mb-2">
 					<div class="card-body py-2">
@@ -353,22 +354,7 @@ require __DIR__ . '/app/construct.php';
 				});
 			}
 
-			function getStatusClass(status) {
-				// Handle null, undefined, or non-string values
-				if (!status) return 'secondary';
 
-				// Convert to string and handle case where status might be a number or other type
-				const statusString = String(status).toLowerCase().trim();
-				switch (statusString) {
-					case 'new': return 'new';
-					case 'ready': return 'ready';
-					case 'in progress': return 'in-progress';
-					case 'done': return 'done';
-					case 'archived': return 'archived';
-					case 'blocked': return 'blocked';
-					default: return 'secondary';
-				}
-			}
 
 			// Bulk Task Create functionality
 			$('#bulkCreateTaskModal').on('show.bs.modal', function () {

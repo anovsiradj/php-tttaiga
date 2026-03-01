@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/app/construct.php';
+require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
@@ -117,6 +117,7 @@ require __DIR__ . '/app/construct.php';
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 	<!-- Theme Script -->
+	<script src="assets/taiga.js"></script>
 	<script src="assets/theme.js"></script>
 	<script src="assets/app.js"></script>
 
@@ -222,7 +223,7 @@ require __DIR__ . '/app/construct.php';
 			}
 
 			function displayEpicHeader(epic) {
-				const statusClass = getStatusClass(epic.status);
+				const statusClass = taigaGetStatusClass(epic.status);
 				const headerHtml = `
 			<h1 class="display-4 mb-2">${epic.subject || 'Untitled Epic'}</h1>
 			<p class="lead mb-0">Ref: #${epic.ref}</p>
@@ -339,20 +340,7 @@ require __DIR__ . '/app/construct.php';
 				$('#epicStoriesContent').html(html);
 			}
 
-			function getStatusClass(status) {
-				switch (status) {
-					case 'new':
-						return 'new';
-					case 'in progress':
-						return 'in-progress';
-					case 'done':
-						return 'done';
-					case 'archived':
-						return 'archived';
-					default:
-						return 'secondary';
-				}
-			}
+
 		});
 	</script>
 

@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/app/construct.php';
+require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
@@ -197,7 +197,7 @@ require __DIR__ . '/app/construct.php';
 
 				let html = '<div class="row">';
 				usors.forEach(usor => {
-					const statusClass = getStatusClass(usor.status);
+					const statusClass = taigaGetStatusClass(usor.status);
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
 					<div class="card usor-card">
@@ -266,22 +266,7 @@ require __DIR__ . '/app/construct.php';
 				});
 			}
 
-			function getStatusClass(status) {
-				// Handle null, undefined, or non-string values
-				if (!status) return 'secondary';
 
-				// Convert to string and handle case where status might be a number or other type
-				const statusString = String(status).toLowerCase().trim();
-				switch (statusString) {
-					case 'new': return 'new';
-					case 'ready': return 'ready';
-					case 'in progress': return 'in-progress';
-					case 'done': return 'done';
-					case 'archived': return 'archived';
-					case 'blocked': return 'blocked';
-					default: return 'secondary';
-				}
-			}
 
 			function viewUsor(usorId) {
 				window.location.href = `usor.php?id=${usorId}`;
