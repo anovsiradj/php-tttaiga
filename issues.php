@@ -22,52 +22,27 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<div class="container mt-4">
-		<div class="d-flex justify-content-between align-items-center mb-4">
-			<h1>Issues</h1>
-			<div class="d-flex">
-				<button class="btn btn-danger me-2" id="bulkDeleteBtn">
-					<i class="bi bi-trash"></i> Bulk Delete
-				</button>
-				<input type="text" class="form-control me-2" id="searchInput" placeholder="Search issues..." style="width: 250px;">
-				<select class="form-select me-2" id="projectSelect" style="width: 200px;">
-					<option value="">All Projects</option>
-				</select>
-				<select class="form-select me-2" id="statusSelect" style="width: 150px;">
-					<option value="">All Statuses</option>
-					<option value="new">New</option>
-					<option value="in progress">In Progress</option>
-					<option value="ready for test">Ready for test</option>
-					<option value="closed">Closed</option>
-					<option value="needs info">Needs Info</option>
-					<option value="rejected">Rejected</option>
-					<option value="postponed">Postponed</option>
-				</select>
-				<button class="btn btn-outline-secondary" id="refreshBtn">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-						<path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-						<path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-					</svg>
-				</button>
-			</div>
-		</div>
+		<?php
+		$pageTitle = 'Issues';
+		$additionalControls = '<button class="btn btn-danger me-2" id="bulkDeleteBtn"><i class="bi bi-trash"></i> Bulk Delete</button>';
+		$searchPlaceholder = 'Search issues...';
+		$statusOptions = [
+			'new' => 'New',
+			'in progress' => 'In Progress',
+			'ready for test' => 'Ready for test',
+			'closed' => 'Closed',
+			'needs info' => 'Needs Info',
+			'rejected' => 'Rejected',
+			'postponed' => 'Postponed'
+		];
+		include __DIR__ . '/app/partials/list_header.php';
 
-		<div class="filter-section">
-			<div class="row">
-				<div class="col-md-3">
-					<strong>Total Issues:</strong> <span id="totalIssues">0</span>
-				</div>
-				<div class="col-md-3">
-					<strong>Filtered:</strong> <span id="filteredIssues">0</span>
-				</div>
-				<div class="col-md-3">
-					<strong>Selected:</strong> <span id="selectionCount">0</span>
-				</div>
-				<div class="col-md-3 text-end">
-					<button class="btn btn-sm btn-outline-secondary me-2" id="selectAllBtn">Select All</button>
-					<button class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn">Clear Selection</button>
-				</div>
-			</div>
-		</div>
+		$totalLabel = 'Total Issues';
+		$totalId = 'totalIssues';
+		$filteredId = 'filteredIssues';
+		$selectionCountId = 'selectionCount';
+		include __DIR__ . '/app/partials/list_status.php';
+		?>
 
 		<div id="issuesContent">
 			<div class="loading-spinner">

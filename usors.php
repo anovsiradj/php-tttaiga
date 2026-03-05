@@ -22,45 +22,15 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<div class="container mt-4">
-		<div class="d-flex justify-content-between align-items-center mb-4">
-			<h1>Usors</h1>
-			<div class="d-flex">
-				<button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
-						<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-					</svg>
-					Bulk Create
-				</button>
-				<button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
-						<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
-					</svg>
-					Bulk Update
-				</button>
-				<input type="text" class="form-control me-2" id="searchInput" placeholder="Search user stories..." style="width: 250px;">
-				<select class="form-select me-2" id="projectSelect" style="width: 200px;">
-					<option value="">All Projects</option>
-				</select>
-				<select class="form-select me-2" id="epicSelect" style="width: 200px;">
-					<option value="">All Epics</option>
-				</select>
-				<select class="form-select me-2" id="statusSelect" style="width: 150px;">
-					<option value="">All Statuses</option>
-					<option value="new">New</option>
-					<option value="ready">Ready</option>
-					<option value="in progress">In Progress</option>
-					<option value="done">Done</option>
-					<option value="archived">Archived</option>
-					<option value="blocked">Blocked</option>
-				</select>
-				<button class="btn btn-outline-secondary" id="refreshBtn">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-						<path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-						<path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-					</svg>
-				</button>
-			</div>
-		</div>
+		<?php
+		$pageTitle = 'Usors';
+		$bulkCreateModalId = 'bulkCreateModal';
+		$bulkUpdateModalId = 'bulkUpdateModal';
+		$searchPlaceholder = 'Search user stories...';
+		$epicSelect = true;
+		$extendedStatuses = true;
+		include __DIR__ . '/app/partials/list_header.php';
+		?>
 
 		<div id="usorsContent">
 			<div class="loading-spinner">
@@ -70,6 +40,7 @@ require __DIR__ . '/app/init.php';
 			</div>
 		</div>
 	</div>
+
 
 	<!-- jQuery and Bootstrap JS -->
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -217,10 +188,7 @@ require __DIR__ . '/app/init.php';
 						</div>
 						<div class="d-flex justify-content-end">
 							<a href="usor.php?id=${usor.id}" class="btn btn-primary btn-sm">
-								<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="me-1">
-									<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-									<path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-								</svg>
+								<i class="bi bi-eye me-1"></i>
 								View
 							</a>
 						</div>

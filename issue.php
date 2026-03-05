@@ -20,22 +20,13 @@ require __DIR__ . '/app/init.php';
 <body>
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
-	<div class="epic-header py-4 mb-4 border-bottom">
-		<div class="container">
-			<a href="issues.php" class="back-btn mb-3 d-inline-block">
-				<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-					<path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z" />
-				</svg> Back to Issues
-			</a>
-			<div id="issueHeaderContent">
-				<div class="loading-spinner">
-					<div class="spinner-border text-light" role="status">
-						<span class="visually-hidden">Loading issue...</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php
+	$backUrl = 'issues.php';
+	$backLabel = 'Back to Issues';
+	$headerId = 'issueHeaderContent';
+	$loadingLabel = 'Loading issue...';
+	include __DIR__ . '/app/partials/item_header.php';
+	?>
 
 	<div class="container pb-5">
 		<div class="row">

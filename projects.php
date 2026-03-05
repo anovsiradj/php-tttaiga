@@ -22,23 +22,17 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<div class="container mt-4">
-		<div class="d-flex justify-content-between align-items-center mb-4">
-			<h1>My Projects</h1>
-			<div class="d-flex">
-				<input type="text" class="form-control me-2" id="searchInput" placeholder="Search projects..." style="width: 250px;">
-				<select class="form-select me-2" id="sortSelect" style="width: 150px;">
-					<option value="name">Sort by Name</option>
-					<option value="created_date">Sort by Created</option>
-					<option value="modified_date">Sort by Modified</option>
-				</select>
-				<button class="btn btn-outline-secondary" id="refreshBtn">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-						<path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-						<path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-					</svg>
-				</button>
-			</div>
-		</div>
+		<?php
+		$pageTitle = 'My Projects';
+		$searchPlaceholder = 'Search projects...';
+		$additionalControls = '
+		<select class="form-select me-2" id="sortSelect" style="width: 150px;">
+			<option value="name">Sort by Name</option>
+			<option value="created_date">Sort by Created</option>
+			<option value="modified_date">Sort by Modified</option>
+		</select>';
+		include __DIR__ . '/app/partials/list_header.php';
+		?>
 
 		<div id="projectsContent">
 			<div class="loading-spinner">

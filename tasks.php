@@ -22,60 +22,20 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<div class="container mt-4">
-		<div class="d-flex justify-content-between align-items-center mb-4">
-			<h1>Tasks</h1>
-			<div class="d-flex">
-				<button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
-						<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-					</svg>
-					Bulk Create
-				</button>
-				<button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
-						<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
-					</svg>
-					Bulk Update
-				</button>
-				<input type="text" class="form-control me-2" id="searchInput" placeholder="Search tasks..." style="width: 250px;">
-				<select class="form-select me-2" id="projectSelect" style="width: 200px;">
-					<option value="">All Projects</option>
-				</select>
-				<select class="form-select me-2" id="userStorySelect" style="width: 200px;">
-					<option value="">All User Stories</option>
-				</select>
-				<select class="form-select me-2" id="statusSelect" style="width: 150px;">
-					<option value="">All Statuses</option>
-					<option value="new">New</option>
-					<option value="ready">Ready</option>
-					<option value="in progress">In Progress</option>
-					<option value="done">Done</option>
-					<option value="archived">Archived</option>
-					<option value="blocked">Blocked</option>
-				</select>
-				<button class="btn btn-outline-secondary" id="refreshBtn">
-					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-						<path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-						<path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-					</svg>
-				</button>
-			</div>
-		</div>
+		<?php
+		$pageTitle = 'Tasks';
+		$bulkCreateModalId = 'bulkCreateTaskModal';
+		$bulkUpdateModalId = 'bulkUpdateTaskModal';
+		$searchPlaceholder = 'Search tasks...';
+		$userStorySelect = true;
+		$extendedStatuses = true;
+		include __DIR__ . '/app/partials/list_header.php';
 
-		<div class="filter-section">
-			<div class="row">
-				<div class="col-md-3">
-					<strong>Total Tasks:</strong> <span id="totalTasks">0</span>
-				</div>
-				<div class="col-md-3">
-					<strong>Filtered:</strong> <span id="filteredTasks">0</span>
-				</div>
-				<div class="col-md-6 text-end">
-					<button class="btn btn-sm btn-outline-secondary me-2" id="selectAllBtn">Select All</button>
-					<button class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn">Clear Selection</button>
-				</div>
-			</div>
-		</div>
+		$totalLabel = 'Total Tasks';
+		$totalId = 'totalTasks';
+		$filteredId = 'filteredTasks';
+		include __DIR__ . '/app/partials/list_status.php';
+		?>
 
 		<div id="tasksContent">
 			<div class="loading-spinner">

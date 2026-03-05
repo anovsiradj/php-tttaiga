@@ -21,23 +21,13 @@ require __DIR__ . '/app/init.php';
 
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
-	<div class="project-header">
-		<div class="container">
-			<a href="projects.php" class="back-btn">
-				<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-					<path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z" />
-				</svg>
-				Back to Projects
-			</a>
-			<div id="projectHeaderContent">
-				<div class="loading-spinner">
-					<div class="spinner-border text-light" role="status">
-						<span class="visually-hidden">Loading project...</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php
+	$backUrl = 'projects.php';
+	$backLabel = 'Back to Projects';
+	$headerId = 'projectHeaderContent';
+	$loadingLabel = 'Loading project...';
+	include __DIR__ . '/app/partials/item_header.php';
+	?>
 
 	<div class="container">
 		<div class="row">
