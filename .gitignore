@@ -2,3 +2,4 @@
 /app/configs/taiga.*.php
 
 /vendor/
+/web/assets/
