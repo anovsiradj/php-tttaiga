@@ -43,6 +43,12 @@ require __DIR__ . '/app/init.php';
 				</div>
 			</div>
 		</div>
+
+		<nav aria-label="Epics pagination" class="mt-4">
+			<ul class="pagination justify-content-center" id="epicsPagination">
+				<!-- Pagination items will be injected here -->
+			</ul>
+		</nav>
 	</div>
 
 	<!-- jQuery and Bootstrap JS -->
@@ -81,16 +87,20 @@ require __DIR__ . '/app/init.php';
 				loadProjectsAndEpics();
 			});
 
+			let searchTimeout;
 			$('#searchInput').on('input', function () {
-				filterEpics();
+				clearTimeout(searchTimeout);
+				searchTimeout = setTimeout(function () {
+					loadEpics(1);
+				}, 500);
 			});
 
 			$('#projectSelect').on('change', function () {
-				filterEpics();
+				loadEpics(1);
 			});
 
 			$('#statusSelect').on('change', function () {
-				filterEpics();
+				loadEpics(1);
 			});
 
 			// Bulk Create Epic functionality
@@ -141,18 +151,36 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-			function loadEpics() {
+			function loadEpics(page = 1) {
+				const searchTerm = $('#searchInput').val().trim();
+				const projectId = $('#projectSelect').val();
+				const status = $('#statusSelect').val();
+				
+				const params = { page: page };
+				
+				if (searchTerm) {
+					params.q = searchTerm;
+				}
+				if (projectId) {
+					params.project = projectId;
+				}
+				if (status) {
+					params.status = status;
+				}
+				
 				// Load epics for all projects
 				$.ajax({
 					url: apiUrl + '/epics',
 					type: 'GET',
+					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
 						'Content-Type': 'application/json'
 					},
-					success: function (epics) {
+					success: function (epics, status, xhr) {
 						allEpics = epics;
 						displayEpics(epics);
+						taigaRenderPagination(xhr, '#epicsPagination', loadEpics);
 					},
 					error: function (xhr) {
 						console.error('Failed to load epics:', xhr);
@@ -162,6 +190,7 @@ require __DIR__ . '/app/init.php';
 						<button class="btn btn-sm btn-outline-danger ms-2" onclick="loadEpics()">Retry</button>
 					</div>
 				`);
+						$('#epicsPagination').empty();
 					}
 				});
 			}
@@ -244,38 +273,7 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-			function filterEpics() {
-				const searchTerm = $('#searchInput').val().toLowerCase();
-				const projectId = $('#projectSelect').val();
-				const status = $('#statusSelect').val();
-
-				$('.epic-card').each(function () {
-					const epicSubject = $(this).find('.card-title').text().toLowerCase();
-					const epicDesc = $(this).find('.epic-description').text().toLowerCase();
-					const cardProjectId = $(this).data('project-id');
-					const cardStatus = $(this).data('status');
-
-					let show = true;
-
-					if (searchTerm && !epicSubject.includes(searchTerm) && !epicDesc.includes(searchTerm)) {
-						show = false;
-					}
-
-					if (projectId && cardProjectId != projectId) {
-						show = false;
-					}
-
-					if (status && cardStatus !== status) {
-						show = false;
-					}
-
-					if (show) {
-						$(this).parent().show();
-					} else {
-						$(this).parent().hide();
-					}
-				});
-			}
+			// Local filter function removed as filtering is now done via API.
 
 
 

@@ -7,7 +7,11 @@
  * $searchPlaceholder - Placeholder for the search input
  * $additionalControls - (Optional) Extra HTML for the actions bar
  */
+
+$filterProjectEnable ??= true;
+$filterStatusEnable ??= true;
 ?>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
 	<h1>
 		<?php echo $pageTitle; ?>
@@ -32,9 +36,11 @@
 
 		<input type="text" class="form-control me-2" id="searchInput" placeholder="<?php echo $searchPlaceholder; ?>" style="width: 250px;">
 
-		<select class="form-select me-2" id="projectSelect" style="width: 200px;">
-			<option value="">All Projects</option>
-		</select>
+		<?php if ($filterProjectEnable) { ?>
+			<select class="form-select me-2" id="projectSelect" style="width: 200px;">
+				<option value="">All Projects</option>
+			</select>
+		<?php } ?>
 
 		<?php if (isset($epicSelect) && $epicSelect): ?>
 			<select class="form-select me-2" id="epicSelect" style="width: 200px;">
@@ -48,23 +54,25 @@
 			</select>
 		<?php endif; ?>
 
-		<select class="form-select me-2" id="statusSelect" style="width: 150px;">
-			<option value="">All Statuses</option>
-			<?php if (isset($statusOptions)) {
-				foreach ($statusOptions as $val => $label) {
-					echo "<option value=\"$val\">$label</option>";
-				}
-			} else { ?>
-				<option value="new">New</option>
-				<option value="ready">Ready</option>
-				<option value="in progress">In Progress</option>
-				<option value="done">Done</option>
-				<?php if (isset($extendedStatuses)): ?>
-					<option value="archived">Archived</option>
-					<option value="blocked">Blocked</option>
-				<?php endif; ?>
-			<?php } ?>
-		</select>
+		<?php if ($filterStatusEnable) { ?>
+			<select class="form-select me-2" id="statusSelect" style="width: 150px;">
+				<option value="">All Statuses</option>
+				<?php if (isset($statusOptions)) {
+					foreach ($statusOptions as $val => $label) {
+						echo "<option value=\"$val\">$label</option>";
+					}
+				} else { ?>
+					<option value="new">New</option>
+					<option value="ready">Ready</option>
+					<option value="in progress">In Progress</option>
+					<option value="done">Done</option>
+					<?php if (isset($extendedStatuses)): ?>
+						<option value="archived">Archived</option>
+						<option value="blocked">Blocked</option>
+					<?php endif; ?>
+				<?php } ?>
+			</select>
+		<?php } ?>
 
 		<button class="btn btn-outline-secondary" id="refreshBtn">
 			<i class="bi bi-arrow-clockwise"></i>

@@ -1,5 +1,19 @@
 <?php
+
 require __DIR__ . '/app/init.php';
+
+$pageTitle = 'My Projects';
+$searchPlaceholder = 'Search projects...';
+$additionalControls = '
+<select class="form-select me-2" id="sortSelect" style="width: 150px;">
+	<option value="name">Sort by Name</option>
+	<option value="created_date">Sort by Created</option>
+	<option value="modified_date">Sort by Modified</option>
+</select>';
+
+$filterProjectEnable = false;
+$filterStatusEnable = false;
+
 ?>
 
 <!DOCTYPE html>
@@ -22,17 +36,7 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<div class="container mt-4">
-		<?php
-		$pageTitle = 'My Projects';
-		$searchPlaceholder = 'Search projects...';
-		$additionalControls = '
-		<select class="form-select me-2" id="sortSelect" style="width: 150px;">
-			<option value="name">Sort by Name</option>
-			<option value="created_date">Sort by Created</option>
-			<option value="modified_date">Sort by Modified</option>
-		</select>';
-		include __DIR__ . '/app/partials/list_header.php';
-		?>
+		<?php include __DIR__ . '/app/partials/list_header.php' ?>
 
 		<div id="projectsContent">
 			<div class="loading-spinner">
@@ -41,12 +45,19 @@ require __DIR__ . '/app/init.php';
 				</div>
 			</div>
 		</div>
+
+		<nav aria-label="Projects pagination" class="mt-4">
+			<ul class="pagination justify-content-center" id="projectsPagination">
+				<!-- Pagination items will be injected here -->
+			</ul>
+		</nav>
 	</div>
 
 	<!-- jQuery and Bootstrap JS -->
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+	<script src="assets/taiga.js"></script>
 	<script src="assets/app.js"></script>
 	<script src="assets/theme.js"></script>
 
@@ -76,26 +87,46 @@ require __DIR__ . '/app/init.php';
 				loadProjects();
 			});
 
+			let searchTimeout;
 			$('#searchInput').on('input', function () {
-				filterProjects();
+				clearTimeout(searchTimeout);
+				searchTimeout = setTimeout(function () {
+					loadProjects(1);
+				}, 500);
 			});
 
 			$('#sortSelect').on('change', function () {
 				sortProjects();
 			});
 
-			function loadProjects() {
+			function loadProjects(page = 1) {
+				const searchTerm = $('#searchInput').val().trim();
+				const sortBy = $('#sortSelect').val();
+				const params = {
+					page: page
+				};
+
+				if (searchTerm) {
+					params.q = searchTerm;
+				}
+
+				if (sortBy) {
+					params.order_by = sortBy;
+				}
+
 				// Load projects first (using direct API as it might not have CORS issues)
 				$.ajax({
 					url: apiUrl + '/projects',
 					type: 'GET',
+					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
 						'Content-Type': 'application/json'
 					},
-					success: function (projects) {
+					success: function (projects, status, xhr) {
 						allProjects = projects;
 						displayProjects(projects);
+						taigaRenderPagination(xhr, '#projectsPagination', loadProjects);
 					},
 					error: function (xhr) {
 						console.error('Failed to load projects:', xhr);
@@ -103,14 +134,16 @@ require __DIR__ . '/app/init.php';
 						$.ajax({
 							url: 'api.php/projects',
 							type: 'GET',
+							data: params,
 							headers: {
 								'Authorization': 'Bearer ' + token,
 								'Content-Type': 'application/json',
 								'X-Taiga-Api-Url': apiUrl
 							},
-							success: function (projects) {
+							success: function (projects, status, xhr) {
 								allProjects = projects;
 								displayProjects(projects);
+								taigaRenderPagination(xhr, '#projectsPagination', loadProjects);
 							},
 							error: function (fallbackXhr) {
 								$('#projectsContent').html(`
@@ -119,6 +152,7 @@ require __DIR__ . '/app/init.php';
 								<button class="btn btn-sm btn-outline-danger ms-2" onclick="loadProjects()">Retry</button>
 							</div>
 						`);
+								$('#projectsPagination').empty();
 							}
 						});
 					}
@@ -181,26 +215,7 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-			function filterProjects() {
-				const searchTerm = $('#searchInput').val().toLowerCase();
-
-				$('.project-card').each(function () {
-					const projectName = $(this).find('.card-title').text().toLowerCase();
-					const projectDesc = $(this).find('.project-description').text().toLowerCase();
-
-					let show = true;
-
-					if (searchTerm && !projectName.includes(searchTerm) && !projectDesc.includes(searchTerm)) {
-						show = false;
-					}
-
-					if (show) {
-						$(this).parent().show();
-					} else {
-						$(this).parent().hide();
-					}
-				});
-			}
+			// filterProjects function removed as search is now server-side
 
 			function sortProjects() {
 				const sortBy = $('#sortSelect').val();

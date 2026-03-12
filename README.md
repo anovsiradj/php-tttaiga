@@ -1,6 +1,8 @@
-https://docs.taiga.io/api.html
+# TTTaiga
 
-# assets
+dokumentasi API resmi: https://docs.taiga.io/api.html
+
+## assets
 
 karena belum pakai `deno bundle` jadi untuk sekarang pakai symlink dulu.
 

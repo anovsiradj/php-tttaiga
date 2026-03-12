@@ -44,6 +44,12 @@ require __DIR__ . '/app/init.php';
 				</div>
 			</div>
 		</div>
+
+		<nav aria-label="Tasks pagination" class="mt-4">
+			<ul class="pagination justify-content-center" id="tasksPagination">
+				<!-- Pagination items will be injected here -->
+			</ul>
+		</nav>
 	</div>
 
 	<!-- Bulk Create Task Modal -->
@@ -163,8 +169,8 @@ require __DIR__ . '/app/init.php';
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-	<script src="assets/app.js"></script>
 	<script src="assets/taiga.js"></script>
+	<script src="assets/app.js"></script>
 	<script src="assets/theme.js"></script>
 
 	<script>
@@ -187,12 +193,18 @@ require __DIR__ . '/app/init.php';
 			loadUserStories();
 
 			// Event listeners
-			$('#searchInput').on('input', filterTasks);
-			$('#projectSelect').on('change', filterTasks);
-			$('#userStorySelect').on('change', filterTasks);
-			$('#statusSelect').on('change', filterTasks);
+			let searchTimeout;
+			$('#searchInput').on('input', function () {
+				clearTimeout(searchTimeout);
+				searchTimeout = setTimeout(function () {
+					loadTasks(1);
+				}, 500);
+			});
+			$('#projectSelect').on('change', function() { loadTasks(1); });
+			$('#userStorySelect').on('change', function() { loadTasks(1); });
+			$('#statusSelect').on('change', function() { loadTasks(1); });
 			$('#refreshBtn').on('click', function () {
-				loadTasks();
+				loadTasks(1);
 				taigaLoadProjects(apiUrl, token);
 				loadUserStories();
 			});
@@ -231,7 +243,27 @@ require __DIR__ . '/app/init.php';
 				submitBulkTaskUpdate();
 			});
 
-			function loadTasks() {
+			function loadTasks(page = 1) {
+				const searchTerm = $('#searchInput').val().trim();
+				const projectId = $('#projectSelect').val();
+				const userStoryId = $('#userStorySelect').val();
+				const status = $('#statusSelect').val();
+
+				const params = { page: page };
+				
+				if (searchTerm) {
+					params.q = searchTerm;
+				}
+				if (projectId) {
+					params.project = projectId;
+				}
+				if (userStoryId) {
+					params.user_story = userStoryId;
+				}
+				if (status) {
+					params.status = status;
+				}
+				
 				$('#tasksContent').html(`
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
@@ -243,12 +275,14 @@ require __DIR__ . '/app/init.php';
 				$.ajax({
 					url: apiUrl + '/tasks',
 					type: 'GET',
+					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
 						'Content-Type': 'application/json'
 					},
-					success: function (tasks) {
+					success: function (tasks, status, xhr) {
 						displayTasks(tasks);
+						taigaRenderPagination(xhr, '#tasksPagination', loadTasks);
 					},
 					error: function (xhr) {
 						console.error('Failed to load tasks:', xhr);
@@ -257,6 +291,7 @@ require __DIR__ . '/app/init.php';
 						Unable to load tasks. Please try again.
 					</div>
 				`);
+						$('#tasksPagination').empty();
 					}
 				});
 			}
@@ -363,50 +398,7 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-			function filterTasks() {
-				const searchText = $('#searchInput').val().toLowerCase();
-				const projectId = $('#projectSelect').val();
-				const userStoryId = $('#userStorySelect').val();
-				const status = $('#statusSelect').val();
-
-				$.ajax({
-					url: apiUrl + '/tasks',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (tasks) {
-						let filteredTasks = tasks;
-
-						// Apply filters
-						if (searchText) {
-							filteredTasks = filteredTasks.filter(task =>
-								(task.subject && task.subject.toLowerCase().includes(searchText)) ||
-								(task.description && task.description.toLowerCase().includes(searchText))
-							);
-						}
-
-						if (projectId) {
-							filteredTasks = filteredTasks.filter(task => task.project == projectId);
-						}
-
-						if (userStoryId) {
-							filteredTasks = filteredTasks.filter(task => task.user_story == userStoryId);
-						}
-
-						if (status) {
-							filteredTasks = filteredTasks.filter(task => task.status && task.status.toLowerCase() === status);
-						}
-
-						$('#filteredTasks').text(filteredTasks.length);
-						displayTasks(filteredTasks);
-					},
-					error: function (xhr) {
-						console.error('Failed to filter tasks:', xhr);
-					}
-				});
-			}
+			// Local filter function removed as filtering is now done via API.
 
 			function updateSelectionCount() {
 				const selectedCount = $('#tasksContent input:checked').length;

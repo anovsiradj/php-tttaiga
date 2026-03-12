@@ -11,6 +11,7 @@ require __DIR__ . '/vendor/autoload.php';
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Taiga-Api-Url');
+header('Access-Control-Expose-Headers: *');
 header('Content-Type: application/json');
 
 // Handle preflight requests
@@ -84,6 +85,13 @@ if (curl_errno($curl->handle)) {
 
 // Get HTTP status code
 http_response_code($curl->code());
+
+// Forward X-* headers
+foreach ($curl->resHeaders as $header) {
+    if (stripos($header, 'X-') === 0) {
+        header($header);
+    }
+}
 
 // Forward the response
 echo $curl->data;

@@ -39,6 +39,12 @@ require __DIR__ . '/app/init.php';
 				</div>
 			</div>
 		</div>
+
+		<nav aria-label="User Stories pagination" class="mt-4">
+			<ul class="pagination justify-content-center" id="usorsPagination">
+				<!-- Pagination items will be injected here -->
+			</ul>
+		</nav>
 	</div>
 
 
@@ -70,12 +76,18 @@ require __DIR__ . '/app/init.php';
 			loadEpics();
 
 			// Event listeners
-			$('#searchInput').on('input', filterUsors);
-			$('#projectSelect').on('change', filterUsors);
-			$('#epicSelect').on('change', filterUsors);
-			$('#statusSelect').on('change', filterUsors);
+			let searchTimeout;
+			$('#searchInput').on('input', function () {
+				clearTimeout(searchTimeout);
+				searchTimeout = setTimeout(function () {
+					loadUsors(1);
+				}, 500);
+			});
+			$('#projectSelect').on('change', function() { loadUsors(1); });
+			$('#epicSelect').on('change', function() { loadUsors(1); });
+			$('#statusSelect').on('change', function() { loadUsors(1); });
 			$('#refreshBtn').on('click', function () {
-				loadUsors();
+				loadUsors(1);
 				taigaLoadProjects(apiUrl, token);
 				loadEpics();
 			});
@@ -104,7 +116,27 @@ require __DIR__ . '/app/init.php';
 				submitBulkUpdate();
 			});
 
-			function loadUsors() {
+			function loadUsors(page = 1) {
+				const searchTerm = $('#searchInput').val().trim();
+				const projectId = $('#projectSelect').val();
+				const epicId = $('#epicSelect').val();
+				const status = $('#statusSelect').val();
+
+				const params = { page: page };
+				
+				if (searchTerm) {
+					params.q = searchTerm;
+				}
+				if (projectId) {
+					params.project = projectId;
+				}
+				if (epicId) {
+					params.epic = epicId;
+				}
+				if (status) {
+					params.status = status;
+				}
+				
 				$('#usorsContent').html(`
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
@@ -116,12 +148,14 @@ require __DIR__ . '/app/init.php';
 				$.ajax({
 					url: apiUrl + '/userstories',
 					type: 'GET',
+					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
 						'Content-Type': 'application/json'
 					},
-					success: function (usors) {
+					success: function (usors, status, xhr) {
 						displayUsors(usors);
+						taigaRenderPagination(xhr, '#usorsPagination', loadUsors);
 					},
 					error: function (xhr) {
 						console.error('Failed to load user stories:', xhr);
@@ -130,6 +164,7 @@ require __DIR__ . '/app/init.php';
 						Unable to load user stories. Please try again.
 					</div>
 				`);
+						$('#usorsPagination').empty();
 					}
 				});
 			}
@@ -202,37 +237,7 @@ require __DIR__ . '/app/init.php';
 				$('#usorsContent').html(html);
 			}
 
-			function filterUsors() {
-				const searchText = $('#searchInput').val().toLowerCase();
-				const projectId = $('#projectSelect').val();
-				const epicId = $('#epicSelect').val();
-				const status = $('#statusSelect').val();
-
-				$.ajax({
-					url: apiUrl + '/userstories',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (usors) {
-						let filteredUsors = usors.filter(usor => {
-							const matchesSearch = !searchText ||
-								(usor.subject && usor.subject.toLowerCase().includes(searchText)) ||
-								(usor.description && usor.description.toLowerCase().includes(searchText));
-							const matchesProject = !projectId || usor.project == projectId;
-							const matchesEpic = !epicId || usor.epic == epicId;
-							const matchesStatus = !status || (usor.status && usor.status.toLowerCase() === status.toLowerCase());
-
-							return matchesSearch && matchesProject && matchesEpic && matchesStatus;
-						});
-						displayUsors(filteredUsors);
-					},
-					error: function (xhr) {
-						console.error('Failed to filter user stories:', xhr);
-					}
-				});
-			}
+			// Local filter function removed as filtering is now done via API.
 
 
 

@@ -51,15 +51,21 @@ require __DIR__ . '/app/init.php';
 				</div>
 			</div>
 		</div>
+
+		<nav aria-label="Issues pagination" class="mt-4">
+			<ul class="pagination justify-content-center" id="issuesPagination">
+				<!-- Pagination items will be injected here -->
+			</ul>
+		</nav>
 	</div>
 
 	<!-- jQuery and Bootstrap JS -->
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+	<script src="assets/taiga.js"></script>
 	<script src="assets/app.js"></script>
 	<script src="assets/theme.js"></script>
-	<script src="assets/taiga.js"></script>
 
 	<script>
 		$(document).ready(function () {
@@ -79,11 +85,17 @@ require __DIR__ . '/app/init.php';
 			taigaLoadProjects(apiUrl, token);
 
 			// Event listeners
-			$('#searchInput').on('input', filterIssues);
-			$('#projectSelect').on('change', filterIssues);
-			$('#statusSelect').on('change', filterIssues);
+			let searchTimeout;
+			$('#searchInput').on('input', function () {
+				clearTimeout(searchTimeout);
+				searchTimeout = setTimeout(function () {
+					loadIssues(1);
+				}, 500);
+			});
+			$('#projectSelect').on('change', function() { loadIssues(1); });
+			$('#statusSelect').on('change', function() { loadIssues(1); });
 			$('#refreshBtn').on('click', function () {
-				loadIssues();
+				loadIssues(1);
 				taigaLoadProjects(apiUrl, token);
 			});
 
@@ -147,7 +159,23 @@ require __DIR__ . '/app/init.php';
 					});
 			});
 
-			function loadIssues() {
+			function loadIssues(page = 1) {
+				const searchTerm = $('#searchInput').val().trim();
+				const projectId = $('#projectSelect').val();
+				const status = $('#statusSelect').val();
+
+				const params = { page: page };
+				
+				if (searchTerm) {
+					params.q = searchTerm;
+				}
+				if (projectId) {
+					params.project = projectId;
+				}
+				if (status) {
+					params.status = status;
+				}
+				
 				$('#issuesContent').html(`
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
@@ -159,12 +187,14 @@ require __DIR__ . '/app/init.php';
 				$.ajax({
 					url: apiUrl + '/issues',
 					type: 'GET',
+					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
 						'Content-Type': 'application/json'
 					},
-					success: function (issues) {
+					success: function (issues, status, xhr) {
 						displayIssues(issues);
+						taigaRenderPagination(xhr, '#issuesPagination', loadIssues);
 					},
 					error: function (xhr) {
 						console.error('Failed to load issues:', xhr);
@@ -173,6 +203,7 @@ require __DIR__ . '/app/init.php';
 						Unable to load issues. Please try again.
 					</div>
 				`);
+						$('#issuesPagination').empty();
 					}
 				});
 			}
@@ -251,47 +282,7 @@ require __DIR__ . '/app/init.php';
 				$('.issue-checkbox').on('change', updateSelectionCount);
 			}
 
-			function filterIssues() {
-				const searchText = $('#searchInput').val().toLowerCase();
-				const projectId = $('#projectSelect').val();
-				const status = $('#statusSelect').val();
-
-				$.ajax({
-					url: apiUrl + '/issues',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (issues) {
-						let filteredIssues = issues;
-
-						// Apply filters
-						if (searchText) {
-							filteredIssues = filteredIssues.filter(issue =>
-								(issue.subject && issue.subject.toLowerCase().includes(searchText)) ||
-								(issue.description && issue.description.toLowerCase().includes(searchText)) ||
-								(issue.ref && issue.ref.toString().includes(searchText))
-							);
-						}
-
-						if (projectId) {
-							filteredIssues = filteredIssues.filter(issue => issue.project == projectId);
-						}
-
-						if (status) {
-							filteredIssues = filteredIssues.filter(issue => issue.status && issue.status.toLowerCase() === status);
-						}
-
-						$('#filteredIssues').text(filteredIssues.length);
-						displayIssues(filteredIssues);
-						updateSelectionCount();
-					},
-					error: function (xhr) {
-						console.error('Failed to filter issues:', xhr);
-					}
-				});
-			}
+			// Local filter function removed as filtering is now done via API.
 
 			function updateSelectionCount() {
 				const selectedCount = $('#issuesContent input.issue-checkbox:checked').length;
