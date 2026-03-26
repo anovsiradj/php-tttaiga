@@ -24,17 +24,9 @@ require __DIR__ . '/app/init.php';
 	<div class="container mt-4">
 		<?php
 		$pageTitle = 'Issues';
+		$statusType = 'issue';
 		$additionalControls = '<button class="btn btn-danger me-2" id="bulkDeleteBtn"><i class="bi bi-trash"></i> Bulk Delete</button>';
 		$searchPlaceholder = 'Search issues...';
-		$statusOptions = [
-			'new' => 'New',
-			'in progress' => 'In Progress',
-			'ready for test' => 'Ready for test',
-			'closed' => 'Closed',
-			'needs info' => 'Needs Info',
-			'rejected' => 'Rejected',
-			'postponed' => 'Postponed'
-		];
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Issues';
@@ -224,21 +216,20 @@ require __DIR__ . '/app/init.php';
 
 				let html = '<div class="row">';
 				issues.forEach(issue => {
-					const statusClass = taigaGetIssueStatusClass(issue.status);
+					const statusInfo = taigaGetStatusInfo(issue);
+					const statusBadge = taigaRenderStatusBadge(statusInfo);
 					const createdDate = issue.created_date ? new Date(issue.created_date).toLocaleDateString() : 'Unknown';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card issue-card" data-issue-id="${issue.id}">
+					<div class="card issue-card h-100" data-issue-id="${issue.id}">
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
 									<input class="form-check-input issue-checkbox" type="checkbox" value="${issue.id}" id="issue-${issue.id}">
 									<label class="form-check-label" for="issue-${issue.id}"></label>
 								</div>
-								<span class="badge status-badge bg-${statusClass}">
-									${issue.status || 'Unknown'}
-								</span>
+								${statusBadge}
 							</div>
 							
 							<h6 class="card-title mb-2">${issue.subject || 'Untitled Issue'}</h6>

@@ -55,22 +55,8 @@ $filterStatusEnable ??= true;
 		<?php endif; ?>
 
 		<?php if ($filterStatusEnable) { ?>
-			<select class="form-select me-2" id="statusSelect" style="width: 150px;">
+			<select class="form-select me-2" id="statusSelect" style="width: 150px;" data-status-type="<?php echo $statusType ?? ''; ?>">
 				<option value="">All Statuses</option>
-				<?php if (isset($statusOptions)) {
-					foreach ($statusOptions as $val => $label) {
-						echo "<option value=\"$val\">$label</option>";
-					}
-				} else { ?>
-					<option value="new">New</option>
-					<option value="ready">Ready</option>
-					<option value="in progress">In Progress</option>
-					<option value="done">Done</option>
-					<?php if (isset($extendedStatuses)): ?>
-						<option value="archived">Archived</option>
-						<option value="blocked">Blocked</option>
-					<?php endif; ?>
-				<?php } ?>
 			</select>
 		<?php } ?>
 

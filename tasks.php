@@ -24,11 +24,11 @@ require __DIR__ . '/app/init.php';
 	<div class="container mt-4">
 		<?php
 		$pageTitle = 'Tasks';
+		$statusType = 'task';
 		$bulkCreateModalId = 'bulkCreateTaskModal';
 		$bulkUpdateModalId = 'bulkUpdateTaskModal';
 		$searchPlaceholder = 'Search tasks...';
 		$userStorySelect = true;
-		$extendedStatuses = true;
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Tasks';
@@ -333,21 +333,20 @@ require __DIR__ . '/app/init.php';
 
 				let html = '<div class="row">';
 				tasks.forEach(task => {
-					const statusClass = taigaGetStatusClass(task.status);
+					const statusInfo = taigaGetStatusInfo(task);
+					const statusBadge = taigaRenderStatusBadge(statusInfo);
 					const createdDate = task.created_date ? new Date(task.created_date).toLocaleDateString() : 'Unknown';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card task-card" data-task-id="${task.id}">
+					<div class="card task-card h-100" data-task-id="${task.id}">
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
 									<input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" id="task-${task.id}">
 									<label class="form-check-label" for="task-${task.id}"></label>
 								</div>
-								<span class="badge status-badge bg-${statusClass}">
-									${task.status || 'Unknown'}
-								</span>
+								${statusBadge}
 							</div>
 							
 							<h6 class="card-title mb-2">${task.subject || 'Untitled Task'}</h6>

@@ -213,13 +213,14 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayEpicHeader(epic) {
-				const statusClass = taigaGetStatusClass(epic.status);
+				const statusInfo = taigaGetStatusInfo(epic);
+				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
 			<h1 class="display-4 mb-2">${epic.subject || 'Untitled Epic'}</h1>
 			<p class="lead mb-0">Ref: #${epic.ref}</p>
-			<span class="badge status-badge bg-${statusClass} mt-2">
-				${epic.status || 'Unknown Status'}
-			</span>
+			<div class="mt-2 text-white">
+				${statusBadge}
+			</div>
 		`;
 				$('#epicHeaderContent').html(headerHtml);
 			}
@@ -312,12 +313,17 @@ require __DIR__ . '/app/init.php';
 
 				let html = '';
 				stories.forEach(story => {
+					const statusInfo = taigaGetStatusInfo(story);
+					const statusBadge = taigaRenderStatusBadge(statusInfo);
 					html += `
 				<div class="card user-story-card mb-2">
 					<div class="card-body py-2">
-						<h6 class="card-title mb-1">${story.subject || 'Untitled Story'}</h6>
+						<div class="d-flex justify-content-between align-items-start">
+							<h6 class="card-title mb-1">${story.subject || 'Untitled Story'}</h6>
+							${statusBadge}
+						</div>
 						<p class="card-text text-muted small mb-1">
-							Ref: #${story.ref} | Status: ${story.status || 'Unknown'}
+							Ref: #${story.ref}
 						</p>
 						<p class="card-text small text-muted mb-0">
 							${story.description ? story.description.substring(0, 100) + '...' : 'No description'}

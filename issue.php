@@ -136,13 +136,14 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayIssueHeader(issue) {
-				const statusClass = taigaGetIssueStatusClass(issue.status);
+				const statusInfo = taigaGetStatusInfo(issue);
+				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
 			<h1 class="display-4 mb-2 text-white">${issue.subject || 'Untitled Issue'}</h1>
 			<p class="lead mb-0 text-white-50">Ref: #${issue.ref}</p>
-			<span class="badge status-badge bg-${statusClass} mt-2">
-				${issue.status || 'Unknown Status'}
-			</span>
+			<div class="mt-2">
+				${statusBadge}
+			</div>
 		`;
 				$('#issueHeaderContent').html(headerHtml);
 			}

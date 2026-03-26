@@ -182,13 +182,14 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayUsorHeader(usor) {
-				const statusClass = taigaGetStatusClass(usor.status);
+				const statusInfo = taigaGetStatusInfo(usor);
+				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
 			<h1 class="display-4 mb-2">${usor.subject || 'Untitled Story'}</h1>
 			<p class="lead mb-0">Ref: #${usor.ref}</p>
-			<span class="badge status-badge bg-${statusClass} mt-2">
-				${usor.status || 'Unknown Status'}
-			</span>
+			<div class="mt-2">
+				${statusBadge}
+			</div>
 		`;
 				$('#usorHeaderContent').html(headerHtml);
 			}
@@ -278,15 +279,14 @@ require __DIR__ . '/app/init.php';
 
 				let html = '';
 				tasks.forEach(task => {
-					const statusClass = taigaGetStatusClass(task.status);
+					const statusInfo = taigaGetStatusInfo(task);
+					const statusBadge = taigaRenderStatusBadge(statusInfo);
 					html += `
 				<div class="card task-card mb-2">
 					<div class="card-body py-2">
 						<div class="d-flex justify-content-between align-items-start">
 							<h6 class="card-title mb-1">${task.subject || 'Untitled Task'}</h6>
-							<span class="badge status-badge bg-${statusClass}">
-								${task.status || 'Unknown'}
-							</span>
+							${statusBadge}
 						</div>
 						<p class="card-text text-muted small mb-1">
 							Ref: #${task.ref}

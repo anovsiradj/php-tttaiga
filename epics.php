@@ -24,15 +24,10 @@ require __DIR__ . '/app/init.php';
 	<div class="container mt-4">
 		<?php
 		$pageTitle = 'Epics';
+		$statusType = 'epic';
 		$bulkCreateModalId = 'bulkCreateEpicModal';
 		$bulkUpdateModalId = 'bulkUpdateEpicModal';
 		$searchPlaceholder = 'Search epics...';
-		$statusOptions = [
-			'new' => 'New',
-			'in progress' => 'In Progress',
-			'done' => 'Done',
-			'archived' => 'Archived'
-		];
 		include __DIR__ . '/app/partials/list_header.php';
 		?>
 
@@ -217,16 +212,17 @@ require __DIR__ . '/app/init.php';
 
 				epics.forEach(epic => {
 					const project = allProjects.find(p => p.id === epic.project) || {};
-					const statusClass = taigaGetStatusClass(epic.status);
+					const statusInfo = taigaGetStatusInfo(epic);
+					const statusBadge = taigaRenderStatusBadge(statusInfo);
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-4">
 					<div class="card epic-card h-100" data-epic-id="${epic.id}" data-project-id="${epic.project}" data-status="${epic.status}">
 						<div class="card-body">
-							<span class="badge status-badge bg-${statusClass} float-end">
-								${epic.status || 'Unknown'}
-							</span>
-							<h5 class="card-title">${epic.subject || 'Untitled Epic'}</h5>
+							<div class="float-end">
+								${statusBadge}
+							</div>
+							<h5 class="card-title text-truncate pe-5">${epic.subject || 'Untitled Epic'}</h5>
 							<p class="card-text text-muted epic-description">
 								${epic.description || 'No description available.'}
 							</p>

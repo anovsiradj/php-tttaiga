@@ -52,6 +52,81 @@ function taigaGetIssueStatusClass(status) {
 }
 
 /**
+ * Data Layer: Fetches status objects for a specific project and type.
+ * @returns {Promise}
+ */
+function taigaFetchStatuses(apiUrl, token, projectId, type) {
+	let endpoint = '';
+	switch (type) {
+		case 'epic': endpoint = '/epic-statuses'; break;
+		case 'us': case 'userstory': endpoint = '/userstory-statuses'; break;
+		case 'task': endpoint = '/task-statuses'; break;
+		case 'issue': endpoint = '/issue-statuses'; break;
+		default: return Promise.reject('Invalid status type');
+	}
+
+	return $.ajax({
+		url: `${apiUrl}${endpoint}`,
+		data: { project: projectId },
+		type: 'GET',
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'Content-Type': 'application/json'
+		}
+	});
+}
+
+/**
+ * Logic Layer: Extracts readable name and color from an item.
+ * @param {object} item - The Taiga item (epic, us, task, issue)
+ * @returns {object} { name, color }
+ */
+function taigaGetStatusInfo(item) {
+	if (item.status_extra) {
+		return {
+			name: item.status_extra.name || 'Unknown',
+			color: item.status_extra.color || '#666666'
+		};
+	}
+	
+	// Fallback if status_extra is missing
+	return {
+		name: item.status || 'Unknown',
+		color: '#666666'
+	};
+}
+
+/**
+ * View Layer: Generates HTML for a status badge.
+ * @param {object} statusInfo - { name, color }
+ * @returns {string} HTML string
+ */
+function taigaRenderStatusBadge(statusInfo) {
+	const color = statusInfo.color || '#666666';
+	// Simple luminance check for text color
+	const r = parseInt(color.slice(1, 3), 16);
+	const g = parseInt(color.slice(3, 5), 16);
+	const b = parseInt(color.slice(5, 7), 16);
+	const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+	const textColor = luminance > 0.5 ? '#000000' : '#ffffff';
+
+	return `<span class="badge status-badge" style="background-color: ${color}; color: ${textColor}; border: 1px solid rgba(0,0,0,0.1);">${statusInfo.name}</span>`;
+}
+
+/**
+ * View Layer: Updates select elements with status options.
+ * @param {jQuery} $select - The jQuery select element
+ * @param {Array} statuses - List of status objects
+ */
+function taigaPopulateStatusDropdown($select, statuses) {
+	let html = '<option value="">All Statuses</option>';
+	statuses.forEach(status => {
+		html += `<option value="${status.id}">${status.name}</option>`;
+	});
+	$select.html(html);
+}
+
+/**
  * Renders Bootstrap pagination dynamically based on Taiga API headers.
  * 
  * @param {XMLHttpRequest} xhr - The AJAX response object containing headers.

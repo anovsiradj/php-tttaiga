@@ -24,11 +24,11 @@ require __DIR__ . '/app/init.php';
 	<div class="container mt-4">
 		<?php
 		$pageTitle = 'Usors';
+		$statusType = 'us';
 		$bulkCreateModalId = 'bulkCreateModal';
 		$bulkUpdateModalId = 'bulkUpdateModal';
 		$searchPlaceholder = 'Search user stories...';
 		$epicSelect = true;
-		$extendedStatuses = true;
 		include __DIR__ . '/app/partials/list_header.php';
 		?>
 
@@ -203,16 +203,16 @@ require __DIR__ . '/app/init.php';
 
 				let html = '<div class="row">';
 				usors.forEach(usor => {
-					const statusClass = taigaGetStatusClass(usor.status);
+					const statusInfo = taigaGetStatusInfo(usor);
+					const statusBadge = taigaRenderStatusBadge(statusInfo);
+
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card usor-card">
+					<div class="card usor-card h-100">
 					<div class="card-body">
 						<div class="d-flex justify-content-between align-items-start mb-2">
-							<h6 class="card-title mb-0">${usor.subject || 'Untitled Story'}</h6>
-							<span class="badge status-badge bg-${statusClass}">
-								${usor.status || 'Unknown'}
-							</span>
+							<h6 class="card-title mb-0 text-truncate pe-2">${usor.subject || 'Untitled Story'}</h6>
+							${statusBadge}
 						</div>
 						<p class="card-text text-muted small mb-1">
 							Ref: #${usor.ref} | Project: ${usor.project || 'N/A'}
