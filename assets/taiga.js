@@ -227,7 +227,55 @@ function taigaGetFilterParams() {
 }
 
 /**
- * Binds standardized event listeners to header filters.
+ * Initializes a Select2 instance with remote data and infinite scrolling.
+ */
+function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
+	const $el = $(selector);
+	if (!$el.length) return;
+
+	$el.select2({
+		theme: 'bootstrap-5',
+		ajax: {
+			url: function() { return window.apiUrl + endpoint; },
+			dataType: 'json',
+			delay: 250,
+			headers: {
+				'Authorization': `Bearer ${window.taigaToken}`,
+				'Content-Type': 'application/json'
+			},
+			data: function (params) {
+				let query = {
+					q: params.term,
+					page: params.page || 1,
+					page_size: 10
+				};
+				if (typeof options.additionalParams === 'function') {
+					query = { ...query, ...options.additionalParams() };
+				}
+				return query;
+			},
+			processResults: function (data, params) {
+				params.page = params.page || 1;
+				return {
+					results: data.map(item => ({
+						id: item.id,
+						text: options.formatText ? options.formatText(item) : (item.name || item.subject || item.full_name)
+					})),
+					pagination: {
+						more: data.length === 10
+					}
+				};
+			},
+			cache: true
+		},
+		placeholder: options.placeholder || 'Select an option',
+		allowClear: true,
+		width: '100%'
+	});
+}
+
+/**
+ * Binds standardized event listeners and initializes Select2 filters.
  * @param {Function} onFilterChange Callback function to trigger on filter update.
  */
 function taigaBindFilters(onFilterChange) {
@@ -239,86 +287,58 @@ function taigaBindFilters(onFilterChange) {
 		searchTimeout = setTimeout(() => onFilterChange(1), 500);
 	});
 
-	// Dropdown changes
-	const $dropdowns = $('#projectSelect, #statusSelect, #epicSelect, #userStorySelect, #sortSelect');
-	$dropdowns.on('change', function () {
-		// Handle nested dependencies
+	// Initialize Select2 Dropdowns
+	if ($('#projectSelect').length) {
+		taigaInitRemoteSelect2('#projectSelect', '/projects', {
+			placeholder: 'All Projects',
+			additionalParams: () => ({ member: taigaModel.id })
+		});
+	}
+
+	if ($('#epicSelect').length) {
+		taigaInitRemoteSelect2('#epicSelect', '/epics', {
+			placeholder: 'All Epics',
+			additionalParams: () => {
+				const pid = $('#projectSelect').val();
+				return pid ? { project: pid } : {};
+			}
+		});
+	}
+
+	if ($('#userStorySelect').length) {
+		taigaInitRemoteSelect2('#userStorySelect', '/userstories', {
+			placeholder: 'All User Stories',
+			formatText: (item) => `#${item.ref}: ${item.subject}`,
+			additionalParams: () => {
+				const pid = $('#projectSelect').val();
+				return pid ? { project: pid } : {};
+			}
+		});
+	}
+
+	// Status and Sort remain standard for now unless we want remote search for them too.
+	// But let's at least make them Select2 (non-remote)
+	$('#statusSelect, #sortSelect').select2({
+		theme: 'bootstrap-5',
+		width: '100%',
+		placeholder: 'Select...',
+		allowClear: true
+	});
+
+	// Dropdown and Select2 changes
+	const $selectors = $('#projectSelect, #statusSelect, #epicSelect, #userStorySelect, #sortSelect');
+	$selectors.on('change', function () {
+		// When project changes, clear dependent Select2 dropdowns
 		if ($(this).attr('id') === 'projectSelect') {
-			const projectId = $(this).val();
-			if ($('#epicSelect').length) taigaLoadEpics(apiUrl, taigaToken, projectId);
-			if ($('#userStorySelect').length) taigaLoadUsors(apiUrl, taigaToken, projectId);
+			$('#epicSelect, #userStorySelect').val(null).trigger('change.select2');
 		}
 		onFilterChange(1);
 	});
 
 	// Refresh button
 	$('#refreshBtn').on('click', function () {
-		const projectId = $('#projectSelect').val();
-		if ($('#projectSelect').length) taigaLoadProjects(apiUrl, taigaToken);
-		if ($('#epicSelect').length) taigaLoadEpics(apiUrl, taigaToken, projectId);
-		if ($('#userStorySelect').length) taigaLoadUsors(apiUrl, taigaToken, projectId);
 		onFilterChange(1);
 	});
 }
 
-/**
- * Loads epics for a specific project into #epicSelect.
- */
-function taigaLoadEpics(apiUrl, token, projectId = null) {
-	const $select = $('#epicSelect');
-	if (!$select.length) return;
-
-	const params = {};
-	if (projectId) params.project = projectId;
-
-	$.ajax({
-		url: apiUrl + '/epics',
-		data: params,
-		type: 'GET',
-		headers: {
-			'Authorization': `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		success: function (epics) {
-			let html = '<option value="">All Epics</option>';
-			epics.forEach(epic => {
-				html += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
-			});
-			$select.html(html);
-		},
-		error: function (xhr) {
-			console.error('Failed to load epics:', xhr);
-		}
-	});
-}
-
-/**
- * Loads user stories for a specific project into #userStorySelect.
- */
-function taigaLoadUsors(apiUrl, token, projectId = null) {
-	const $select = $('#userStorySelect');
-	if (!$select.length) return;
-
-	const params = {};
-	if (projectId) params.project = projectId;
-
-	$.ajax({
-		url: apiUrl + '/userstories',
-		data: params,
-		type: 'GET',
-		headers: {
-			'Authorization': `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		success: function (usors) {
-			let html = '<option value="">All User Stories</option>';
-			usors.forEach(us => {
-				html += `<option value="${us.id}">#${us.ref}: ${us.subject}</option>`;
-			});
-			$select.html(html);
-		},
-		error: function (xhr) {
-			console.error('Failed to load user stories:', xhr);
-		}
-	});
-}
+// Old taigaLoad* functions removed as they are replaced by dynamic Select2 loading for filters.

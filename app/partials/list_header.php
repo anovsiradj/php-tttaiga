@@ -18,50 +18,70 @@ $filterStatusEnable ??= true;
 	</h1>
 	<div class="d-flex">
 		<?php if (isset($bulkCreateModalId)): ?>
-			<button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkCreateModalId; ?>">
-				<i class="bi bi-plus-lg me-1"></i>
-				Bulk Create
-			</button>
+			<div class="me-2">
+				<button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkCreateModalId; ?>">
+					<i class="bi bi-plus-lg me-1"></i>
+					Bulk Create
+				</button>
+			</div>
 		<?php endif; ?>
 
 		<?php if (isset($bulkUpdateModalId)): ?>
-			<button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkUpdateModalId; ?>">
-				<i class="bi bi-pencil-square me-1"></i>
-				Bulk Update
-			</button>
+			<div class="me-2">
+				<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkUpdateModalId; ?>">
+					<i class="bi bi-pencil-square me-1"></i>
+					Bulk Update
+				</button>
+			</div>
 		<?php endif; ?>
 
-		<?php if (isset($additionalControls))
-			echo $additionalControls; ?>
+		<?php if (isset($additionalControls)) { ?>
+			<div class="me-2">
+				<?= $additionalControls ?>
+			</div>
+		<?php } ?>
 
-		<input type="text" class="form-control me-2" id="searchInput" placeholder="<?php echo $searchPlaceholder; ?>" style="width: 250px;">
+		<div class="me-2" style="width: 250px;">
+			<input type="text" class="form-control" id="searchInput" placeholder="<?php echo $searchPlaceholder; ?>">
+		</div>
 
 		<?php if ($filterProjectEnable) { ?>
-			<select class="form-select me-2" id="projectSelect" style="width: 200px;">
-				<option value="">All Projects</option>
-			</select>
+			<div class="me-2" style="width: 200px;">
+				<select class="form-select" id="projectSelect">
+					<option value="">All Projects</option>
+				</select>
+			</div>
 		<?php } ?>
 
 		<?php if (isset($epicSelect) && $epicSelect): ?>
-			<select class="form-select me-2" id="epicSelect" style="width: 200px;">
-				<option value="">All Epics</option>
-			</select>
+			<div class="me-2" style="width: 200px;">
+				<select class="form-select" id="epicSelect">
+					<option value="">All Epics</option>
+				</select>
+			</div>
 		<?php endif; ?>
 
 		<?php if (isset($userStorySelect) && $userStorySelect): ?>
-			<select class="form-select me-2" id="userStorySelect" style="width: 200px;">
-				<option value="">All User Stories</option>
-			</select>
+			<div class="me-2" style="width: 200px;">
+				<select class="form-select" id="userStorySelect">
+					<option value="">All User Stories</option>
+				</select>
+			</div>
 		<?php endif; ?>
 
 		<?php if ($filterStatusEnable) { ?>
-			<select class="form-select me-2" id="statusSelect" style="width: 150px;" data-status-type="<?php echo $statusType ?? ''; ?>">
-				<option value="">All Statuses</option>
-			</select>
+			<div class="me-2" style="width: 150px;">
+				<select class="form-select" id="statusSelect" data-status-type="<?php echo $statusType ?? ''; ?>">
+					<option value="">All Statuses</option>
+				</select>
+			</div>
 		<?php } ?>
 
-		<button class="btn btn-outline-secondary" id="refreshBtn">
-			<i class="bi bi-arrow-clockwise"></i>
-		</button>
+		<div>
+			<button class="btn btn-outline-secondary" id="refreshBtn">
+				<i class="bi bi-arrow-clockwise"></i>
+			</button>
+
+		</div>
 	</div>
 </div>

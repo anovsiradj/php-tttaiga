@@ -13,6 +13,9 @@ require __DIR__ . '/app/init.php';
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 	<!-- Bootstrap Icons -->
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+	<!-- Select2 CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 	<!-- Custom CSS -->
 	<link href="assets/app.css" rel="stylesheet">
 </head>
@@ -169,6 +172,9 @@ require __DIR__ . '/app/init.php';
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+	<!-- Select2 JS -->
+	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 	<script src="assets/taiga.js"></script>
 	<script src="assets/app.js"></script>
 	<script src="assets/theme.js"></script>
@@ -191,12 +197,10 @@ require __DIR__ . '/app/init.php';
 			window.apiUrl = apiUrl;
 			window.taigaToken = token;
 
-			// Load tasks and filters
+			// Load initial tasks list
 			loadTasks();
-			taigaLoadProjects(apiUrl, token);
-			taigaLoadUsors(apiUrl, token);
 
-			// Initial filter binding
+			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadTasks);
 
 			$('#selectAllBtn').on('click', function () {
