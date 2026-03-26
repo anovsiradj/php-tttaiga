@@ -202,3 +202,123 @@ function taigaRenderPagination(xhr, containerSelector, onPageChange) {
 		}
 	});
 }
+
+/**
+ * Collects filter values from the standard header IDs and returns a params object.
+ * @returns {Object} Params for Taiga API calls.
+ */
+function taigaGetFilterParams() {
+	const params = {};
+	const q = $('#searchInput').val()?.trim();
+	const project = $('#projectSelect').val();
+	const status = $('#statusSelect').val();
+	const epic = $('#epicSelect').val();
+	const usor = $('#userStorySelect').val();
+	const orderBy = $('#sortSelect').val();
+
+	if (q) params.q = q;
+	if (project) params.project = project;
+	if (status) params.status = status;
+	if (epic) params.epic = epic;
+	if (usor) params.user_story = usor;
+	if (orderBy) params.order_by = orderBy;
+
+	return params;
+}
+
+/**
+ * Binds standardized event listeners to header filters.
+ * @param {Function} onFilterChange Callback function to trigger on filter update.
+ */
+function taigaBindFilters(onFilterChange) {
+	let searchTimeout;
+
+	// Search input with debounce
+	$('#searchInput').on('input', function () {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => onFilterChange(1), 500);
+	});
+
+	// Dropdown changes
+	const $dropdowns = $('#projectSelect, #statusSelect, #epicSelect, #userStorySelect, #sortSelect');
+	$dropdowns.on('change', function () {
+		// Handle nested dependencies
+		if ($(this).attr('id') === 'projectSelect') {
+			const projectId = $(this).val();
+			if ($('#epicSelect').length) taigaLoadEpics(apiUrl, taigaToken, projectId);
+			if ($('#userStorySelect').length) taigaLoadUsors(apiUrl, taigaToken, projectId);
+		}
+		onFilterChange(1);
+	});
+
+	// Refresh button
+	$('#refreshBtn').on('click', function () {
+		const projectId = $('#projectSelect').val();
+		if ($('#projectSelect').length) taigaLoadProjects(apiUrl, taigaToken);
+		if ($('#epicSelect').length) taigaLoadEpics(apiUrl, taigaToken, projectId);
+		if ($('#userStorySelect').length) taigaLoadUsors(apiUrl, taigaToken, projectId);
+		onFilterChange(1);
+	});
+}
+
+/**
+ * Loads epics for a specific project into #epicSelect.
+ */
+function taigaLoadEpics(apiUrl, token, projectId = null) {
+	const $select = $('#epicSelect');
+	if (!$select.length) return;
+
+	const params = {};
+	if (projectId) params.project = projectId;
+
+	$.ajax({
+		url: apiUrl + '/epics',
+		data: params,
+		type: 'GET',
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'Content-Type': 'application/json'
+		},
+		success: function (epics) {
+			let html = '<option value="">All Epics</option>';
+			epics.forEach(epic => {
+				html += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
+			});
+			$select.html(html);
+		},
+		error: function (xhr) {
+			console.error('Failed to load epics:', xhr);
+		}
+	});
+}
+
+/**
+ * Loads user stories for a specific project into #userStorySelect.
+ */
+function taigaLoadUsors(apiUrl, token, projectId = null) {
+	const $select = $('#userStorySelect');
+	if (!$select.length) return;
+
+	const params = {};
+	if (projectId) params.project = projectId;
+
+	$.ajax({
+		url: apiUrl + '/userstories',
+		data: params,
+		type: 'GET',
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'Content-Type': 'application/json'
+		},
+		success: function (usors) {
+			let html = '<option value="">All User Stories</option>';
+			usors.forEach(us => {
+				html += `<option value="${us.id}">#${us.ref}: ${us.subject}</option>`;
+			});
+			$select.html(html);
+		},
+		error: function (xhr) {
+			console.error('Failed to load user stories:', xhr);
+		}
+	});
+}

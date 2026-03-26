@@ -70,27 +70,17 @@ require __DIR__ . '/app/init.php';
 			const apiUrl = localStorage.getItem('taiga_api_url') || config.servers.default.api_url;
 			const user = JSON.parse(userData);
 
+			// Define globals for taiga.js helpers
+			window.apiUrl = apiUrl;
+			window.taigaToken = token;
+
 			// Load user stories
 			loadUsors();
 			taigaLoadProjects(apiUrl, token);
-			loadEpics();
+			taigaLoadEpics(apiUrl, token);
 
-			// Event listeners
-			let searchTimeout;
-			$('#searchInput').on('input', function () {
-				clearTimeout(searchTimeout);
-				searchTimeout = setTimeout(function () {
-					loadUsors(1);
-				}, 500);
-			});
-			$('#projectSelect').on('change', function() { loadUsors(1); });
-			$('#epicSelect').on('change', function() { loadUsors(1); });
-			$('#statusSelect').on('change', function() { loadUsors(1); });
-			$('#refreshBtn').on('click', function () {
-				loadUsors(1);
-				taigaLoadProjects(apiUrl, token);
-				loadEpics();
-			});
+			// Initial filter binding
+			taigaBindFilters(loadUsors);
 
 
 
@@ -117,25 +107,10 @@ require __DIR__ . '/app/init.php';
 			});
 
 			function loadUsors(page = 1) {
-				const searchTerm = $('#searchInput').val().trim();
-				const projectId = $('#projectSelect').val();
-				const epicId = $('#epicSelect').val();
-				const status = $('#statusSelect').val();
-
-				const params = { page: page };
-				
-				if (searchTerm) {
-					params.q = searchTerm;
-				}
-				if (projectId) {
-					params.project = projectId;
-				}
-				if (epicId) {
-					params.epic = epicId;
-				}
-				if (status) {
-					params.status = status;
-				}
+				const params = {
+					...taigaGetFilterParams(),
+					page: page
+				};
 				
 				$('#usorsContent').html(`
 			<div class="loading-spinner">
@@ -170,26 +145,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 
-			function loadEpics() {
-				$.ajax({
-					url: apiUrl + '/epics',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (epics) {
-						let options = '<option value="">All Epics</option>';
-						epics.forEach(epic => {
-							options += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
-						});
-						$('#epicSelect').html(options);
-					},
-					error: function (xhr) {
-						console.error('Failed to load epics:', xhr);
-					}
-				});
-			}
+			// loadEpics function removed as it is now handled by taigaLoadEpics in taiga.js
 
 			function displayUsors(usors) {
 				if (usors.length === 0) {

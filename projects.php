@@ -77,42 +77,21 @@ $filterStatusEnable = false;
 
 			let allProjects = [];
 
+			// Define globals for taiga.js helpers
+			window.apiUrl = apiUrl;
+			window.taigaToken = token;
+
 			// Load projects
 			loadProjects();
 
-			// Event listeners
-
-
-			$('#refreshBtn').on('click', function () {
-				loadProjects();
-			});
-
-			let searchTimeout;
-			$('#searchInput').on('input', function () {
-				clearTimeout(searchTimeout);
-				searchTimeout = setTimeout(function () {
-					loadProjects(1);
-				}, 500);
-			});
-
-			$('#sortSelect').on('change', function () {
-				sortProjects();
-			});
+			// Initial filter binding
+			taigaBindFilters(loadProjects);
 
 			function loadProjects(page = 1) {
-				const searchTerm = $('#searchInput').val().trim();
-				const sortBy = $('#sortSelect').val();
 				const params = {
+					...taigaGetFilterParams(),
 					page: page
 				};
-
-				if (searchTerm) {
-					params.q = searchTerm;
-				}
-
-				if (sortBy) {
-					params.order_by = sortBy;
-				}
 
 				// Load projects first (using direct API as it might not have CORS issues)
 				$.ajax({
@@ -215,14 +194,7 @@ $filterStatusEnable = false;
 				});
 			}
 
-			// filterProjects function removed as search is now server-side
-
-			function sortProjects() {
-				const sortBy = $('#sortSelect').val();
-				// This would require storing the original projects data for proper sorting
-				// For now, we'll just reload with proper API sorting parameters
-				loadProjects();
-			}
+			// Sort and filter handled by taigaBindFilters and taigaGetFilterParams
 		});
 	</script>
 

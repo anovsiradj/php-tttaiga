@@ -72,24 +72,16 @@ require __DIR__ . '/app/init.php';
 			const config = <?php echo json_encode(include 'app/configs/taiga.php'); ?>;
 			const apiUrl = localStorage.getItem('taiga_api_url') || config.servers.default.api_url;
 
+			// Define globals for taiga.js helpers
+			window.apiUrl = apiUrl;
+			window.taigaToken = token;
+
 			// Load issues and filters
 			loadIssues();
 			taigaLoadProjects(apiUrl, token);
 
-			// Event listeners
-			let searchTimeout;
-			$('#searchInput').on('input', function () {
-				clearTimeout(searchTimeout);
-				searchTimeout = setTimeout(function () {
-					loadIssues(1);
-				}, 500);
-			});
-			$('#projectSelect').on('change', function() { loadIssues(1); });
-			$('#statusSelect').on('change', function() { loadIssues(1); });
-			$('#refreshBtn').on('click', function () {
-				loadIssues(1);
-				taigaLoadProjects(apiUrl, token);
-			});
+			// Initial filter binding
+			taigaBindFilters(loadIssues);
 
 			$('#selectAllBtn').on('click', function () {
 				$('#issuesContent input.issue-checkbox').prop('checked', true);
@@ -152,21 +144,10 @@ require __DIR__ . '/app/init.php';
 			});
 
 			function loadIssues(page = 1) {
-				const searchTerm = $('#searchInput').val().trim();
-				const projectId = $('#projectSelect').val();
-				const status = $('#statusSelect').val();
-
-				const params = { page: page };
-				
-				if (searchTerm) {
-					params.q = searchTerm;
-				}
-				if (projectId) {
-					params.project = projectId;
-				}
-				if (status) {
-					params.status = status;
-				}
+				const params = {
+					...taigaGetFilterParams(),
+					page: page
+				};
 				
 				$('#issuesContent').html(`
 			<div class="loading-spinner">

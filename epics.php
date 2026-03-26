@@ -75,28 +75,15 @@ require __DIR__ . '/app/init.php';
 			// Load projects and epics
 			loadProjectsAndEpics();
 
-			// Event listeners
+			// Define globals for taiga.js helpers
+			window.apiUrl = apiUrl;
+			window.taigaToken = token;
 
+			// Load projects and epics
+			loadProjectsAndEpics();
 
-			$('#refreshBtn').on('click', function () {
-				loadProjectsAndEpics();
-			});
-
-			let searchTimeout;
-			$('#searchInput').on('input', function () {
-				clearTimeout(searchTimeout);
-				searchTimeout = setTimeout(function () {
-					loadEpics(1);
-				}, 500);
-			});
-
-			$('#projectSelect').on('change', function () {
-				loadEpics(1);
-			});
-
-			$('#statusSelect').on('change', function () {
-				loadEpics(1);
-			});
+			// Initial filter binding
+			taigaBindFilters(loadEpics);
 
 			// Bulk Create Epic functionality
 			$('#bulkCreateEpicModal').on('show.bs.modal', function () {
@@ -147,21 +134,10 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function loadEpics(page = 1) {
-				const searchTerm = $('#searchInput').val().trim();
-				const projectId = $('#projectSelect').val();
-				const status = $('#statusSelect').val();
-				
-				const params = { page: page };
-				
-				if (searchTerm) {
-					params.q = searchTerm;
-				}
-				if (projectId) {
-					params.project = projectId;
-				}
-				if (status) {
-					params.status = status;
-				}
+				const params = {
+					...taigaGetFilterParams(),
+					page: page
+				};
 				
 				// Load epics for all projects
 				$.ajax({

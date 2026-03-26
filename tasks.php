@@ -187,27 +187,17 @@ require __DIR__ . '/app/init.php';
 			const apiUrl = localStorage.getItem('taiga_api_url') || config.servers.default.api_url;
 			const user = JSON.parse(userData);
 
+			// Define globals for taiga.js helpers
+			window.apiUrl = apiUrl;
+			window.taigaToken = token;
+
 			// Load tasks and filters
 			loadTasks();
 			taigaLoadProjects(apiUrl, token);
-			loadUserStories();
+			taigaLoadUsors(apiUrl, token);
 
-			// Event listeners
-			let searchTimeout;
-			$('#searchInput').on('input', function () {
-				clearTimeout(searchTimeout);
-				searchTimeout = setTimeout(function () {
-					loadTasks(1);
-				}, 500);
-			});
-			$('#projectSelect').on('change', function() { loadTasks(1); });
-			$('#userStorySelect').on('change', function() { loadTasks(1); });
-			$('#statusSelect').on('change', function() { loadTasks(1); });
-			$('#refreshBtn').on('click', function () {
-				loadTasks(1);
-				taigaLoadProjects(apiUrl, token);
-				loadUserStories();
-			});
+			// Initial filter binding
+			taigaBindFilters(loadTasks);
 
 			$('#selectAllBtn').on('click', function () {
 				$('#tasksContent input[type="checkbox"]').prop('checked', true);
@@ -244,25 +234,10 @@ require __DIR__ . '/app/init.php';
 			});
 
 			function loadTasks(page = 1) {
-				const searchTerm = $('#searchInput').val().trim();
-				const projectId = $('#projectSelect').val();
-				const userStoryId = $('#userStorySelect').val();
-				const status = $('#statusSelect').val();
-
-				const params = { page: page };
-				
-				if (searchTerm) {
-					params.q = searchTerm;
-				}
-				if (projectId) {
-					params.project = projectId;
-				}
-				if (userStoryId) {
-					params.user_story = userStoryId;
-				}
-				if (status) {
-					params.status = status;
-				}
+				const params = {
+					...taigaGetFilterParams(),
+					page: page
+				};
 				
 				$('#tasksContent').html(`
 			<div class="loading-spinner">
@@ -297,26 +272,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 
-			function loadUserStories() {
-				$.ajax({
-					url: apiUrl + '/userstories',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (userStories) {
-						let html = '<option value="">All User Stories</option>';
-						userStories.forEach(us => {
-							html += `<option value="${us.id}">#${us.ref}: ${us.subject}</option>`;
-						});
-						$('#userStorySelect').html(html);
-					},
-					error: function (xhr) {
-						console.error('Failed to load user stories:', xhr);
-					}
-				});
-			}
+			// loadUserStories function removed as it is now handled by taigaLoadUsors in taiga.js
 
 			function displayTasks(tasks) {
 				$('#totalTasks').text(tasks.length);
