@@ -28,11 +28,42 @@ require __DIR__ . '/app/init.php';
 		<?php
 		$pageTitle = 'Usors';
 		$statusType = 'us';
-		$bulkCreateModalId = 'bulkCreateModal';
-		$bulkUpdateModalId = 'bulkUpdateModal';
+		// Buttons moved to additionalControls for better UX
+		$additionalControls = '
+			<div class="dropdown d-inline-block">
+				<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+					<i class="bi bi-gear me-1"></i> Bulk Actions
+				</button>
+				<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
+					<li>
+						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
+							<i class="bi bi-plus-lg me-2"></i> Bulk Create
+						</a>
+					</li>
+					<li>
+						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal">
+							<i class="bi bi-pencil-square me-2"></i> Bulk Update
+						</a>
+					</li>
+					<li><hr class="dropdown-divider"></li>
+					<li>
+						<a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+							<i class="bi bi-trash me-2"></i> Bulk Delete
+						</a>
+					</li>
+				</ul>
+			</div>
+		';
+		$bulkDeleteModalId = 'bulkDeleteModal';
 		$searchPlaceholder = 'Search user stories...';
 		$epicSelect = true;
 		include __DIR__ . '/app/partials/list_header.php';
+
+		$totalLabel = 'Total Stories';
+		$totalId = 'totalUsors';
+		$filteredId = 'filteredUsors';
+		$selectionCountId = 'selectedUsorsCount';
+		include __DIR__ . '/app/partials/list_status.php';
 		?>
 
 		<div id="usorsContent">
@@ -84,6 +115,16 @@ require __DIR__ . '/app/init.php';
 
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadUsors);
+
+			$('#selectAllBtn').on('click', function () {
+				$('#usorsContent input[type="checkbox"]').prop('checked', true);
+				updateSelectionCount();
+			});
+
+			$('#clearSelectionBtn').on('click', function () {
+				$('#usorsContent input[type="checkbox"]').prop('checked', false);
+				updateSelectionCount();
+			});
 
 
 
@@ -167,12 +208,19 @@ require __DIR__ . '/app/init.php';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card usor-card h-100">
+					<div class="card usor-card h-100" data-us-id="${usor.id}" data-project-id="${usor.project}" data-status="${usor.status}">
 					<div class="card-body">
 						<div class="d-flex justify-content-between align-items-start mb-2">
-							<h6 class="card-title mb-0 text-truncate pe-2">${usor.subject || 'Untitled Story'}</h6>
-							${statusBadge}
+							<div class="form-check">
+								<input class="form-check-input story-checkbox" type="checkbox" value="${usor.id}" data-version="${usor.version}" id="us-${usor.id}">
+								<label class="form-check-label" for="us-${usor.id}"></label>
+							</div>
+							<div class="d-flex flex-column align-items-end">
+								${statusBadge}
+								<small class="text-muted mt-1">#${usor.ref}</small>
+							</div>
 						</div>
+						<h6 class="card-title mb-1 text-truncate pe-2">${usor.subject || 'Untitled Story'}</h6>
 						<p class="card-text text-muted small mb-1">
 							Ref: #${usor.ref} | Project: ${usor.project || 'N/A'}
 						</p>
@@ -194,6 +242,14 @@ require __DIR__ . '/app/init.php';
 				html += '</div>';
 
 				$('#usorsContent').html(html);
+
+				// Add click event to checkboxes
+				$('.story-checkbox').on('change', updateSelectionCount);
+			}
+
+			function updateSelectionCount() {
+				const selectedCount = $('#usorsContent input:checked').length;
+				$('#selectedUsorsCount').text(selectedCount);
 			}
 
 			// Local filter function removed as filtering is now done via API.
@@ -219,26 +275,74 @@ require __DIR__ . '/app/init.php';
 						projects.forEach(project => {
 							options += `<option value="${project.id}">${project.name}</option>`;
 						});
-						$('#bulkCreateProject').html(options);
+						$('#bulkCreateProject').html(options).select2({
+							theme: 'bootstrap-5',
+							width: '100%',
+							placeholder: 'Select Project',
+							dropdownParent: $('#bulkCreateModal')
+						});
+
+						const currentProjectId = $('#projectSelect').val();
+						if (currentProjectId) {
+							$('#bulkCreateProject').val(currentProjectId);
+							taigaPopulateBulkStatuses('us', $('#bulkCreateStatus'), currentProjectId);
+							taigaPopulateBulkMembers($('#bulkCreateAssignee'), currentProjectId);
+						}
 					}
 				});
 
-				// Populate epic dropdown
-				$.ajax({
-					url: apiUrl + '/epics',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (epics) {
-						let options = '<option value="">Select Epic</option>';
-						epics.forEach(epic => {
-							options += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
+				// Update statuses, members and epics when project changes
+				$('#bulkCreateProject').off('change').on('change', function () {
+					const projectId = $(this).val();
+					taigaPopulateBulkStatuses('us', $('#bulkCreateStatus'), projectId);
+					taigaPopulateBulkMembers($('#bulkCreateAssignee'), projectId);
+					
+					// Also update epics for this project
+					if (projectId) {
+						$.ajax({
+							url: apiUrl + '/epics?project=' + projectId,
+							type: 'GET',
+							headers: {
+								'Authorization': 'Bearer ' + token,
+								'Content-Type': 'application/json'
+							},
+							success: function (epics) {
+								let html = '<option value="">Select Epic</option>';
+								epics.forEach(epic => {
+									html += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
+								});
+								$('#bulkCreateEpic').html(html);
+								
+								// Set default epic from filter if applicable
+								const currentEpicId = $('#epicSelect').val();
+								if (currentEpicId) {
+									$('#bulkCreateEpic').val(currentEpicId);
+								}
+							}
 						});
-						$('#bulkCreateEpic').html(options);
+					} else {
+						$('#bulkCreateEpic').html('<option value="">Select Project first</option>');
 					}
 				});
+
+				// Update search hint and context alert
+				const currentSearch = $('#searchInput').val();
+				if (currentSearch) {
+					$('#activeSearchQuery').text(currentSearch);
+					$('#bulkCreateSearchContext').removeClass('d-none');
+					$('#bulkCreateText').attr('placeholder', `Enter user stories... (Active search: ${currentSearch})`);
+				} else {
+					$('#bulkCreateSearchContext').addClass('d-none');
+					$('#bulkCreateText').attr('placeholder', 'Enter user stories, one per line. Format: Subject|Description (optional)|Status (optional)');
+				}
+
+				// Initial load if project is already selected
+				const initialProjectId = $('#projectSelect').val();
+				if (initialProjectId) {
+					$('#bulkCreateProject').trigger('change');
+				} else {
+					$('#bulkCreateEpic').html('<option value="">Select Project first</option>');
+				}
 			}
 
 			function previewBulkCreate() {
@@ -278,6 +382,7 @@ require __DIR__ . '/app/init.php';
 				const epicId = $('#bulkCreateEpic').val();
 				const priority = $('#bulkCreatePriority').val();
 				const defaultStatus = $('#bulkCreateStatus').val();
+				const assignee = $('#bulkCreateAssignee').val();
 				const text = $('#bulkCreateText').val().trim();
 
 				if (!projectId) {
@@ -290,10 +395,17 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
+				const currentSearch = $('#searchInput').val();
+				const prependSearch = $('#prependSearchCheck').is(':checked');
+
 				const stories = text.split('\n').filter(line => line.trim()).map(line => {
 					const parts = line.split('|');
+					let subject = parts[0]?.trim() || 'Untitled Story';
+					if (currentSearch && prependSearch) {
+						subject = `[${currentSearch}] ${subject}`;
+					}
 					return {
-						subject: parts[0]?.trim() || 'Untitled Story',
+						subject: subject,
 						description: parts[1]?.trim() || '',
 						status: parts[2]?.trim() || defaultStatus
 					};
@@ -312,7 +424,8 @@ require __DIR__ . '/app/init.php';
 						description: story.description,
 						project: parseInt(projectId),
 						status: story.status,
-						priority: priority ? parseInt(priority) : undefined
+						priority: priority ? parseInt(priority) : undefined,
+						assigned_to: assignee ? parseInt(assignee) : undefined
 					};
 
 					if (epicId) {
@@ -358,37 +471,41 @@ require __DIR__ . '/app/init.php';
 
 			// Bulk Update Functions
 			function populateBulkUpdateDropdowns() {
-				// Load user stories for selection
-				$.ajax({
-					url: apiUrl + '/userstories',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (usors) {
-						let options = '';
-						usors.forEach(usor => {
-							options += `<option value="${usor.id}">#${usor.ref}: ${usor.subject || 'Untitled Story'}</option>`;
-						});
-						$('#bulkUpdateUsors').html(options);
-					}
+				const filterParams = taigaGetFilterParams();
+				const projectId = filterParams.project;
+				taigaPopulateBulkStatuses('us', $('#bulkUpdateStatus'), projectId, 'No Change');
+				taigaPopulateBulkMembers($('#bulkUpdateAssignee'), projectId, 'No Change');
+
+				taigaLoadBulkItems('/userstories', $('#bulkUpdateUsors'), item => {
+					return `
+						<div class="form-check">
+							<input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-usor-${item.id}">
+							<label class="form-check-label" for="bulk-usor-${item.id}">
+								#${item.ref}: ${item.subject || 'Untitled Story'}
+							</label>
+						</div>
+					`;
 				});
 			}
 
 			function submitBulkUpdate() {
-				const selectedUsors = $('#bulkUpdateUsors').val();
-				const status = $('#bulkUpdateStatus').val();
-				const priority = $('#bulkUpdatePriority').val();
-				const description = $('#bulkUpdateDescription').val().trim();
+				const selectedUsors = [];
+				$('#bulkUpdateUsors input:checked').each(function () {
+					selectedUsors.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
 
-				if (!selectedUsors || selectedUsors.length === 0) {
+				if (selectedUsors.length === 0) {
 					alert('Please select at least one user story to update');
 					return;
 				}
 
 				const updateData = {};
 				if (status) updateData.status = status;
+				const assignee = $('#bulkUpdateAssignee').val();
+				if (assignee) updateData.assigned_to = parseInt(assignee);
 				if (priority) updateData.priority = parseInt(priority);
 				if (description) updateData.description = description;
 
@@ -398,161 +515,64 @@ require __DIR__ . '/app/init.php';
 				}
 
 				const $btn = $('#submitBulkUpdate');
-				const originalText = $btn.text();
 				$btn.prop('disabled', true).text('Updating...');
 
-				let updatedCount = 0;
-				let errorCount = 0;
-
-				selectedUsors.forEach(usorId => {
-					$.ajax({
-						url: apiUrl + '/userstories/' + usorId,
-						type: 'PATCH',
-						headers: {
-							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
-						},
-						data: JSON.stringify(updateData),
-						success: function () {
-							updatedCount++;
-							if (updatedCount + errorCount === selectedUsors.length) {
-								finishBulkUpdate(updatedCount, errorCount);
-							}
-						},
-						error: function () {
-							errorCount++;
-							if (updatedCount + errorCount === selectedUsors.length) {
-								finishBulkUpdate(updatedCount, errorCount);
-							}
-						}
-					});
+				taigaExecuteBulk('/userstories/', selectedUsors, 'PATCH', updateData, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Update Stories');
+					if (errorCount === 0) {
+						alert(`Successfully updated ${successCount} user stories!`);
+						$('#bulkUpdateModal').modal('hide');
+						loadUsors();
+					} else {
+						alert(`Updated ${successCount} user stories, but ${errorCount} failed.`);
+					}
 				});
 			}
 
-			function finishBulkUpdate(updatedCount, errorCount) {
-				const $btn = $('#submitBulkUpdate');
-				$btn.prop('disabled', false).text('Update Stories');
+			// Bulk Delete Logic
+			$('#bulkDeleteModal').on('show.bs.modal', function () {
+				const selectedUsors = [];
+				$('#usorsContent input.story-checkbox:checked').each(function () {
+					const title = $(this).closest('.card-body').find('.card-title').text();
+					selectedUsors.push(title);
+				});
+				$('#selectedUsorsList').html(selectedUsors.map(u => `<div>${u}</div>`).join(''));
+			});
 
-				if (errorCount === 0) {
-					alert(`Successfully updated ${updatedCount} user stories!`);
-					$('#bulkUpdateModal').modal('hide');
-					loadUsors();
-				} else {
-					alert(`Updated ${updatedCount} user stories, but ${errorCount} failed.`);
+			$('#confirmBulkDelete').on('click', function () {
+				const selectedUsors = [];
+				$('#usorsContent input.story-checkbox:checked').each(function () {
+					selectedUsors.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
+
+				if (selectedUsors.length === 0) {
+					alert('Please select at least one user story to delete');
+					return;
 				}
-			}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Deleting...');
+
+				taigaExecuteBulk('/userstories/', selectedUsors, 'DELETE', null, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Delete Stories');
+					if (errorCount === 0) {
+						alert(`Successfully deleted ${successCount} user stories!`);
+						$('#bulkDeleteModal').modal('hide');
+						loadUsors();
+					} else {
+						alert(`Deleted ${successCount} user stories, but ${errorCount} failed.`);
+					}
+				});
+			});
 		});
 	</script>
 
-	<!-- Bulk Create Modal -->
-	<div class="modal fade" id="bulkCreateModal" tabindex="-1" aria-labelledby="bulkCreateModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkCreateModalLabel">Bulk Create User Stories</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<form id="bulkCreateForm">
-						<div class="mb-3">
-							<label class="form-label">User Stories (one per line)</label>
-							<textarea class="form-control" id="bulkCreateText" rows="10" placeholder="Enter user stories, one per line. Format: Subject|Description (optional)|Status (optional)" required></textarea>
-							<small class="form-text text-muted">Example: Login page|Create login form with validation|new</small>
-						</div>
-						<div class="row">
-							<div class="col-md-6">
-								<label class="form-label">Project</label>
-								<select class="form-select" id="bulkCreateProject" required>
-									<option value="">Select Project</option>
-								</select>
-							</div>
-							<div class="col-md-6">
-								<label class="form-label">Epic (optional)</label>
-								<select class="form-select" id="bulkCreateEpic">
-									<option value="">Select Epic</option>
-								</select>
-							</div>
-						</div>
-						<div class="row mt-3">
-							<div class="col-md-6">
-								<label class="form-label">Default Status</label>
-								<select class="form-select" id="bulkCreateStatus">
-									<option value="new">New</option>
-									<option value="ready">Ready</option>
-									<option value="in progress">In Progress</option>
-									<option value="done">Done</option>
-									<option value="archived">Archived</option>
-									<option value="blocked">Blocked</option>
-								</select>
-							</div>
-							<div class="col-md-6">
-								<label class="form-label">Priority (optional)</label>
-								<input type="number" class="form-control" id="bulkCreatePriority" min="1" max="100" value="10">
-							</div>
-						</div>
-					</form>
-					<div id="bulkCreatePreview" class="mt-3 d-none">
-						<h6>Preview:</h6>
-						<div class="border rounded p-2 bg-body-tertiary" id="previewContent"></div>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-outline-primary" id="previewBulkCreate">Preview</button>
-					<button type="button" class="btn btn-success" id="submitBulkCreate">Create Stories</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Bulk Update Modal -->
-	<div class="modal fade" id="bulkUpdateModal" tabindex="-1" aria-labelledby="bulkUpdateModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkUpdateModalLabel">Bulk Update User Stories</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<form id="bulkUpdateForm">
-						<div class="mb-3">
-							<label class="form-label">Select User Stories to Update</label>
-							<select class="form-select" id="bulkUpdateUsors" multiple size="8">
-								<option value="">Loading user stories...</option>
-							</select>
-							<small class="form-text text-muted">Hold Ctrl/Cmd to select multiple stories</small>
-						</div>
-						<div class="row">
-							<div class="col-md-6">
-								<label class="form-label">Status</label>
-								<select class="form-select" id="bulkUpdateStatus">
-									<option value="">No Change</option>
-									<option value="new">New</option>
-									<option value="ready">Ready</option>
-									<option value="in progress">In Progress</option>
-									<option value="done">Done</option>
-									<option value="archived">Archived</option>
-									<option value="blocked">Blocked</option>
-								</select>
-							</div>
-							<div class="col-md-6">
-								<label class="form-label">Priority</label>
-								<input type="number" class="form-control" id="bulkUpdatePriority" placeholder="Leave empty for no change">
-							</div>
-						</div>
-						<div class="mb-3">
-							<label class="form-label">Description (optional)</label>
-							<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change"></textarea>
-						</div>
-					</form>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="submitBulkUpdate">Update Stories</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php include __DIR__ . '/app/partials/usor_bulk_create.php'; ?>
+	<?php include __DIR__ . '/app/partials/usor_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/usor_bulk_delete.php'; ?>
 
 </body>
 

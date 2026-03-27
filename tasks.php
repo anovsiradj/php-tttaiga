@@ -28,8 +28,26 @@ require __DIR__ . '/app/init.php';
 		<?php
 		$pageTitle = 'Tasks';
 		$statusType = 'task';
-		$bulkCreateModalId = 'bulkCreateTaskModal';
-		$bulkUpdateModalId = 'bulkUpdateTaskModal';
+		// Buttons moved to additionalControls for better UX
+		$additionalControls = '
+			<div class="dropdown d-inline-block">
+				<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+					<i class="bi bi-gear me-1"></i> Bulk Actions
+				</button>
+				<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
+					<li>
+						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal">
+							<i class="bi bi-plus-lg me-2"></i> Bulk Create
+						</a>
+					</li>
+					<li>
+						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal">
+							<i class="bi bi-pencil-square me-2"></i> Bulk Update
+						</a>
+					</li>
+				</ul>
+			</div>
+		';
 		$searchPlaceholder = 'Search tasks...';
 		$userStorySelect = true;
 		include __DIR__ . '/app/partials/list_header.php';
@@ -55,119 +73,9 @@ require __DIR__ . '/app/init.php';
 		</nav>
 	</div>
 
-	<!-- Bulk Create Task Modal -->
-	<div class="modal fade" id="bulkCreateTaskModal" tabindex="-1" aria-labelledby="bulkCreateTaskModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkCreateTaskModalLabel">Bulk Create Tasks</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<div class="mb-3">
-						<label for="bulkTaskTitles" class="form-label">Task Titles (one per line)</label>
-						<textarea class="form-control" id="bulkTaskTitles" rows="5" placeholder="Enter task titles, one per line\nExample:\nDesign database schema\nImplement user authentication\nCreate API endpoints"></textarea>
-						<div class="form-text">Enter each task title on a separate line</div>
-					</div>
-
-					<div class="row">
-						<div class="col-md-6">
-							<div class="mb-3">
-								<label for="bulkTaskStatus" class="form-label">Status</label>
-								<select class="form-select" id="bulkTaskStatus">
-									<option value="">Select Status</option>
-									<option value="new">New</option>
-									<option value="ready">Ready</option>
-									<option value="in progress">In Progress</option>
-									<option value="done">Done</option>
-									<option value="archived">Archived</option>
-									<option value="blocked">Blocked</option>
-								</select>
-							</div>
-						</div>
-						<div class="col-md-6">
-							<div class="mb-3">
-								<label for="bulkTaskProject" class="form-label">Project</label>
-								<select class="form-select" id="bulkTaskProject">
-									<option value="">Loading projects...</option>
-								</select>
-							</div>
-						</div>
-					</div>
-
-					<div class="mb-3">
-						<label for="bulkTaskUserStory" class="form-label">User Story</label>
-						<select class="form-select" id="bulkTaskUserStory">
-							<option value="">Loading user stories...</option>
-						</select>
-					</div>
-
-					<div class="mb-3">
-						<label for="bulkTaskDescription" class="form-label">Description (applies to all tasks)</label>
-						<textarea class="form-control" id="bulkTaskDescription" rows="3" placeholder="Optional description that will be applied to all created tasks"></textarea>
-					</div>
-
-					<div id="bulkTaskPreview" class="alert alert-info">
-						<p class="mb-0">Preview will appear here after clicking "Preview"</p>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-info" id="previewBulkTaskCreate">Preview</button>
-					<button type="button" class="btn btn-success" id="submitBulkTaskCreate">Create Tasks</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Bulk Update Task Modal -->
-	<div class="modal fade" id="bulkUpdateTaskModal" tabindex="-1" aria-labelledby="bulkUpdateTaskModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkUpdateTaskModalLabel">Bulk Update Tasks</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<div class="mb-3">
-						<label class="form-label">Select Tasks to Update</label>
-						<div id="bulkUpdateTaskList" class="border p-3" style="max-height: 200px; overflow-y: auto;">
-							<div class="text-center text-muted">
-								<div class="spinner-border spinner-border-sm" role="status">
-									<span class="visually-hidden">Loading tasks...</span>
-								</div>
-								<p class="mt-2 mb-0">Loading tasks...</p>
-							</div>
-						</div>
-						<div class="form-text">Select the tasks you want to update</div>
-					</div>
-
-					<div class="mb-3">
-						<label for="bulkUpdateTaskStatus" class="form-label">Update Status</label>
-						<select class="form-select" id="bulkUpdateTaskStatus">
-							<option value="">No Change</option>
-							<option value="new">New</option>
-							<option value="ready">Ready</option>
-							<option value="in progress">In Progress</option>
-							<option value="done">Done</option>
-							<option value="archived">Archived</option>
-							<option value="blocked">Blocked</option>
-						</select>
-						<div class="form-text">Leave as "No Change" to keep current status</div>
-					</div>
-
-					<div class="alert alert-warning">
-						<h6 class="alert-heading">⚠️ Warning</h6>
-						<p class="mb-0">This action will update all selected tasks with the chosen settings. This cannot be undone.</p>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="submitBulkTaskUpdate">Update Tasks</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php include __DIR__ . '/app/partials/task_bulk_create.php'; ?>
+	<?php include __DIR__ . '/app/partials/task_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/task_bulk_delete.php'; ?>
 
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -216,7 +124,20 @@ require __DIR__ . '/app/init.php';
 
 
 			// Bulk Task Create functionality (same as in usor.php)
-			$('#bulkCreateTaskModal').on('show.bs.modal', function () {
+			$('#bulkCreateTaskModal').on('show.bs.modal', function (e) {
+				const projectId = $('#projectSelect').val();
+				const userStoryId = $('#userStorySelect').val();
+
+				if (!projectId || !userStoryId) {
+					alert('Please select both a Project and a User Story filter first.');
+					e.preventDefault();
+					return false;
+				}
+
+				// Hide project and US selection as they are mandatory from filter
+				$('#bulkTaskProject').closest('.col-md-6').hide();
+				$('#bulkTaskUserStory').closest('.mb-3').hide();
+				
 				populateBulkCreateTaskDropdowns();
 			});
 
@@ -229,7 +150,13 @@ require __DIR__ . '/app/init.php';
 			});
 
 			// Bulk Task Update functionality (same as in usor.php)
-			$('#bulkUpdateTaskModal').on('show.bs.modal', function () {
+			$('#bulkUpdateTaskModal').on('show.bs.modal', function (e) {
+				const projectId = $('#projectSelect').val();
+				if (!projectId) {
+					alert('Please select a Project filter first.');
+					e.preventDefault();
+					return false;
+				}
 				populateBulkUpdateTaskDropdowns();
 			});
 
@@ -366,179 +293,78 @@ require __DIR__ . '/app/init.php';
 
 
 
-			// Bulk operations functions (same as in usor.php)
 			function populateBulkCreateTaskDropdowns() {
-				// Populate project dropdown
-				$.ajax({
-					url: apiUrl + '/projects',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (projects) {
-						let html = '<option value="">Select Project</option>';
-						projects.forEach(project => {
-							html += `<option value="${project.id}">${project.name}</option>`;
-						});
-						$('#bulkTaskProject').html(html);
-					}
-				});
+				const currentProjectId = $('#projectSelect').val();
+				const currentUserStoryId = $('#userStorySelect').val();
+				const projectText = $('#projectSelect option:selected').text();
+				const usText = $('#userStorySelect option:selected').text();
 
-				// Populate user story dropdown
-				$.ajax({
-					url: apiUrl + '/userstories',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (userStories) {
-						let html = '<option value="">Select User Story</option>';
-						userStories.forEach(us => {
-							html += `<option value="${us.id}">#${us.ref}: ${us.subject}</option>`;
-						});
-						$('#bulkTaskUserStory').html(html);
-					}
-				});
+				// Display context in read-only inputs
+				$('#bulkTaskProjectDisplay').val(projectText);
+				$('#bulkTaskUserStoryDisplay').val(usText);
 
-				// Populate status dropdown
-				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
-				let statusHtml = '<option value="">Select Status</option>';
-				statusOptions.forEach(status => {
-					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
-				});
-				$('#bulkTaskStatus').html(statusHtml);
+				// Ensure underlying hidden selects have values for submission logic
+				$('#bulkTaskProject').val(currentProjectId);
+				$('#bulkTaskUserStory').val(currentUserStoryId);
+				
+				taigaPopulateBulkStatuses('task', $('#bulkTaskStatus'), currentProjectId);
+				taigaPopulateBulkMembers($('#bulkTaskAssignee'), currentProjectId);
+
+				// Update search context alert only if search is active
+				const currentSearch = $('#searchInput').val();
+				if (currentSearch) {
+					$('#activeTaskSearchQuery').text(currentSearch);
+					$('#bulkTaskSearchContext').removeClass('d-none');
+				} else {
+					$('#bulkTaskSearchContext').addClass('d-none');
+				}
+				$('#bulkTaskTitles').attr('placeholder', 'Enter task titles, one per line');
+
+				// Initial user stories load if project is already selected
+				const initialProjectId = $('#projectSelect').val();
+				if (initialProjectId) {
+					$('#bulkTaskProject').trigger('change');
+				} else {
+					// Fallback to all user stories if no project selected? 
+					// Actually, Taiga usually requires a project for US.
+					$('#bulkTaskUserStory').html('<option value="">Select Project first</option>');
+				}
 			}
 
 			function populateBulkUpdateTaskDropdowns() {
-				// Populate status dropdown for bulk update
-				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
-				let statusHtml = '<option value="">No Change</option>';
-				statusOptions.forEach(status => {
-					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
-				});
-				$('#bulkUpdateTaskStatus').html(statusHtml);
+				const filterParams = taigaGetFilterParams();
+				const projectId = filterParams.project;
+				const projectText = $('#projectSelect option:selected').text();
 
-				// Load all tasks for selection
-				loadAllTasksForBulkUpdate();
-			}
+				// Display context in read-only input
+				$('#bulkUpdateTaskProjectDisplay').val(projectText);
+				
+				// Hide project selection in update modal if filtered
+				$('#bulkUpdateTaskProject').closest('.col-md-6').hide();
 
-			function previewBulkTaskCreate() {
-				const taskTitles = $('#bulkTaskTitles').val().trim();
-				if (!taskTitles) {
-					alert('Please enter task titles');
-					return;
-				}
+				taigaPopulateBulkStatuses('task', $('#bulkUpdateTaskStatus'), projectId, 'No Change');
+				taigaPopulateBulkMembers($('#bulkUpdateTaskAssignee'), projectId, 'No Change');
 
-				const taskLines = taskTitles.split('\n').filter(line => line.trim());
-				let previewHtml = `<p>${taskLines.length} tasks will be created:</p>`;
-				previewHtml += '<ul class="list-group">';
-
-				taskLines.forEach((title, index) => {
-					previewHtml += `<li class="list-group-item">${index + 1}. ${title}</li>`;
-				});
-
-				previewHtml += '</ul>';
-				$('#bulkTaskPreview').html(previewHtml);
-			}
-
-			function submitBulkTaskCreate() {
-				const taskTitles = $('#bulkTaskTitles').val().trim();
-				const status = $('#bulkTaskStatus').val();
-				const description = $('#bulkTaskDescription').val().trim();
-				const projectId = $('#bulkTaskProject').val();
-				const userStoryId = $('#bulkTaskUserStory').val();
-
-				if (!taskTitles) {
-					alert('Please enter task titles');
-					return;
-				}
-
-				if (!projectId) {
-					alert('Please select a project');
-					return;
-				}
-
-				if (!userStoryId) {
-					alert('Please select a user story');
-					return;
-				}
-
-				const taskLines = taskTitles.split('\n').filter(line => line.trim());
-				if (taskLines.length === 0) {
-					alert('No valid tasks to create');
-					return;
-				}
-
-				// Create tasks sequentially
-				const promises = taskLines.map((title, index) => {
-					const taskData = {
-						subject: title.trim(),
-						status: status || 'new',
-						description: description,
-						user_story: userStoryId,
-						project: projectId
-					};
-
-					return $.ajax({
-						url: apiUrl + '/tasks',
-						type: 'POST',
-						headers: {
-							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
-						},
-						data: JSON.stringify(taskData)
-					});
-				});
-
-				// Execute all promises
-				Promise.all(promises)
-					.then(() => {
-						alert(`Successfully created ${taskLines.length} tasks!`);
-						$('#bulkCreateTaskModal').modal('hide');
-						loadTasks(); // Reload tasks list
-					})
-					.catch(error => {
-						console.error('Failed to create tasks:', error);
-						alert('Failed to create some tasks. Please check the console for details.');
-					});
-			}
-
-			function loadAllTasksForBulkUpdate() {
-				// Load all tasks for bulk update selection
-				$.ajax({
-					url: apiUrl + '/tasks',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (tasks) {
-						let tasksHtml = '';
-						tasks.forEach(task => {
-							tasksHtml += `
+				// Load tasks for selection matching current filters
+				taigaLoadBulkItems('/tasks', $('#bulkUpdateTaskList'), item => {
+					return `
 						<div class="form-check">
-							<input class="form-check-input" type="checkbox" value="${task.id}" id="bulk-task-${task.id}">
-							<label class="form-check-label" for="bulk-task-${task.id}">
-								#${task.ref}: ${task.subject}
+							<input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-task-${item.id}">
+							<label class="form-check-label" for="bulk-task-${item.id}">
+								#${item.ref}: ${item.subject}
 							</label>
 						</div>
 					`;
-						});
-						$('#bulkUpdateTaskList').html(tasksHtml || '<p>No tasks available for update.</p>');
-					},
-					error: function (xhr) {
-						console.error('Failed to load tasks:', xhr);
-						$('#bulkUpdateTaskList').html('<p class="text-danger">Failed to load tasks.</p>');
-					}
 				});
 			}
 
 			function submitBulkTaskUpdate() {
 				const selectedTasks = [];
 				$('#bulkUpdateTaskList input:checked').each(function () {
-					selectedTasks.push($(this).val());
+					selectedTasks.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
 				});
 
 				if (selectedTasks.length === 0) {
@@ -550,37 +376,159 @@ require __DIR__ . '/app/init.php';
 				const status = $('#bulkUpdateTaskStatus').val();
 
 				if (status) updateData.status = status;
+				const assignee = $('#bulkUpdateTaskAssignee').val();
+				if (assignee) updateData.assigned_to = parseInt(assignee);
 
 				if (Object.keys(updateData).length === 0) {
 					alert('Please select at least one field to update');
 					return;
 				}
 
-				// Update tasks sequentially
-				const promises = selectedTasks.map(taskId => {
-					return $.ajax({
-						url: apiUrl + '/tasks/' + taskId,
-						type: 'PATCH',
+				const $btn = $('#submitBulkTaskUpdate');
+				$btn.prop('disabled', true).text('Updating...');
+
+				taigaExecuteBulk('/tasks/', selectedTasks, 'PATCH', updateData, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Update Tasks');
+					if (errorCount === 0) {
+						alert(`Successfully updated ${successCount} tasks!`);
+						$('#bulkUpdateTaskModal').modal('hide');
+						loadTasks();
+					} else {
+						alert(`Updated ${successCount} tasks, but ${errorCount} failed.`);
+					}
+				});
+			}
+
+			function previewBulkTaskCreate() {
+				const titles = $('#bulkTaskTitles').val().trim().split('\n').filter(t => t.trim());
+				if (titles.length === 0) {
+					alert('Please enter at least one task title');
+					return;
+				}
+
+				let html = '<h6>Tasks to be created:</h6><ul class="mb-0">';
+				titles.forEach(title => {
+					html += `<li>${title}</li>`;
+				});
+				html += '</ul>';
+				$('#bulkTaskPreview').html(html).show();
+			}
+
+			function submitBulkTaskCreate() {
+				const titles = $('#bulkTaskTitles').val().trim().split('\n').filter(t => t.trim());
+				if (titles.length === 0) {
+					alert('Please enter at least one task title');
+					return;
+				}
+
+				const projectId = $('#bulkTaskProject').val() || $('#projectSelect').val();
+				const userStoryId = $('#bulkTaskUserStory').val() || $('#userStorySelect').val();
+				const statusId = $('#bulkTaskStatus').val();
+				const assigneeId = $('#bulkTaskAssignee').val();
+				const commonDescription = $('#bulkTaskDescription').val().trim();
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+
+				const $btn = $('#submitBulkTaskCreate');
+				$btn.prop('disabled', true).text('Creating...');
+
+				let createdCount = 0;
+				let errorCount = 0;
+
+				const currentSearch = $('#searchInput').val();
+				const prependSearch = $('#prependTaskSearchCheck').is(':checked');
+
+				titles.forEach(title => {
+					let finalSubject = title;
+					if (currentSearch && prependSearch) {
+						finalSubject = `[${currentSearch}] ${finalSubject}`;
+					}
+
+					const taskData = {
+						subject: finalSubject,
+						project: parseInt(projectId),
+						description: commonDescription
+					};
+
+					if (userStoryId) taskData.user_story = parseInt(userStoryId);
+					if (statusId) taskData.status = parseInt(statusId);
+					if (assigneeId) taskData.assigned_to = parseInt(assigneeId);
+
+					$.ajax({
+						url: apiUrl + '/tasks',
+						type: 'POST',
 						headers: {
 							'Authorization': 'Bearer ' + token,
 							'Content-Type': 'application/json'
 						},
-						data: JSON.stringify(updateData)
+						data: JSON.stringify(taskData),
+						success: function () {
+							createdCount++;
+							if (createdCount + errorCount === titles.length) {
+								finishBulkTaskCreate(createdCount, errorCount);
+							}
+						},
+						error: function (xhr) {
+							console.error('Failed to create task:', title, xhr);
+							errorCount++;
+							if (createdCount + errorCount === titles.length) {
+								finishBulkTaskCreate(createdCount, errorCount);
+							}
+						}
+					});
+				});
+			}
+
+			function finishBulkTaskCreate(success, errors) {
+				$('#submitBulkTaskCreate').prop('disabled', false).text('Create Tasks');
+				if (errors === 0) {
+					alert(`Successfully created ${success} tasks!`);
+					$('#bulkCreateTaskModal').modal('hide');
+					loadTasks();
+				}
+			}
+
+			// Bulk Delete Logic
+			$('#bulkDeleteTaskModal').on('show.bs.modal', function () {
+				const selectedTasks = [];
+				$('.task-checkbox:checked').each(function () {
+					const title = $(this).closest('.card-body').find('.card-title').text();
+					selectedTasks.push(title);
+				});
+				$('#selectedTasksList').html(selectedTasks.map(t => `<div>${t}</div>`).join(''));
+			});
+
+			$('#confirmBulkDeleteTasks').on('click', function () {
+				const selectedTasks = [];
+				$('.task-checkbox:checked').each(function () {
+					selectedTasks.push({
+						id: $(this).val(),
+						version: $(this).data('version')
 					});
 				});
 
-				// Execute all promises
-				Promise.all(promises)
-					.then(() => {
-						alert(`Successfully updated ${selectedTasks.length} tasks!`);
-						$('#bulkUpdateTaskModal').modal('hide');
-						loadTasks(); // Reload tasks list
-					})
-					.catch(error => {
-						console.error('Failed to update tasks:', error);
-						alert('Failed to update some tasks. Please check the console for details.');
-					});
-			}
+				if (selectedTasks.length === 0) {
+					alert('Please select at least one task to delete');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Deleting...');
+
+				taigaExecuteBulk('/tasks/', selectedTasks, 'DELETE', null, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Delete Tasks');
+					if (errorCount === 0) {
+						alert(`Successfully deleted ${successCount} tasks!`);
+						$('#bulkDeleteTaskModal').modal('hide');
+						loadTasks();
+					} else {
+						alert(`Deleted ${successCount} tasks, but ${errorCount} failed.`);
+					}
+				});
+			});
 		});
 	</script>
 

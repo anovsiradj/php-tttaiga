@@ -109,6 +109,45 @@ require __DIR__ . '/app/init.php';
 				submitBulkUpdateEpic();
 			});
 
+			// Bulk Delete functionality
+			$('#bulkDeleteEpicModal').on('show.bs.modal', function () {
+				const selectedEpics = [];
+				$('.epic-checkbox:checked').each(function () {
+					const title = $(this).closest('.card-body').find('.card-title').text();
+					selectedEpics.push(title);
+				});
+				$('#selectedEpicsList').html(selectedEpics.map(e => `<div>${e}</div>`).join(''));
+			});
+
+			$('#confirmBulkDeleteEpics').on('click', function () {
+				const selectedEpics = [];
+				$('.epic-checkbox:checked').each(function () {
+					selectedEpics.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
+
+				if (selectedEpics.length === 0) {
+					alert('Please select at least one epic to delete');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Deleting...');
+
+				taigaExecuteBulk('/epics/', selectedEpics, 'DELETE', null, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Delete Epics');
+					if (errorCount === 0) {
+						alert(`Successfully deleted ${successCount} epics!`);
+						$('#bulkDeleteEpicModal').modal('hide');
+						loadEpics();
+					} else {
+						alert(`Deleted ${successCount} epics, but ${errorCount} failed.`);
+					}
+				});
+			});
+
 			function loadProjectsAndEpics() {
 				// Load projects first
 				$.ajax({
@@ -197,7 +236,11 @@ require __DIR__ . '/app/init.php';
 				<div class="col-md-6 col-lg-4 mb-4">
 					<div class="card epic-card h-100" data-epic-id="${epic.id}" data-project-id="${epic.project}" data-status="${epic.status}">
 						<div class="card-body">
-							<div class="float-end">
+							<div class="d-flex justify-content-between align-items-start mb-2">
+								<div class="form-check">
+									<input class="form-check-input epic-checkbox" type="checkbox" value="${epic.id}" data-version="${epic.version}" id="epic-${epic.id}">
+									<label class="form-check-label" for="epic-${epic.id}"></label>
+								</div>
 								${statusBadge}
 							</div>
 							<h5 class="card-title text-truncate pe-5">${epic.subject || 'Untitled Epic'}</h5>
@@ -262,12 +305,25 @@ require __DIR__ . '/app/init.php';
 						'Content-Type': 'application/json'
 					},
 					success: function (projects) {
-						let options = '<option value="">Select Project</option>';
-						projects.forEach(project => {
-							options += `<option value="${project.id}">${project.name}</option>`;
+						$('#bulkCreateEpicProject').html(options).select2({
+							theme: 'bootstrap-5',
+							width: '100%',
+							placeholder: 'Select Project',
+							dropdownParent: $('#bulkCreateEpicModal')
 						});
-						$('#bulkCreateEpicProject').html(options);
+
+						// Initial status population if a project is already selected (e.g. from filter)
+						const currentProjectId = $('#projectSelect').val();
+						if (currentProjectId) {
+							$('#bulkCreateEpicProject').val(currentProjectId);
+							taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), currentProjectId);
+						}
 					}
+				});
+
+				// Update statuses when project changes
+				$('#bulkCreateEpicProject').off('change').on('change', function () {
+					taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), $(this).val());
 				});
 			}
 
@@ -385,26 +441,31 @@ require __DIR__ . '/app/init.php';
 
 			// Bulk Update Epic Functions
 			function populateBulkUpdateEpicDropdowns() {
-				// Load epics for selection
-				$.ajax({
-					url: apiUrl + '/epics',
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (epics) {
-						let options = '';
-						epics.forEach(epic => {
-							options += `<option value="${epic.id}">#${epic.ref}: ${epic.subject || 'Untitled Epic'}</option>`;
-						});
-						$('#bulkUpdateEpics').html(options);
-					}
+				const filterParams = taigaGetFilterParams();
+				const projectId = filterParams.project;
+				taigaPopulateBulkStatuses('epic', $('#bulkUpdateEpicStatus'), projectId, 'No Change');
+
+				taigaLoadBulkItems('/epics', $('#bulkUpdateEpics'), item => {
+					return `
+						<div class="form-check">
+							<input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-epic-${item.id}">
+							<label class="form-check-label" for="bulk-epic-${item.id}">
+								#${item.ref}: ${item.subject || 'Untitled Epic'}
+							</label>
+						</div>
+					`;
 				});
 			}
 
 			function submitBulkUpdateEpic() {
-				const selectedEpics = $('#bulkUpdateEpics').val();
+				const selectedEpics = [];
+				$('#bulkUpdateEpics input:checked').each(function () {
+					selectedEpics.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
+
 				const status = $('#bulkUpdateEpicStatus').val();
 				const priority = $('#bulkUpdateEpicPriority').val();
 				const description = $('#bulkUpdateEpicDescription').val().trim();
@@ -427,159 +488,24 @@ require __DIR__ . '/app/init.php';
 				}
 
 				const $btn = $('#submitBulkUpdateEpic');
-				const originalText = $btn.text();
 				$btn.prop('disabled', true).text('Updating...');
 
-				let updatedCount = 0;
-				let errorCount = 0;
-
-				selectedEpics.forEach(epicId => {
-					$.ajax({
-						url: apiUrl + '/epics/' + epicId,
-						type: 'PATCH',
-						headers: {
-							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
-						},
-						data: JSON.stringify(updateData),
-						success: function () {
-							updatedCount++;
-							if (updatedCount + errorCount === selectedEpics.length) {
-								finishBulkUpdateEpic(updatedCount, errorCount);
-							}
-						},
-						error: function () {
-							errorCount++;
-							if (updatedCount + errorCount === selectedEpics.length) {
-								finishBulkUpdateEpic(updatedCount, errorCount);
-							}
-						}
-					});
+				taigaExecuteBulk('/epics/', selectedEpics, 'PATCH', updateData, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Update Epics');
+					if (errorCount === 0) {
+						alert(`Successfully updated ${successCount} epics!`);
+						$('#bulkUpdateEpicModal').modal('hide');
+						loadEpics();
+					} else {
+						alert(`Updated ${successCount} epics, but ${errorCount} failed.`);
+					}
 				});
-			}
-
-			function finishBulkUpdateEpic(updatedCount, errorCount) {
-				const $btn = $('#submitBulkUpdateEpic');
-				$btn.prop('disabled', false).text('Update Epics');
-
-				if (errorCount === 0) {
-					alert(`Successfully updated ${updatedCount} epics!`);
-					$('#bulkUpdateEpicModal').modal('hide');
-					loadProjectsAndEpics();
-				} else {
-					alert(`Updated ${updatedCount} epics, but ${errorCount} failed.`);
-				}
 			}
 		});
 	</script>
 
-	<!-- Bulk Create Epic Modal -->
-	<div class="modal fade" id="bulkCreateEpicModal" tabindex="-1" aria-labelledby="bulkCreateEpicModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkCreateEpicModalLabel">Bulk Create Epics</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<form id="bulkCreateEpicForm">
-						<div class="mb-3">
-							<label class="form-label">Epics (one per line)</label>
-							<textarea class="form-control" id="bulkCreateEpicText" rows="10" placeholder="Enter epics, one per line. Format: Subject|Description (optional)|Status (optional)" required></textarea>
-							<small class="form-text text-muted">Example: Authentication Module|Implement login and registration|new</small>
-						</div>
-						<div class="row">
-							<div class="col-md-6">
-								<label class="form-label">Project</label>
-								<select class="form-select" id="bulkCreateEpicProject" required>
-									<option value="">Select Project</option>
-								</select>
-							</div>
-							<div class="col-md-6">
-								<label class="form-label">Default Status</label>
-								<select class="form-select" id="bulkCreateEpicStatus">
-									<option value="new">New</option>
-									<option value="in progress">In Progress</option>
-									<option value="done">Done</option>
-									<option value="archived">Archived</option>
-								</select>
-							</div>
-						</div>
-						<div class="row mt-3">
-							<div class="col-md-6">
-								<label class="form-label">Color (optional)</label>
-								<input type="color" class="form-control form-control-color" id="bulkCreateEpicColor" value="#fd7e14">
-							</div>
-							<div class="col-md-6">
-								<label class="form-label">Priority (optional)</label>
-								<input type="number" class="form-control" id="bulkCreateEpicPriority" min="1" max="100" value="10">
-							</div>
-						</div>
-					</form>
-					<div id="bulkCreateEpicPreview" class="mt-3 d-none">
-						<h6>Preview:</h6>
-						<div class="border rounded p-2 bg-body-tertiary" id="epicPreviewContent"></div>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-outline-primary" id="previewBulkCreateEpic">Preview</button>
-					<button type="button" class="btn btn-success" id="submitBulkCreateEpic">Create Epics</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Bulk Update Epic Modal -->
-	<div class="modal fade" id="bulkUpdateEpicModal" tabindex="-1" aria-labelledby="bulkUpdateEpicModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkUpdateEpicModalLabel">Bulk Update Epics</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<form id="bulkUpdateEpicForm">
-						<div class="mb-3">
-							<label class="form-label">Select Epics to Update</label>
-							<select class="form-select" id="bulkUpdateEpics" multiple size="8">
-								<option value="">Loading epics...</option>
-							</select>
-							<small class="form-text text-muted">Hold Ctrl/Cmd to select multiple epics</small>
-						</div>
-						<div class="row">
-							<div class="col-md-6">
-								<label class="form-label">Status</label>
-								<select class="form-select" id="bulkUpdateEpicStatus">
-									<option value="">No Change</option>
-									<option value="new">New</option>
-									<option value="in progress">In Progress</option>
-									<option value="done">Done</option>
-									<option value="archived">Archived</option>
-								</select>
-							</div>
-							<div class="col-md-6">
-								<label class="form-label">Priority</label>
-								<input type="number" class="form-control" id="bulkUpdateEpicPriority" placeholder="Leave empty for no change">
-							</div>
-						</div>
-						<div class="mb-3">
-							<label class="form-label">Description (optional)</label>
-							<textarea class="form-control" id="bulkUpdateEpicDescription" rows="3" placeholder="Leave empty for no change"></textarea>
-						</div>
-						<div class="mb-3">
-							<label class="form-label">Color (optional)</label>
-							<input type="color" class="form-control form-control-color" id="bulkUpdateEpicColor">
-						</div>
-					</form>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="submitBulkUpdateEpic">Update Epics</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php include __DIR__ . '/app/partials/epic_bulk_create.php'; ?>
+	<?php include __DIR__ . '/app/partials/epic_bulk_update.php'; ?>
 
 </body>
 

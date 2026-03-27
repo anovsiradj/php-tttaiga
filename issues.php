@@ -28,7 +28,10 @@ require __DIR__ . '/app/init.php';
 		<?php
 		$pageTitle = 'Issues';
 		$statusType = 'issue';
-		$additionalControls = '<button class="btn btn-danger me-2" id="bulkDeleteBtn"><i class="bi bi-trash"></i> Bulk Delete</button>';
+		$additionalControls = '
+			<button class="btn btn-primary me-2" id="bulkUpdateBtn"><i class="bi bi-pencil-square"></i> Bulk Update</button>
+			<button class="btn btn-danger me-2" id="bulkDeleteBtn"><i class="bi bi-trash"></i> Bulk Delete</button>
+		';
 		$searchPlaceholder = 'Search issues...';
 		include __DIR__ . '/app/partials/list_header.php';
 
@@ -102,8 +105,10 @@ require __DIR__ . '/app/init.php';
 			// Bulk Delete functionality
 			$('#bulkDeleteBtn').on('click', function () {
 				const selectedIssues = [];
+				const selectedSubjects = [];
 				$('#issuesContent input.issue-checkbox:checked').each(function () {
 					selectedIssues.push($(this).val());
+					selectedSubjects.push($(this).closest('.card').find('.card-title').text());
 				});
 
 				if (selectedIssues.length === 0) {
@@ -111,41 +116,126 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
-				if (!confirm('Are you sure you want to delete ' + selectedIssues.length + ' issues? This action cannot be undone.')) {
-					return;
-				}
+				let listHtml = '<ul class="list-group list-group-flush">';
+				selectedSubjects.forEach(subject => {
+					listHtml += `<li class="list-group-item py-1 small">${subject}</li>`;
+				});
+				listHtml += '</ul>';
+				$('#selectedIssuesList').html(listHtml);
+				
+				$('#issueBulkDeleteModal').modal('show');
+			});
+			// Bulk Delete confirmation
+			$('#confirmBulkDeleteIssues').on('click', function() {
+				const selectedIssues = [];
+				$('#issuesContent input.issue-checkbox:checked').each(function () {
+					selectedIssues.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
 
-				// Show absolute loading state
 				const btn = $(this);
 				const originalText = btn.html();
 				btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...').prop('disabled', true);
 
-				// Delete issues sequentially
-				const promises = selectedIssues.map(issueId => {
-					return $.ajax({
-						url: apiUrl + '/issues/' + issueId,
-						type: 'DELETE',
-						headers: {
-							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
-						}
+				taigaExecuteBulk('/issues/', selectedIssues, 'DELETE', null, (successCount, errorCount) => {
+					btn.html(originalText).prop('disabled', false);
+					$('#issueBulkDeleteModal').modal('hide');
+					if (errorCount === 0) {
+						alert(`Successfully deleted ${successCount} issues!`);
+					} else {
+						alert(`Deleted ${successCount} issues, but ${errorCount} failed.`);
+					}
+					loadIssues();
+					$('#selectionCount').text('0');
+				});
+			});
+
+			// Bulk Update functionality
+			$('#bulkUpdateBtn').on('click', function () {
+				const selectedIssues = [];
+				const selectedSubjects = [];
+				$('#issuesContent input.issue-checkbox:checked').each(function () {
+					selectedIssues.push($(this).val());
+					selectedSubjects.push($(this).closest('.card').find('.card-title').text());
+				});
+
+				if (selectedIssues.length === 0) {
+					alert('Please select at least one issue to update');
+					return;
+				}
+
+				let listHtml = '<ul class="list-group list-group-flush">';
+				selectedSubjects.forEach(subject => {
+					listHtml += `<li class="list-group-item py-1 small">${subject}</li>`;
+				});
+				listHtml += '</ul>';
+				$('#bulkUpdateIssueList').html(listHtml);
+				
+				populateBulkUpdateIssueDropdowns();
+				$('#issueBulkUpdateModal').modal('show');
+			});
+
+			function populateBulkUpdateIssueDropdowns() {
+				const filterParams = taigaGetFilterParams();
+				const projectId = filterParams.project;
+				taigaPopulateBulkStatuses('issue', $('#bulkUpdateIssueStatus'), projectId, 'No Change');
+				taigaPopulateBulkMembers($('#bulkUpdateIssueAssignee'), projectId, 'No Change');
+
+				const selectedIssueIds = [];
+				$('#issuesContent input.issue-checkbox:checked').each(function () {
+					selectedIssueIds.push($(this).val());
+				});
+
+				taigaLoadBulkItems('/issues', $('#bulkUpdateIssueList'), item => {
+					return `
+						<div class="form-check">
+							<input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-issue-${item.id}" checked>
+							<label class="form-check-label" for="bulk-issue-${item.id}">
+								#${item.ref}: ${item.subject}
+							</label>
+						</div>
+					`;
+				}, selectedIssueIds);
+			}
+
+			$('#submitBulkIssueUpdate').on('click', function () {
+				const selectedIssues = [];
+				$('#bulkUpdateIssueList input:checked').each(function () {
+					selectedIssues.push({
+						id: $(this).val(),
+						version: $(this).data('version')
 					});
 				});
 
-				// Execute all promises
-				Promise.all(promises)
-					.then(() => {
-						alert(`Successfully deleted ${selectedIssues.length} issues!`);
-						loadIssues(); // Reload issues list
-						$('#selectionCount').text('0');
-					})
-					.catch(error => {
-						console.error('Failed to delete issues:', error);
-						alert('Failed to delete some issues. Please check the console for details.');
-					})
-					.finally(() => {
-						btn.html(originalText).prop('disabled', false);
-					});
+				const updateData = {};
+				const status = $('#bulkUpdateIssueStatus').val();
+				const assignee = $('#bulkUpdateIssueAssignee').val();
+
+				if (status) updateData.status = parseInt(status);
+				if (assignee) updateData.assigned_to = parseInt(assignee);
+
+				if (Object.keys(updateData).length === 0) {
+					alert('Please select at least one field to update');
+					return;
+				}
+
+				const btn = $(this);
+				const originalText = btn.text();
+				btn.prop('disabled', true).text('Updating...');
+
+				taigaExecuteBulk('/issues/', selectedIssues, 'PATCH', updateData, (successCount, errorCount) => {
+					btn.prop('disabled', false).text(originalText);
+					$('#issueBulkUpdateModal').modal('hide');
+					if (errorCount === 0) {
+						alert(`Successfully updated ${successCount} issues!`);
+					} else {
+						alert(`Updated ${successCount} issues, but ${errorCount} failed.`);
+					}
+					loadIssues();
+					$('#selectionCount').text('0');
+				});
 			});
 
 			function loadIssues(page = 1) {
@@ -212,7 +302,7 @@ require __DIR__ . '/app/init.php';
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
-									<input class="form-check-input issue-checkbox" type="checkbox" value="${issue.id}" id="issue-${issue.id}">
+									<input class="form-check-input issue-checkbox" type="checkbox" value="${issue.id}" data-version="${issue.version}" id="issue-${issue.id}">
 									<label class="form-check-label" for="issue-${issue.id}"></label>
 								</div>
 								${statusBadge}
@@ -266,9 +356,49 @@ require __DIR__ . '/app/init.php';
 				$('#selectionCount').text(selectedCount);
 			}
 
+			// Bulk Delete Logic
+			$('#issueBulkDeleteModal').on('show.bs.modal', function () {
+				const selectedIssues = [];
+				$('.issue-checkbox:checked').each(function () {
+					const title = $(this).closest('.card-body').find('.card-title').text();
+					selectedIssues.push(title);
+				});
+				$('#selectedIssuesList').html(selectedIssues.map(i => `<div>${i}</div>`).join(''));
+			});
 
+			$('#confirmBulkDeleteIssues').on('click', function () {
+				const selectedIssues = [];
+				$('.issue-checkbox:checked').each(function () {
+					selectedIssues.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
+
+				if (selectedIssues.length === 0) {
+					alert('Please select at least one issue to delete');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Deleting...');
+
+				taigaExecuteBulk('/issues/', selectedIssues, 'DELETE', null, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Delete Issues');
+					if (errorCount === 0) {
+						alert(`Successfully deleted ${successCount} issues!`);
+						$('#issueBulkDeleteModal').modal('hide');
+						loadIssues();
+					} else {
+						alert(`Deleted ${successCount} issues, but ${errorCount} failed.`);
+					}
+				});
+			});
 		});
 	</script>
+
+	<?php include __DIR__ . '/app/partials/issue_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/issue_bulk_delete.php'; ?>
 
 </body>
 

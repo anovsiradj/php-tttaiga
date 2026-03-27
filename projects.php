@@ -5,15 +5,27 @@ require __DIR__ . '/app/init.php';
 $pageTitle = 'My Projects';
 $searchPlaceholder = 'Search projects...';
 $additionalControls = '
-<select class="form-select me-2" id="sortSelect" style="width: 150px;">
+<div class="dropdown d-inline-block me-2">
+	<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+		<i class="bi bi-gear me-1"></i> Bulk Actions
+	</button>
+	<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
+		<li>
+			<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal">
+				<i class="bi bi-pencil-square me-2"></i> Bulk Prefix Name
+			</a>
+		</li>
+	</ul>
+</div>
+<select class="form-select d-inline-block" id="sortSelect" style="width: 150px;">
 	<option value="name">Sort by Name</option>
 	<option value="created_date">Sort by Created</option>
 	<option value="modified_date">Sort by Modified</option>
 </select>';
 
+$bulkDeleteModalId = 'bulkDeleteModal'; // if we ever add bulk delete to projects
 $filterProjectEnable = false;
 $filterStatusEnable = false;
-
 ?>
 
 <!DOCTYPE html>
@@ -40,6 +52,14 @@ $filterStatusEnable = false;
 
 	<div class="container mt-4">
 		<?php include __DIR__ . '/app/partials/list_header.php' ?>
+
+		<?php
+		$totalLabel = 'Total Projects';
+		$totalId = 'totalProjects';
+		$filteredId = 'filteredProjects';
+		$selectionCountId = 'selectedProjectsCount';
+		include __DIR__ . '/app/partials/list_status.php';
+		?>
 
 		<div id="projectsContent">
 			<div class="loading-spinner">
@@ -92,6 +112,25 @@ $filterStatusEnable = false;
 
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadProjects);
+
+			$('#selectAllBtn').on('click', function () {
+				$('#projectsContent input.project-checkbox').prop('checked', true);
+				updateSelectionCount();
+			});
+
+			$('#clearSelectionBtn').on('click', function () {
+				$('#projectsContent input.project-checkbox').prop('checked', false);
+				updateSelectionCount();
+			});
+
+			$('#bulkUpdateProjectModal').on('show.bs.modal', function () {
+				const count = $('#projectsContent input.project-checkbox:checked').length;
+				$('#selectedProjectsCountLabel').text(count);
+			});
+
+			$('#submitBulkProjectUpdate').on('click', function () {
+				submitBulkProjectUpdate();
+			});
 
 			function loadProjects(page = 1) {
 				const params = {
@@ -161,6 +200,15 @@ $filterStatusEnable = false;
 				<div class="col-md-6 col-lg-4 mb-4">
 					<div class="card project-card h-100" data-project-id="${project.id}">
 						<div class="card-body">
+							<div class="d-flex justify-content-between align-items-start mb-2">
+								<div class="form-check">
+									<input class="form-check-input project-checkbox" type="checkbox" value="${project.id}" data-version="${project.version}" data-name="${project.name}" id="project-${project.id}">
+									<label class="form-check-label" for="project-${project.id}"></label>
+								</div>
+								<span class="badge bg-${project.is_private ? 'secondary' : 'primary'}">
+									${project.is_private ? 'Private' : 'Public'}
+								</span>
+							</div>
 							<h5 class="card-title">${project.name}</h5>
 							<p class="card-text text-muted project-description">
 								${project.description || 'No description available.'}
@@ -169,9 +217,6 @@ $filterStatusEnable = false;
 								<small class="text-muted">
 									Created: ${new Date(project.created_date).toLocaleDateString()}
 								</small>
-								<span class="badge bg-${project.is_private ? 'secondary' : 'primary'}">
-									${project.is_private ? 'Private' : 'Public'}
-								</span>
 							</div>
 						</div>
 						<div class="card-footer bg-transparent">
@@ -187,6 +232,14 @@ $filterStatusEnable = false;
 				html += '</div>';
 				$('#projectsContent').html(html);
 
+				// Update counts
+				$('#totalProjects').text(projects.length);
+				$('#filteredProjects').text(projects.length);
+				updateSelectionCount();
+
+				// Add click event for project checkboxes
+				$('.project-checkbox').on('change', updateSelectionCount);
+
 				// Add click event for project cards
 				$('.view-project').on('click', function (e) {
 					e.stopPropagation();
@@ -200,9 +253,57 @@ $filterStatusEnable = false;
 				});
 			}
 
+			function updateSelectionCount() {
+				const selectedCount = $('#projectsContent input.project-checkbox:checked').length;
+				$('#selectedProjectsCount').text(selectedCount);
+			}
+
+			function submitBulkProjectUpdate() {
+				const prefix = $('#projectPrefixInput').val().trim();
+				if (!prefix) {
+					alert('Please enter a prefix');
+					return;
+				}
+
+				const selectedProjects = [];
+				$('#projectsContent input.project-checkbox:checked').each(function () {
+					selectedProjects.push({
+						id: $(this).val(),
+						version: $(this).data('version'),
+						name: $(this).data('name')
+					});
+				});
+
+				if (selectedProjects.length === 0) {
+					alert('Please select at least one project');
+					return;
+				}
+
+				const $btn = $('#submitBulkProjectUpdate');
+				$btn.prop('disabled', true).text('Applying...');
+
+				// Use reinforced taigaExecuteBulk that supports data functions
+				taigaExecuteBulk('/projects/', selectedProjects, 'PATCH', (item) => {
+					return {
+						name: `[${prefix}] ${item.name}`
+					};
+				}, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Apply Prefix');
+					if (errorCount === 0) {
+						alert(`Successfully added prefix to ${successCount} projects!`);
+						$('#bulkUpdateProjectModal').modal('hide');
+						loadProjects();
+					} else {
+						alert(`Updated ${successCount} projects, but ${errorCount} failed. Check console for details.`);
+					}
+				});
+			}
+
 			// Sort and filter handled by taigaBindFilters and taigaGetFilterParams
 		});
 	</script>
+
+	<?php include __DIR__ . '/app/partials/project_bulk_update.php'; ?>
 
 </body>
 

@@ -341,4 +341,186 @@ function taigaBindFilters(onFilterChange) {
 	});
 }
 
+/**
+ * Loads items for bulk operations (update/delete) based on current filters.
+ * @param {string} endpoint - API endpoint (e.g., '/epics')
+ * @param {jQuery} $container - Container to hold the checkboxes or select options
+ * @param {Function} formatItemCallback - Function to format how each item appears
+ */
+function taigaLoadBulkItems(endpoint, $container, formatItemCallback) {
+	const params = {
+		...taigaGetFilterParams(),
+		page_size: 100 // Load more for bulk operations
+	};
+
+	$container.html('<div class="text-center p-3"><div class="spinner-border spinner-border-sm" role="status"></div> Loading...</div>');
+
+	$.ajax({
+		url: window.apiUrl + endpoint,
+		type: 'GET',
+		data: params,
+		headers: {
+			'Authorization': `Bearer ${window.taigaToken}`,
+			'Content-Type': 'application/json'
+		},
+		success: function (items) {
+			if (items.length === 0) {
+				$container.html('<div class="alert alert-info p-2 mb-0">No items found matching current filters.</div>');
+				return;
+			}
+			let html = '';
+			items.forEach(item => {
+				html += formatItemCallback(item);
+			});
+			$container.html(html);
+		},
+		error: function (xhr) {
+			console.error(`Failed to load bulk items from ${endpoint}:`, xhr);
+			$container.html('<div class="alert alert-danger p-2 mb-0">Failed to load items.</div>');
+		}
+	});
+}
+
+/**
+ * Executes bulk operations (PATCH or DELETE) sequentially.
+ * @param {string} endpoint - Base API endpoint (e.g., '/epics/')
+ * @param {Array} ids - List of item IDs to process
+ * @param {string} method - 'PATCH' or 'DELETE'
+ * @param {Object} data - Data to send for PATCH (optional)
+ * @param {Function} onComplete - Callback when all requests finished (successCount, errorCount)
+ */
+function taigaExecuteBulk(endpoint, items, method, data, onComplete) {
+	let doneCount = 0;
+	let successCount = 0;
+	let errorCount = 0;
+
+	if (items.length === 0) {
+		if (typeof onComplete === 'function') onComplete(0, 0);
+		return;
+	}
+
+	items.forEach(item => {
+		const id = typeof item === 'object' ? item.id : item;
+		const version = typeof item === 'object' ? item.version : null;
+		
+		// Clone data and add version if PATCHing an object with version
+		// SUPPORT: data can be a function (item) => requestData
+		let requestData = typeof data === 'function' ? data(item) : data;
+		
+		if (method === 'PATCH' && version !== null) {
+			requestData = { ...requestData, version: version };
+		}
+
+		$.ajax({
+			url: window.apiUrl + endpoint + id,
+			type: method,
+			headers: {
+				'Authorization': `Bearer ${window.taigaToken}`,
+				'Content-Type': 'application/json'
+			},
+			data: requestData ? JSON.stringify(requestData) : undefined,
+			success: function () {
+				successCount++;
+			},
+			error: function (xhr) {
+				console.error(`Bulk operation failed for ${endpoint}${id}:`, xhr.responseJSON);
+				errorCount++;
+			},
+			complete: function () {
+				doneCount++;
+				if (doneCount === items.length) {
+					if (typeof onComplete === 'function') onComplete(successCount, errorCount);
+				}
+			}
+		});
+	});
+}
+
 // Old taigaLoad* functions removed as they are replaced by dynamic Select2 loading for filters.
+
+/**
+ * Fetches and populates a status dropdown for bulk operations, avoiding hardcoded values.
+ * @param {string} type - 'epic', 'us', 'task', 'issue'
+ * @param {jQuery} $select - Select element to populate
+ * @param {number} projectId - ID of the project to fetch statuses for
+ * @param {string} defaultText - Text for the default option (e.g. 'Select Status' or 'No Change')
+ */
+function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Select Status') {
+	if (!projectId) {
+		$select.html(`<option value="">${defaultText} (Select Project first)</option>`);
+		return;
+	}
+
+	taigaFetchStatuses(window.apiUrl, window.taigaToken, projectId, type)
+		.done(function (statuses) {
+			let html = `<option value="">${defaultText}</option>`;
+			statuses.forEach(status => {
+				html += `<option value="${status.id}">${status.name}</option>`;
+			});
+			$select.html(html);
+			
+			// Initialize Select2
+			$select.select2({
+				theme: 'bootstrap-5',
+				width: '100%',
+				placeholder: defaultText,
+				allowClear: true,
+				dropdownParent: $select.closest('.modal')
+			});
+		})
+		.fail(function (xhr) {
+			console.error(`Failed to fetch statuses for ${type} in project ${projectId}:`, xhr);
+			$select.html(`<option value="">Error loading statuses</option>`);
+		});
+}
+
+/**
+ * Data Layer: Fetches project members (memberships).
+ */
+function taigaFetchMembers(apiUrl, token, projectId) {
+	return $.ajax({
+		url: `${apiUrl}/memberships`,
+		data: { project: projectId },
+		type: 'GET',
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'Content-Type': 'application/json'
+		}
+	});
+}
+
+/**
+ * Logic-View Layer: Populates a member dropdown for bulk operations with Select2.
+ * @param {jQuery} $select - Select element to populate
+ * @param {number} projectId - ID of the project to fetch members for
+ * @param {string} defaultText - Text for the default option
+ */
+function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to...') {
+	if (!projectId) {
+		$select.html(`<option value="">${defaultText} (Select Project first)</option>`);
+		return;
+	}
+
+	taigaFetchMembers(window.apiUrl, window.taigaToken, projectId)
+		.done(function (memberships) {
+			let html = `<option value="">${defaultText}</option>`;
+			memberships.forEach(m => {
+				const name = m.full_name || m.user_email || 'Unknown';
+				html += `<option value="${m.user}">${name}</option>`;
+			});
+			$select.html(html);
+			
+			// Initialize Select2
+			$select.select2({
+				theme: 'bootstrap-5',
+				width: '100%',
+				placeholder: defaultText,
+				allowClear: true,
+				dropdownParent: $select.closest('.modal')
+			});
+		})
+		.fail(function (xhr) {
+			console.error(`Failed to fetch members for project ${projectId}:`, xhr);
+			$select.html(`<option value="">Error loading members</option>`);
+		});
+}
