@@ -4,7 +4,7 @@ require __DIR__ . '/app/init.php';
 
 $pageTitle = 'My Projects';
 $searchPlaceholder = 'Search projects...';
-$additionalControls = '
+$additionalControls = <<<'HTML'
 <div class="dropdown d-inline-block me-2">
 	<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
 		<i class="bi bi-gear me-1"></i> Bulk Actions
@@ -12,16 +12,20 @@ $additionalControls = '
 	<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
 		<li>
 			<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal">
-				<i class="bi bi-pencil-square me-2"></i> Bulk Prefix Name
+				<i class="bi bi-pencil-square me-2"></i> Bulk Prefix
 			</a>
 		</li>
 	</ul>
 </div>
-<select class="form-select d-inline-block" id="sortSelect" style="width: 150px;">
-	<option value="name">Sort by Name</option>
-	<option value="created_date">Sort by Created</option>
-	<option value="modified_date">Sort by Modified</option>
-</select>';
+
+<div class="me-2" style="width: 170px;">
+	<select class="form-select" id="sortSelect">
+		<option value="name">Sort by Name</option>
+		<option value="created_date">Sort by Created</option>
+		<option value="modified_date">Sort by Modified</option>
+	</select>
+</div>
+HTML;
 
 $bulkDeleteModalId = 'bulkDeleteModal'; // if we ever add bulk delete to projects
 $filterProjectEnable = false;
@@ -247,7 +251,10 @@ $filterStatusEnable = false;
 					window.location.href = `project.php?id=${projectId}`;
 				});
 
-				$('.project-card').on('click', function () {
+				$('.project-card').on('click', function (e) {
+					// Don't trigger redirect if clicking on checkbox or its container
+					if ($(e.target).closest('.project-checkbox, .form-check').length) return;
+
 					const projectId = $(this).data('project-id');
 					window.location.href = `project.php?id=${projectId}`;
 				});
@@ -284,8 +291,10 @@ $filterStatusEnable = false;
 
 				// Use reinforced taigaExecuteBulk that supports data functions
 				taigaExecuteBulk('/projects/', selectedProjects, 'PATCH', (item) => {
+					// Strip existing prefix if any (e.g., "[OLD] Project" -> "Project")
+					const cleanName = item.name.replace(/^\[.*?\]\s*/, '');
 					return {
-						name: `[${prefix}] ${item.name}`
+						name: `[${prefix}] ${cleanName}`
 					};
 				}, (successCount, errorCount) => {
 					$btn.prop('disabled', false).text('Apply Prefix');

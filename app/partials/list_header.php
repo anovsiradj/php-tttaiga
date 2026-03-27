@@ -36,9 +36,7 @@ $filterStatusEnable ??= true;
 		<?php endif; ?>
 
 		<?php if (isset($additionalControls)) { ?>
-			<div class="me-2">
-				<?= $additionalControls ?>
-			</div>
+			<?= $additionalControls ?>
 		<?php } ?>
 
 		<div class="me-2" style="width: 250px;">
