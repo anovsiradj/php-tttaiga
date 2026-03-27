@@ -28,11 +28,27 @@ require __DIR__ . '/app/init.php';
 		<?php
 		$pageTitle = 'Issues';
 		$statusType = 'issue';
-		$additionalControls = '
-			<button class="btn btn-primary me-2" id="bulkUpdateBtn"><i class="bi bi-pencil-square"></i> Bulk Update</button>
-			<button class="btn btn-danger me-2" id="bulkDeleteBtn"><i class="bi bi-trash"></i> Bulk Delete</button>
-		';
 		$searchPlaceholder = 'Search issues...';
+		$sortOptions = [
+			'subject' => 'Subject (A-Z)',
+			'-subject' => 'Subject (Z-A)',
+			'created_date' => 'Created (Oldest)',
+			'-created_date' => 'Created (Newest)',
+			'modified_date' => 'Modified (Oldest)',
+			'-modified_date' => 'Modified (Newest)',
+			'status' => 'Status (ASC)',
+			'-status' => 'Status (DESC)',
+			'priority' => 'Priority (ASC)',
+			'-priority' => 'Priority (DESC)',
+			'severity' => 'Severity (ASC)',
+			'-severity' => 'Severity (DESC)',
+			'type' => 'Type (ASC)',
+			'-type' => 'Type (DESC)',
+		];
+		$bulkActions = '
+			<li><a class="dropdown-item" href="#" id="bulkUpdateBtn"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+		';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Issues';
@@ -50,7 +66,7 @@ require __DIR__ . '/app/init.php';
 			</div>
 		</div>
 
-		<nav aria-label="Issues pagination" class="mt-4">
+		<nav aria-label="Issues pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="issuesPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -91,19 +107,15 @@ require __DIR__ . '/app/init.php';
 			// Initial filter binding
 			taigaBindFilters(loadIssues);
 
-			$('#selectAllBtn').on('click', function () {
-				$('#issuesContent input.issue-checkbox').prop('checked', true);
-				updateSelectionCount();
+			taigaBindSelectionLogic('issue-checkbox', function(checkedCount) {
+				const filtered = parseInt($('#filteredIssues').text()) || 0;
+				const total = parseInt($('#totalIssues').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalIssues', 'filteredIssues', 'selectionCount');
 			});
-
-			$('#clearSelectionBtn').on('click', function () {
-				$('#issuesContent input.issue-checkbox').prop('checked', false);
-				updateSelectionCount();
-			});
-
 
 			// Bulk Delete functionality
-			$('#bulkDeleteBtn').on('click', function () {
+			$('#bulkDeleteBtn').on('click', function (e) {
+				e.preventDefault();
 				const selectedIssues = [];
 				const selectedSubjects = [];
 				$('#issuesContent input.issue-checkbox:checked').each(function () {
@@ -153,7 +165,8 @@ require __DIR__ . '/app/init.php';
 			});
 
 			// Bulk Update functionality
-			$('#bulkUpdateBtn').on('click', function () {
+			$('#bulkUpdateBtn').on('click', function (e) {
+				e.preventDefault();
 				const selectedIssues = [];
 				const selectedSubjects = [];
 				$('#issuesContent input.issue-checkbox:checked').each(function () {

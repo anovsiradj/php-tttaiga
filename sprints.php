@@ -30,19 +30,31 @@ require __DIR__ . '/app/init.php';
 		$bulkUpdateModalId = 'bulkUpdateSprintModal';
 		$searchPlaceholder = 'Search sprints...';
 		$filterStatusEnable = false; // We'll handle closed/open filter separately if needed or just use search
+		$sortOptions = [
+			'name' => 'Name (A-Z)',
+			'-name' => 'Name (Z-A)',
+			'created_date' => 'Created (Oldest)',
+			'-created_date' => 'Created (Newest)',
+			'modified_date' => 'Modified (Oldest)',
+			'-modified_date' => 'Modified (Newest)',
+			'estimated_start' => 'Start Date (ASC)',
+			'-estimated_start' => 'Start Date (DESC)',
+			'estimated_finish' => 'Finish Date (ASC)',
+			'-estimated_finish' => 'Finish Date (DESC)',
+		];
+		$bulkActions = '
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateSprintModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+		';
 		include __DIR__ . '/app/partials/list_header.php';
 		?>
 
-		<div class="mb-3 d-flex justify-content-between align-items-center">
-			<div>
-				<button class="btn btn-danger btn-sm d-none" id="bulkDeleteBtn">
-					<i class="bi bi-trash me-1"></i> Delete Selected
-				</button>
-			</div>
-			<div class="text-muted small">
-				<span id="selectedCount">0</span> items selected
-			</div>
-		</div>
+		<?php
+		$totalId = 'totalSprints';
+		$filteredId = 'filteredSprints';
+		$selectionCountId = 'selectedSprintsCount';
+		include __DIR__ . '/app/partials/list_status.php';
+		?>
 
 		<div id="sprintsContent">
 			<div class="loading-spinner">
@@ -52,7 +64,7 @@ require __DIR__ . '/app/init.php';
 			</div>
 		</div>
 
-		<nav aria-label="Sprints pagination" class="mt-4">
+		<nav aria-label="Sprints pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="sprintsPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -93,6 +105,12 @@ require __DIR__ . '/app/init.php';
 
 			// Initial filter binding
 			taigaBindFilters(loadSprints);
+
+			taigaBindSelectionLogic('sprint-checkbox', function(checkedCount) {
+				const filtered = parseInt($('#filteredSprints').text()) || 0;
+				const total = parseInt($('#totalSprints').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalSprints', 'filteredSprints', 'selectedSprintsCount');
+			});
 
 			// Bulk Update Sprint functionality
 			$('#bulkUpdateSprintModal').on('show.bs.modal', function () {
@@ -227,7 +245,8 @@ require __DIR__ . '/app/init.php';
 			}
 
 			// Bulk Delete functionality
-			$('#bulkDeleteBtn').on('click', function () {
+			$('#bulkDeleteBtn').on('click', function (e) {
+				e.preventDefault();
 				if (!confirm(`Are you sure you want to delete ${selectedIds.size} sprints?`)) return;
 
 				const $btn = $(this);

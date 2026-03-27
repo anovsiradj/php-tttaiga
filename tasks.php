@@ -28,28 +28,26 @@ require __DIR__ . '/app/init.php';
 		<?php
 		$pageTitle = 'Tasks';
 		$statusType = 'task';
-		// Buttons moved to additionalControls for better UX
-		$additionalControls = '
-			<div class="dropdown d-inline-block">
-				<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-					<i class="bi bi-gear me-1"></i> Bulk Actions
-				</button>
-				<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
-					<li>
-						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal">
-							<i class="bi bi-plus-lg me-2"></i> Bulk Create
-						</a>
-					</li>
-					<li>
-						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal">
-							<i class="bi bi-pencil-square me-2"></i> Bulk Update
-						</a>
-					</li>
-				</ul>
-			</div>
-		';
+
 		$searchPlaceholder = 'Search tasks...';
 		$userStorySelect = true;
+		$sortOptions = [
+			'subject' => 'Subject (A-Z)',
+			'-subject' => 'Subject (Z-A)',
+			'created_date' => 'Created (Oldest)',
+			'-created_date' => 'Created (Newest)',
+			'modified_date' => 'Modified (Oldest)',
+			'-modified_date' => 'Modified (Newest)',
+			'status' => 'Status (ASC)',
+			'-status' => 'Status (DESC)',
+			'task_order' => 'Task Order (ASC)',
+			'-task_order' => 'Task Order (DESC)',
+		];
+		$bulkActions = '
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteTaskModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+		';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Tasks';
@@ -66,7 +64,7 @@ require __DIR__ . '/app/init.php';
 			</div>
 		</div>
 
-		<nav aria-label="Tasks pagination" class="mt-4">
+		<nav aria-label="Tasks pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="tasksPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -111,17 +109,11 @@ require __DIR__ . '/app/init.php';
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadTasks);
 
-			$('#selectAllBtn').on('click', function () {
-				$('#tasksContent input[type="checkbox"]').prop('checked', true);
-				updateSelectionCount();
+			taigaBindSelectionLogic('task-checkbox', function(checkedCount) {
+				const filtered = parseInt($('#filteredTasks').text()) || 0;
+				const total = parseInt($('#totalTasks').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalTasks', 'filteredTasks', 'selectedTasksCount');
 			});
-
-			$('#clearSelectionBtn').on('click', function () {
-				$('#tasksContent input[type="checkbox"]').prop('checked', false);
-				updateSelectionCount();
-			});
-
-
 
 			// Bulk Task Create functionality (same as in usor.php)
 			$('#bulkCreateTaskModal').on('show.bs.modal', function (e) {

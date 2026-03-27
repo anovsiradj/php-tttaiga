@@ -4,28 +4,20 @@ require __DIR__ . '/app/init.php';
 
 $pageTitle = 'My Projects';
 $searchPlaceholder = 'Search projects...';
-$additionalControls = <<<'HTML'
-<div class="dropdown d-inline-block me-2">
-	<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-		<i class="bi bi-gear me-1"></i> Bulk Actions
-	</button>
-	<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
-		<li>
-			<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal">
-				<i class="bi bi-pencil-square me-2"></i> Bulk Prefix
-			</a>
-		</li>
-	</ul>
-</div>
+$bulkActions = '<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal"><i class="bi bi-pencil-square me-2"></i> Bulk Prefix</a></li>';
 
-<div class="me-2" style="width: 170px;">
-	<select class="form-select" id="sortSelect">
-		<option value="name">Sort by Name</option>
-		<option value="created_date">Sort by Created</option>
-		<option value="modified_date">Sort by Modified</option>
-	</select>
-</div>
-HTML;
+$sortOptions = [
+	'name' => 'Name (A-Z)',
+	'-name' => 'Name (Z-A)',
+	'created_date' => 'Created (Oldest)',
+	'-created_date' => 'Created (Newest)',
+	'modified_date' => 'Modified (Oldest)',
+	'-modified_date' => 'Modified (Newest)',
+	'total_fans' => 'Fans (Fewest)',
+	'-total_fans' => 'Fans (Most)',
+	'total_activity' => 'Activity (Lowest)',
+	'-total_activity' => 'Activity (Highest)',
+];
 
 $bulkDeleteModalId = 'bulkDeleteModal'; // if we ever add bulk delete to projects
 $filterProjectEnable = false;
@@ -117,14 +109,10 @@ $filterStatusEnable = false;
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadProjects);
 
-			$('#selectAllBtn').on('click', function () {
-				$('#projectsContent input.project-checkbox').prop('checked', true);
-				updateSelectionCount();
-			});
-
-			$('#clearSelectionBtn').on('click', function () {
-				$('#projectsContent input.project-checkbox').prop('checked', false);
-				updateSelectionCount();
+			taigaBindSelectionLogic('project-checkbox', function(checkedCount) {
+				const filtered = parseInt($('#filteredProjects').text()) || 0;
+				const total = parseInt($('#totalProjects').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalProjects', 'filteredProjects', 'selectedProjectsCount');
 			});
 
 			$('#bulkUpdateProjectModal').on('show.bs.modal', function () {
@@ -237,12 +225,7 @@ $filterStatusEnable = false;
 				$('#projectsContent').html(html);
 
 				// Update counts
-				$('#totalProjects').text(projects.length);
-				$('#filteredProjects').text(projects.length);
-				updateSelectionCount();
-
-				// Add click event for project checkboxes
-				$('.project-checkbox').on('change', updateSelectionCount);
+				taigaUpdateSelectionUI(projects.length, projects.length, 0, 'totalProjects', 'filteredProjects', 'selectedProjectsCount');
 
 				// Add click event for project cards
 				$('.view-project').on('click', function (e) {

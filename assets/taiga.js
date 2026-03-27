@@ -524,3 +524,68 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 			$select.html(`<option value="">Error loading members</option>`);
 		});
 }
+/**
+ * Updates the selection bar visibility and counts.
+ * @param {number} total
+ * @param {number} filtered
+ * @param {number} selected
+ * @param {string} totalId - The base DOM id for total count (e.g. 'totalProjects')
+ * @param {string} filteredId - The base DOM id for filtered count (e.g. 'filteredProjects')
+ * @param {string} selectionId - The DOM id for selected count (e.g. 'selectedProjectsCount')
+ */
+function taigaUpdateSelectionUI(total, filtered, selected, totalId, filteredId, selectionId) {
+	selectionId = selectionId || 'selectedCount';
+
+	$('#' + totalId + '_simple').text(total);
+	$('#' + filteredId + '_simple').text(filtered);
+	$('#' + totalId).text(total);
+	$('#' + filteredId).text(filtered);
+	$('#' + selectionId).text(selected);
+
+	var $bulkBar = $('#bulkActionsBar');
+	var $simpleBar = $('#simpleInfoBar');
+
+	if (selected > 0) {
+		$bulkBar.removeClass('d-none');
+		$simpleBar.addClass('invisible');
+	} else {
+		$bulkBar.addClass('d-none');
+		$simpleBar.removeClass('invisible');
+		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', false);
+	}
+}
+
+/**
+ * Binds master checkboxes and individual item selection logic.
+ * @param {string} itemCheckboxClass - CSS class of individual checkboxes
+ * @param {Function} onSelectionChange - Callback receives (checkedCount)
+ */
+function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
+	$(document).off('change', '#masterCheckbox, #initialMasterCheckbox').on('change', '#masterCheckbox, #initialMasterCheckbox', function () {
+		var isChecked = $(this).is(':checked');
+		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', isChecked);
+		$('.' + itemCheckboxClass).prop('checked', isChecked).trigger('change.selection');
+		var checkedCount = isChecked ? $('.' + itemCheckboxClass).length : 0;
+		if (typeof onSelectionChange === 'function') {
+			onSelectionChange(checkedCount);
+		}
+	});
+
+	$(document).off('change.selection', '.' + itemCheckboxClass).on('change.selection', '.' + itemCheckboxClass, function () {
+		var totalCount = $('.' + itemCheckboxClass).length;
+		var checkedCount = $('.' + itemCheckboxClass + ':checked').length;
+		var allChecked = totalCount > 0 && checkedCount === totalCount;
+		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', allChecked);
+		if (typeof onSelectionChange === 'function') {
+			onSelectionChange(checkedCount);
+		}
+	});
+
+	$('#clearSelectionBtn').off('click').on('click', function () {
+		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', false);
+		$('.' + itemCheckboxClass).prop('checked', false).trigger('change.selection');
+		if (typeof onSelectionChange === 'function') {
+			onSelectionChange(0);
+		}
+	});
+}

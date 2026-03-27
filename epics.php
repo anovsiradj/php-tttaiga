@@ -31,6 +31,23 @@ require __DIR__ . '/app/init.php';
 		$bulkCreateModalId = 'bulkCreateEpicModal';
 		$bulkUpdateModalId = 'bulkUpdateEpicModal';
 		$searchPlaceholder = 'Search epics...';
+		$sortOptions = [
+			'subject' => 'Subject (A-Z)',
+			'-subject' => 'Subject (Z-A)',
+			'created_date' => 'Created (Oldest)',
+			'-created_date' => 'Created (Newest)',
+			'modified_date' => 'Modified (Oldest)',
+			'-modified_date' => 'Modified (Newest)',
+			'status' => 'Status (ASC)',
+			'-status' => 'Status (DESC)',
+			'epic_order' => 'Custom Order (ASC)',
+			'-epic_order' => 'Custom Order (DESC)',
+		];
+		$bulkActions = '
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateEpicModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateEpicModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteEpicModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+		';
 		include __DIR__ . '/app/partials/list_header.php';
 		?>
 
@@ -42,7 +59,14 @@ require __DIR__ . '/app/init.php';
 			</div>
 		</div>
 
-		<nav aria-label="Epics pagination" class="mt-4">
+		<?php
+		$totalId = 'totalEpics';
+		$filteredId = 'filteredEpics';
+		$selectionCountId = 'selectedEpicsCount';
+		include __DIR__ . '/app/partials/list_status.php';
+		?>
+
+		<nav aria-label="Epics pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="epicsPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -86,6 +110,12 @@ require __DIR__ . '/app/init.php';
 
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadEpics);
+
+			taigaBindSelectionLogic('epic-checkbox', function(checkedCount) {
+				const filtered = parseInt($('#filteredEpics').text()) || 0;
+				const total = parseInt($('#totalEpics').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalEpics', 'filteredEpics', 'selectedEpicsCount');
+			});
 
 			// Bulk Create Epic functionality
 			$('#bulkCreateEpicModal').on('show.bs.modal', function () {
@@ -276,6 +306,7 @@ require __DIR__ . '/app/init.php';
 
 				html += '</div>';
 				$('#epicsContent').html(html);
+				taigaUpdateSelectionUI(epics.length, epics.length, 0);
 
 				// Add click event for epic cards
 				$('.view-epic').on('click', function (e) {

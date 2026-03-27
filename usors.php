@@ -28,35 +28,32 @@ require __DIR__ . '/app/init.php';
 		<?php
 		$pageTitle = 'Usors';
 		$statusType = 'us';
-		// Buttons moved to additionalControls for better UX
-		$additionalControls = '
-			<div class="dropdown d-inline-block">
-				<button class="btn btn-primary dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-					<i class="bi bi-gear me-1"></i> Bulk Actions
-				</button>
-				<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="bulkActionsDropdown">
-					<li>
-						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
-							<i class="bi bi-plus-lg me-2"></i> Bulk Create
-						</a>
-					</li>
-					<li>
-						<a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal">
-							<i class="bi bi-pencil-square me-2"></i> Bulk Update
-						</a>
-					</li>
-					<li><hr class="dropdown-divider"></li>
-					<li>
-						<a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
-							<i class="bi bi-trash me-2"></i> Bulk Delete
-						</a>
-					</li>
-				</ul>
-			</div>
-		';
+
+
 		$bulkDeleteModalId = 'bulkDeleteModal';
 		$searchPlaceholder = 'Search user stories...';
 		$epicSelect = true;
+		$sortOptions = [
+			'subject' => 'Subject (A-Z)',
+			'-subject' => 'Subject (Z-A)',
+			'created_date' => 'Created (Oldest)',
+			'-created_date' => 'Created (Newest)',
+			'modified_date' => 'Modified (Oldest)',
+			'-modified_date' => 'Modified (Newest)',
+			'status' => 'Status (ASC)',
+			'-status' => 'Status (DESC)',
+			'backlog_order' => 'Backlog Order (ASC)',
+			'-backlog_order' => 'Backlog Order (DESC)',
+			'kanban_order' => 'Kanban Order (ASC)',
+			'-kanban_order' => 'Kanban Order (DESC)',
+			'sprint_order' => 'Sprint Order (ASC)',
+			'-sprint_order' => 'Sprint Order (DESC)',
+		];
+		$bulkActions = '
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+		';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Stories';
@@ -74,7 +71,7 @@ require __DIR__ . '/app/init.php';
 			</div>
 		</div>
 
-		<nav aria-label="User Stories pagination" class="mt-4">
+		<nav aria-label="User Stories pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="usorsPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -116,17 +113,11 @@ require __DIR__ . '/app/init.php';
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadUsors);
 
-			$('#selectAllBtn').on('click', function () {
-				$('#usorsContent input[type="checkbox"]').prop('checked', true);
-				updateSelectionCount();
+			taigaBindSelectionLogic('story-checkbox', function(checkedCount) {
+				const filtered = parseInt($('#filteredUsors').text()) || 0;
+				const total = parseInt($('#totalUsors').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalUsors', 'filteredUsors', 'selectedUsorsCount');
 			});
-
-			$('#clearSelectionBtn').on('click', function () {
-				$('#usorsContent input[type="checkbox"]').prop('checked', false);
-				updateSelectionCount();
-			});
-
-
 
 			// Bulk Create functionality
 			$('#bulkCreateModal').on('show.bs.modal', function () {

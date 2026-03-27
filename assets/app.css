@@ -75,15 +75,18 @@ body {
 
 .project-description {
 	-webkit-line-clamp: 3;
+	line-clamp: 3;
 }
 
 .task-description {
 	-webkit-line-clamp: 2;
+	line-clamp: 2;
 }
 
 .usor-description,
 .epic-description {
 	-webkit-line-clamp: 3;
+	line-clamp: 3;
 }
 
 /* Status badges */
@@ -187,8 +190,78 @@ body {
 	border-radius: 8px;
 	padding: 1.5rem;
 	margin-bottom: 1.5rem;
-	box-shadow: var(--card-shadow);
 	border: 1px solid var(--bs-border-color);
+}
+
+/* Selection & Bulk Actions Bar */
+.sticky-bulk-bar {
+	position: sticky;
+	top: 0;
+	z-index: 1020;
+	background-color: var(--bs-body-bg);
+	border-bottom: 2px solid var(--bs-primary);
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	margin-bottom: 1.5rem;
+	padding: 0.75rem 0;
+	transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.sticky-bulk-bar.d-none {
+	display: none !important;
+	transform: translateY(-100%);
+	opacity: 0;
+}
+
+[data-bs-theme="dark"] .sticky-bulk-bar {
+	border-bottom-color: var(--bs-primary-border-subtle);
+}
+
+/* Filter Toolbar */
+.filter-toolbar {
+	background-color: var(--bs-tertiary-bg);
+	border-radius: 8px;
+	padding: 1rem;
+	margin-bottom: 1.5rem;
+	border: 1px solid var(--bs-border-color);
+}
+
+.filter-toolbar .form-control,
+.filter-toolbar .form-select {
+	border-color: var(--bs-border-color);
+}
+
+/* Master Checkbox Styling */
+.master-checkbox-container {
+	display: flex;
+	align-items: center;
+	padding: 0.25rem 0.5rem;
+	background-color: var(--bs-secondary-bg);
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.master-checkbox-container:hover {
+	background-color: var(--bs-secondary-border-subtle);
+}
+
+/* Pagination container */
+.pagination-container {
+	margin-top: 3rem;
+	margin-bottom: 3rem;
+}
+
+/* Consistent Page Title */
+.page-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1.5rem;
+}
+
+.page-title-row h1 {
+	margin-bottom: 0;
+	font-weight: 700;
+	color: var(--bs-emphasis-color);
 }
 
 /* Login page specific */

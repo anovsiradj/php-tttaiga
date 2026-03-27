@@ -12,74 +12,69 @@ $filterProjectEnable ??= true;
 $filterStatusEnable ??= true;
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="page-title-row">
 	<h1>
 		<?php echo $pageTitle; ?>
 	</h1>
-	<div class="d-flex">
-		<?php if (isset($bulkCreateModalId)): ?>
-			<div class="me-2">
-				<button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkCreateModalId; ?>">
-					<i class="bi bi-plus-lg me-1"></i>
-					Bulk Create
-				</button>
-			</div>
-		<?php endif; ?>
+	<div class="d-flex align-items-center">
+		<button class="btn btn-outline-secondary btn-sm me-2" id="refreshBtn" title="Refresh">
+			<i class="bi bi-arrow-clockwise"></i>
+		</button>
 
-		<?php if (isset($bulkUpdateModalId)): ?>
-			<div class="me-2">
-				<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkUpdateModalId; ?>">
-					<i class="bi bi-pencil-square me-1"></i>
-					Bulk Update
-				</button>
-			</div>
-		<?php endif; ?>
-
-		<?php if (isset($additionalControls)) { ?>
-			<?= $additionalControls ?>
+		<?php if (isset($primaryAction)) { ?>
+			<?= $primaryAction ?>
+		<?php } elseif (isset($bulkCreateModalId)) { ?>
+			<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkCreateModalId; ?>">
+				<i class="bi bi-plus-lg me-1"></i>
+				Add New
+			</button>
 		<?php } ?>
+	</div>
+</div>
 
-		<div class="me-2" style="width: 250px;">
-			<input type="text" class="form-control" id="searchInput" placeholder="<?php echo $searchPlaceholder; ?>">
+<div class="filter-toolbar">
+	<div class="row g-2">
+		<div class="col-md">
+			<div class="input-group">
+				<span class="input-group-text bg-transparent border-end-0 text-muted">
+					<i class="bi bi-search"></i>
+				</span>
+				<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="<?php echo $searchPlaceholder; ?>">
+			</div>
 		</div>
 
 		<?php if ($filterProjectEnable) { ?>
-			<div class="me-2" style="width: 200px;">
-				<select class="form-select" id="projectSelect">
-					<option value="">All Projects</option>
-				</select>
+			<div class="col-md-auto" style="width: 200px;">
+				<select class="form-select" id="projectSelect"></select>
 			</div>
 		<?php } ?>
 
 		<?php if (isset($epicSelect) && $epicSelect): ?>
-			<div class="me-2" style="width: 200px;">
-				<select class="form-select" id="epicSelect">
-					<option value="">All Epics</option>
-				</select>
+			<div class="col-md-auto" style="width: 200px;">
+				<select class="form-select" id="epicSelect"></select>
 			</div>
 		<?php endif; ?>
 
 		<?php if (isset($userStorySelect) && $userStorySelect): ?>
-			<div class="me-2" style="width: 200px;">
-				<select class="form-select" id="userStorySelect">
-					<option value="">All User Stories</option>
-				</select>
+			<div class="col-md-auto" style="width: 200px;">
+				<select class="form-select" id="userStorySelect"></select>
 			</div>
 		<?php endif; ?>
 
 		<?php if ($filterStatusEnable) { ?>
-			<div class="me-2" style="width: 150px;">
-				<select class="form-select" id="statusSelect" data-status-type="<?php echo $statusType ?? ''; ?>">
-					<option value="">All Statuses</option>
-				</select>
+			<div class="col-md-auto" style="width: 150px;">
+				<select class="form-select" id="statusSelect" data-status-type="<?php echo $statusType ?? ''; ?>"></select>
 			</div>
 		<?php } ?>
 
-		<div>
-			<button class="btn btn-outline-secondary" id="refreshBtn">
-				<i class="bi bi-arrow-clockwise"></i>
-			</button>
-
-		</div>
+		<?php if (isset($sortOptions) && !empty($sortOptions)) { ?>
+			<div class="col-md-auto" style="width: 180px;">
+				<select class="form-select" id="sortSelect">
+					<?php foreach ($sortOptions as $value => $label) { ?>
+						<option value="<?php echo $value; ?>"><?php echo $label; ?></option>
+					<?php } ?>
+				</select>
+			</div>
+		<?php } ?>
 	</div>
-</div>
+</div>
