@@ -8,7 +8,7 @@
 			<a class="nav-link" href="epics.php">Epics</a>
 			<a class="nav-link" href="usors.php">Usors</a>
 			<a class="nav-link" href="tasks.php">Tasks</a>
-			<a class="nav-link" href="issues.php">Issues</a>
+			<a class="nav-link" href="isus.php">Issues</a>
 			<button class="btn btn-outline-secondary btn-sm me-2" id="themeToggle">
 				<i class="bi bi-sun-fill"></i>
 			</button>

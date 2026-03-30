@@ -21,7 +21,7 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<?php
-	$backUrl = 'issues.php';
+	$backUrl = 'isus.php';
 	$backLabel = 'Back to Issues';
 	$headerId = 'issueHeaderContent';
 	$loadingLabel = 'Loading issue...';
@@ -101,7 +101,7 @@ require __DIR__ . '/app/init.php';
 			const issueId = urlParams.get('id');
 
 			if (!issueId) {
-				window.location.href = 'issues.php';
+				window.location.href = 'isus.php';
 				return;
 			}
 
@@ -127,7 +127,7 @@ require __DIR__ . '/app/init.php';
 						$('#issueHeaderContent').html(`
 					<div class="alert alert-danger">
 						Failed to load issue. It might have been deleted or you don't have access.
-						<a href="issues.php" class="btn btn-sm btn-outline-light ms-2">Back to Issues</a>
+						<a href="isus.php" class="btn btn-sm btn-outline-light ms-2">Back to Issues</a>
 					</div>
 				`);
 						$('#issueDetailsContent, #issueDescriptionContent, #issueMetadataContent').html('');

@@ -107,7 +107,7 @@ require __DIR__ . '/app/init.php';
 			// Initial filter binding
 			taigaBindFilters(loadIssues);
 
-			taigaBindSelectionLogic('issue-checkbox', function(checkedCount) {
+			taigaBindSelectionLogic('issue-checkbox', function (checkedCount) {
 				const filtered = parseInt($('#filteredIssues').text()) || 0;
 				const total = parseInt($('#totalIssues').text()) || 0;
 				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalIssues', 'filteredIssues', 'selectionCount');
@@ -134,11 +134,11 @@ require __DIR__ . '/app/init.php';
 				});
 				listHtml += '</ul>';
 				$('#selectedIssuesList').html(listHtml);
-				
+
 				$('#issueBulkDeleteModal').modal('show');
 			});
 			// Bulk Delete confirmation
-			$('#confirmBulkDeleteIssues').on('click', function() {
+			$('#confirmBulkDeleteIssues').on('click', function () {
 				const selectedIssues = [];
 				$('#issuesContent input.issue-checkbox:checked').each(function () {
 					selectedIssues.push({
@@ -185,7 +185,7 @@ require __DIR__ . '/app/init.php';
 				});
 				listHtml += '</ul>';
 				$('#bulkUpdateIssueList').html(listHtml);
-				
+
 				populateBulkUpdateIssueDropdowns();
 				$('#issueBulkUpdateModal').modal('show');
 			});
@@ -256,7 +256,7 @@ require __DIR__ . '/app/init.php';
 					...taigaGetFilterParams(),
 					page: page
 				};
-				
+
 				$('#issuesContent').html(`
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
@@ -345,7 +345,7 @@ require __DIR__ . '/app/init.php';
 							` : ''}
 							
 							<div class="mt-3">
-								<a href="issue.php?id=${issue.id}" class="btn btn-sm btn-outline-primary w-100">
+								<a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary w-100">
 									View Issue Details
 								</a>
 							</div>
