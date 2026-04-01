@@ -6,18 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Tasks - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -31,6 +20,7 @@ require __DIR__ . '/app/init.php';
 
 		$searchPlaceholder = 'Search tasks...';
 		$userStorySelect = true;
+		$filterAssignedEnable = true;
 		$sortOptions = [
 			'subject' => 'Subject (A-Z)',
 			'-subject' => 'Subject (Z-A)',
@@ -121,7 +111,7 @@ require __DIR__ . '/app/init.php';
 				const userStoryId = $('#userStorySelect').val();
 
 				if (!projectId || !userStoryId) {
-					alert('Please select both a Project and a User Story filter first.');
+					alert('Please select both a Project and a Usor filter first.');
 					e.preventDefault();
 					return false;
 				}
@@ -152,7 +142,7 @@ require __DIR__ . '/app/init.php';
 				populateBulkUpdateTaskDropdowns();
 			});
 
-			$('#submitBulkTaskUpdate').on('click', function () {
+			$('#submitBulkUpdateTask').on('click', function () {
 				submitBulkTaskUpdate();
 			});
 
@@ -171,12 +161,13 @@ require __DIR__ . '/app/init.php';
 		`);
 
 				$.ajax({
-					url: apiUrl + '/tasks',
+					url: 'api.php/tasks',
 					type: 'GET',
 					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (tasks, status, xhr) {
 						displayTasks(tasks);
@@ -195,7 +186,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 
-			// loadUserStories function removed as it is now handled by taigaLoadUsors in taiga.js
+			// loadUsors function removed as it is now handled by taigaLoadUsors in taiga.js
 
 			function displayTasks(tasks) {
 				$('#totalTasks').text(tasks.length);
@@ -203,10 +194,10 @@ require __DIR__ . '/app/init.php';
 
 				if (tasks.length === 0) {
 					$('#tasksContent').html(`
-				<div class="alert alert-info">
-					No tasks found.
-				</div>
-			`);
+						<div class="text-muted italic p-3 text-center">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
@@ -214,7 +205,8 @@ require __DIR__ . '/app/init.php';
 				tasks.forEach(task => {
 					const statusInfo = taigaGetStatusInfo(task);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
-					const createdDate = task.created_date ? new Date(task.created_date).toLocaleDateString() : 'Unknown';
+					const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+					const owner = task.owner_extra ? task.owner_extra.full_name_display : 'Unknown';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
@@ -231,27 +223,36 @@ require __DIR__ . '/app/init.php';
 							<h6 class="card-title mb-2">${task.subject || 'Untitled Task'}</h6>
 							
 							${task.description ? `
-								<p class="card-text task-description text-muted small mb-2">
+								<p class="card-text task-description text-muted small mb-2 text-truncate">
 									${task.description}
 								</p>
 							` : ''}
 							
-							<div class="d-flex justify-content-between align-items-center">
-								<small class="text-muted">Ref: #${task.ref}</small>
-								<small class="text-muted">${createdDate}</small>
+							<div class="mt-2 pt-2 border-top">
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted">Ref: #${task.ref}</small>
+									<small class="text-muted">${new Date(task.created_date).toLocaleDateString()}</small>
+								</div>
+								
+								<div class="mb-1">
+									<small class="text-muted d-block text-truncate">
+										Assigned: <strong>${assignedTo}</strong>
+									</small>
+								</div>
+								
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted text-truncate">By: ${owner}</small>
+									<small class="text-muted">Upd: ${new Date(task.modified_date).toLocaleDateString()}</small>
+								</div>
+
+								${task.user_story_extra ? `
+									<small class="text-muted d-block mt-2 text-truncate">Usor: #${task.user_story_extra.ref} ${task.user_story_extra.subject}</small>
+								` : (task.user_story ? `<small class="text-muted d-block mt-2">Usor Ref: #${task.user_story}</small>` : '')}
 							</div>
 							
-							${task.user_story ? `
-								<small class="text-muted d-block mt-2">User Story: #${task.user_story}</small>
-							` : ''}
-							
-							${task.project ? `
-								<small class="text-muted d-block">Project ID: ${task.project}</small>
-							` : ''}
-							
 							<div class="mt-3">
-								<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary">
-									View User Story
+								<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary shadow-sm">
+									View Usor Details
 								</a>
 							</div>
 						</div>
@@ -337,6 +338,19 @@ require __DIR__ . '/app/init.php';
 				taigaPopulateBulkStatuses('task', $('#bulkUpdateTaskStatus'), projectId, 'No Change');
 				taigaPopulateBulkMembers($('#bulkUpdateTaskAssignee'), projectId, 'No Change');
 
+				// Initialize Usor Select2
+				taigaInitRemoteSelect2('#bulkUpdateTaskUsor', '/userstories', {
+					placeholder: 'No Change',
+					formatText: (item) => `#${item.ref}: ${item.subject}`,
+					additionalParams: () => ({ project: projectId })
+				});
+
+				// Initialize Sprint Select2
+				taigaInitRemoteSelect2('#bulkUpdateTaskSprint', '/milestones', {
+					placeholder: 'No Change',
+					additionalParams: () => ({ project: projectId })
+				});
+
 				// Load tasks for selection matching current filters
 				taigaLoadBulkItems('/tasks', $('#bulkUpdateTaskList'), item => {
 					return `
@@ -367,9 +381,15 @@ require __DIR__ . '/app/init.php';
 				const updateData = {};
 				const status = $('#bulkUpdateTaskStatus').val();
 
-				if (status) updateData.status = status;
+				if (status) updateData.status = parseInt(status);
 				const assignee = $('#bulkUpdateTaskAssignee').val();
 				if (assignee) updateData.assigned_to = parseInt(assignee);
+
+				const usor = $('#bulkUpdateTaskUsor').val();
+				if (usor) updateData.user_story = usor === 'null' ? null : parseInt(usor);
+
+				const sprint = $('#bulkUpdateTaskSprint').val();
+				if (sprint) updateData.milestone = sprint === 'null' ? null : parseInt(sprint);
 
 				if (Object.keys(updateData).length === 0) {
 					alert('Please select at least one field to update');
@@ -450,11 +470,12 @@ require __DIR__ . '/app/init.php';
 					if (assigneeId) taskData.assigned_to = parseInt(assigneeId);
 
 					$.ajax({
-						url: apiUrl + '/tasks',
+						url: 'api.php/tasks',
 						type: 'POST',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						data: JSON.stringify(taskData),
 						success: function () {

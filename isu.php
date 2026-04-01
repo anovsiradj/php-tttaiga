@@ -6,15 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Issue Details - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -22,9 +14,9 @@ require __DIR__ . '/app/init.php';
 
 	<?php
 	$backUrl = 'isus.php';
-	$backLabel = 'Back to Issues';
+	$backLabel = 'Back to Isus';
 	$headerId = 'issueHeaderContent';
-	$loadingLabel = 'Loading issue...';
+	$loadingLabel = 'Loading isu...';
 	include __DIR__ . '/app/partials/item_header.php';
 	?>
 
@@ -33,7 +25,7 @@ require __DIR__ . '/app/init.php';
 			<div class="col-md-8">
 				<div class="card mb-4">
 					<div class="card-header">
-						<h5 class="mb-0">Issue Details</h5>
+						<h5 class="mb-0">Isu Details</h5>
 					</div>
 					<div class="card-body" id="issueDetailsContent">
 						<div class="loading-spinner text-center p-3">
@@ -110,11 +102,12 @@ require __DIR__ . '/app/init.php';
 
 			function loadIssueData(issueId) {
 				$.ajax({
-					url: apiUrl + '/issues/' + issueId,
+					url: 'api.php/issues/' + issueId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (issue) {
 						displayIssueHeader(issue);
@@ -123,11 +116,11 @@ require __DIR__ . '/app/init.php';
 						displayIssueMetadata(issue);
 					},
 					error: function (xhr) {
-						console.error('Failed to load issue:', xhr);
+						console.error('Failed to load isu:', xhr);
 						$('#issueHeaderContent').html(`
 					<div class="alert alert-danger">
-						Failed to load issue. It might have been deleted or you don't have access.
-						<a href="isus.php" class="btn btn-sm btn-outline-light ms-2">Back to Issues</a>
+						Failed to load isu. It might have been deleted or you don't have access.
+						<a href="isus.php" class="btn btn-sm btn-outline-light ms-2">Back to Isus</a>
 					</div>
 				`);
 						$('#issueDetailsContent, #issueDescriptionContent, #issueMetadataContent').html('');
@@ -139,7 +132,7 @@ require __DIR__ . '/app/init.php';
 				const statusInfo = taigaGetStatusInfo(issue);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
-			<h1 class="display-4 mb-2 text-white">${issue.subject || 'Untitled Issue'}</h1>
+			<h1 class="display-4 mb-2 text-white">${issue.subject || 'Untitled Isu'}</h1>
 			<p class="lead mb-0 text-white-50">Ref: #${issue.ref}</p>
 			<div class="mt-2">
 				${statusBadge}
@@ -182,11 +175,12 @@ require __DIR__ . '/app/init.php';
 				// Load project name
 				if (issue.project) {
 					$.ajax({
-						url: apiUrl + '/projects/' + issue.project,
+						url: 'api.php/projects/' + issue.project,
 						type: 'GET',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						success: function (project) {
 							$('#projectName').text(project.name);
@@ -199,15 +193,12 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayIssueDescription(issue) {
-				let descriptionHtml = '';
-				if (issue.description) {
-					// Convert newlines to breaks for basic display
-					const formattedDesc = issue.description.replace(/\n/g, '<br>');
-					descriptionHtml = `<p class="card-text">${formattedDesc}</p>`;
-				} else {
-					descriptionHtml = `<p class="text-muted">No description provided for this issue.</p>`;
+				if (!issue.description) {
+					$('#issueDescriptionContent').closest('.card').hide();
+					return;
 				}
-
+				const formattedDesc = issue.description.replace(/\n/g, '<br>');
+				const descriptionHtml = `<p class="card-text">${formattedDesc}</p>`;
 				$('#issueDescriptionContent').html(descriptionHtml);
 			}
 
@@ -215,7 +206,7 @@ require __DIR__ . '/app/init.php';
 				const metadataHtml = `
 			<div class="small">
 				<div class="mb-2">
-					<strong>Issue ID:</strong><br>
+					<strong>Isu ID:</strong><br>
 					<code>${issue.id}</code>
 				</div>
 				<div class="mb-2">

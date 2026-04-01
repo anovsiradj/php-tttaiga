@@ -7,6 +7,7 @@
 
 	globalThis.taigaModel = model;
 	globalThis.taigaToken = localStorage.getItem('taiga_token');
+	globalThis.apiUrl = localStorage.getItem('taiga_api_url');
 })()
 
 function jsonToSelect(json, el, valueKey = 'id', textKey = 'name') {
@@ -21,7 +22,7 @@ $(document).ready(function () {
 	$('#logoutBtn').on('click', function () {
 		localStorage.removeItem('taiga_token');
 		localStorage.removeItem('taiga_user');
-		$.post('session_sync.php', { action: 'logout' }).always(function () {
+		$.post('login.php', { action: 'logout' }).always(function () {
 			window.location.href = 'login.php';
 		});
 	});
@@ -35,9 +36,12 @@ $(document).ready(function () {
 		const token = localStorage.getItem('taiga_token');
 
 		if (projectId && type && apiUrl && token) {
-			$statusSelect.html('<option value="">Loading statuses...</option>');
+			$statusSelect.html('<option value="">Memuat status...</option>');
 			taigaFetchStatuses(apiUrl, token, projectId, type)
 				.then(statuses => {
+					if (!Array.isArray(statuses)) {
+						throw new Error('Statuses response is not an array');
+					}
 					taigaPopulateStatusDropdown($statusSelect, statuses);
 				})
 				.catch(err => {
@@ -45,7 +49,7 @@ $(document).ready(function () {
 					$statusSelect.html('<option value="">Error loading statuses</option>');
 				});
 		} else {
-			$statusSelect.html('<option value="">All Statuses</option>');
+			$statusSelect.html('<option value="">(Semua Status)</option>');
 		}
 	});
 });

@@ -39,7 +39,7 @@ $filterStatusEnable ??= true;
 				<span class="input-group-text bg-transparent border-end-0 text-muted">
 					<i class="bi bi-search"></i>
 				</span>
-				<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="<?php echo $searchPlaceholder; ?>">
+				<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="Pencarian ...">
 			</div>
 		</div>
 
@@ -64,6 +64,12 @@ $filterStatusEnable ??= true;
 		<?php if ($filterStatusEnable) { ?>
 			<div class="col-md-auto" style="width: 150px;">
 				<select class="form-select" id="statusSelect" data-status-type="<?php echo $statusType ?? ''; ?>"></select>
+			</div>
+		<?php } ?>
+
+		<?php if ($filterAssignedEnable ?? false) { ?>
+			<div class="col-md-auto" style="width: 180px;">
+				<select class="form-select" id="assignedToSelect"></select>
 			</div>
 		<?php } ?>
 

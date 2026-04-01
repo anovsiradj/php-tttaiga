@@ -51,6 +51,17 @@ body {
 	box-shadow: var(--card-shadow-hover);
 }
 
+.card.taiga-selected {
+	border-color: var(--bs-primary);
+	background-color: rgba(var(--bs-primary-rgb), 0.05);
+	box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.card .form-check-label {
+	min-width: 1.25rem;
+	min-height: 1.25rem;
+}
+
 /* Side border cards */
 .task-card,
 .user-story-card,
@@ -199,11 +210,16 @@ body {
 	top: 0;
 	z-index: 1020;
 	background-color: var(--bs-body-bg);
-	border-bottom: 2px solid var(--bs-primary);
-	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	border-bottom: 1px solid var(--bs-border-color);
+	box-shadow: none;
 	margin-bottom: 1.5rem;
 	padding: 0.75rem 0;
 	transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.sticky-bulk-bar.has-selection {
+	border-bottom: 2px solid var(--bs-primary);
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .sticky-bulk-bar.d-none {

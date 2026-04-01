@@ -1,16 +1,16 @@
-<!-- Bulk Update Issue Modal -->
+<!-- Bulk Update Isu Modal -->
 <div class="modal fade" id="issueBulkUpdateModal" tabindex="-1" aria-labelledby="issueBulkUpdateModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title" id="issueBulkUpdateModalLabel">Bulk Update Issues</h5>
+				<h5 class="modal-title" id="issueBulkUpdateModalLabel">Bulk Update Isus</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
 				<div class="mb-3">
-					<label class="form-label">Selected Issues to Update</label>
+					<label class="form-label">Selected Isus to Update</label>
 					<div id="bulkUpdateIssueList" class="border p-3 rounded bg-light" style="max-height: 150px; overflow-y: auto;">
-						<!-- Selected issues will be listed here -->
+						<!-- Selected isus will be listed here -->
 					</div>
 				</div>
 
@@ -35,12 +35,12 @@
 
 				<div class="alert alert-warning">
 					<i class="bi bi-exclamation-triangle-fill me-2"></i>
-					This will apply changes to all selected issues.
+					This will apply changes to all selected isus.
 				</div>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-				<button type="button" class="btn btn-primary" id="submitBulkIssueUpdate">Update Issues</button>
+				<button type="button" class="btn btn-primary" id="submitBulkIssueUpdate">Update Isus</button>
 			</div>
 		</div>
 	</div>

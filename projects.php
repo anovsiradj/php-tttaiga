@@ -28,18 +28,7 @@ $filterStatusEnable = false;
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Projects - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -127,50 +116,44 @@ $filterStatusEnable = false;
 			function loadProjects(page = 1) {
 				const params = {
 					...taigaGetFilterParams(),
+					member: window.taigaModel ? window.taigaModel.id : null,
 					page: page
 				};
 
-				// Load projects first (using direct API as it might not have CORS issues)
+				// Remove member if null so it doesn't send member=null
+				if (!params.member) {
+					delete params.member;
+				}
+
 				$.ajax({
-					url: apiUrl + '/projects',
+					url: 'api.php/projects',
 					type: 'GET',
 					data: params,
+					dataType: 'json',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (projects, status, xhr) {
+						if (!Array.isArray(projects)) {
+							console.error('Projects response is not an array:', projects);
+							this.error(xhr, 'parsererror', 'Not an array');
+							return;
+						}
 						allProjects = projects;
 						displayProjects(projects);
 						taigaRenderPagination(xhr, '#projectsPagination', loadProjects);
 					},
 					error: function (xhr) {
 						console.error('Failed to load projects:', xhr);
-						// Try fallback to proxy API if direct call fails (CORS issue)
-						$.ajax({
-							url: 'api.php/projects',
-							type: 'GET',
-							data: params,
-							headers: {
-								'Authorization': 'Bearer ' + token,
-								'Content-Type': 'application/json',
-								'X-Taiga-Api-Url': apiUrl
-							},
-							success: function (projects, status, xhr) {
-								allProjects = projects;
-								displayProjects(projects);
-								taigaRenderPagination(xhr, '#projectsPagination', loadProjects);
-							},
-							error: function (fallbackXhr) {
-								$('#projectsContent').html(`
+						$('#projectsContent').html(`
 							<div class="alert alert-danger">
 								Failed to load projects. Please try again.
 								<button class="btn btn-sm btn-outline-danger ms-2" onclick="loadProjects()">Retry</button>
 							</div>
 						`);
-								$('#projectsPagination').empty();
-							}
-						});
+						$('#projectsPagination').empty();
 					}
 				});
 			}
@@ -178,17 +161,18 @@ $filterStatusEnable = false;
 			function displayProjects(projects) {
 				if (projects.length === 0) {
 					$('#projectsContent').html(`
-				<div class="alert alert-info">
-					No projects found. Create your first project in Taiga!
-				</div>
-			`);
+						<div class="text-muted italic p-3 text-center">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
 				let html = '<div class="row">';
 
-				projects.forEach(project => {
-					html += `
+				if (Array.isArray(projects)) {
+					projects.forEach(project => {
+						html += `
 				<div class="col-md-6 col-lg-4 mb-4">
 					<div class="card project-card h-100" data-project-id="${project.id}">
 						<div class="card-body">
@@ -201,14 +185,27 @@ $filterStatusEnable = false;
 									${project.is_private ? 'Private' : 'Public'}
 								</span>
 							</div>
-							<h5 class="card-title">${project.name}</h5>
-							<p class="card-text text-muted project-description">
-								${project.description || 'No description available.'}
+							<h5 class="card-title text-truncate">${project.name}</h5>
+							<p class="card-text text-muted project-description small">
+								${project.description || ''}
 							</p>
-							<div class="d-flex justify-content-between align-items-center">
-								<small class="text-muted">
-									Created: ${new Date(project.created_date).toLocaleDateString()}
-								</small>
+							<div class="mt-3 pt-2 border-top">
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted">
+										Created by: ${project.owner ? project.owner.full_name_display || project.owner.username : 'Unknown'}
+									</small>
+									<small class="text-muted">
+										${new Date(project.created_date).toLocaleDateString()}
+									</small>
+								</div>
+								<div class="d-flex justify-content-between align-items-center">
+									<small class="text-muted">
+										Updated: ${new Date(project.modified_date).toLocaleDateString()}
+									</small>
+									<small class="text-muted">
+										Fans: ${project.total_fans || 0}
+									</small>
+								</div>
 							</div>
 						</div>
 						<div class="card-footer bg-transparent">
@@ -220,6 +217,7 @@ $filterStatusEnable = false;
 				</div>
 			`;
 				});
+				}
 
 				html += '</div>';
 				$('#projectsContent').html(html);

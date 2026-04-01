@@ -13,7 +13,7 @@
 						<input type="text" class="form-control form-control-sm bg-light" id="bulkTaskProjectDisplay" readonly>
 					</div>
 					<div class="col-md-6">
-						<label class="form-label small mb-1 text-muted">Active User Story</label>
+						<label class="form-label small mb-1 text-muted">Active Usor</label>
 						<input type="text" class="form-control form-control-sm bg-light" id="bulkTaskUserStoryDisplay" readonly>
 					</div>
 				</div>
@@ -53,9 +53,9 @@
 				</div>
 
 				<div class="mb-3">
-					<label for="bulkTaskUserStory" class="form-label">User Story</label>
+					<label for="bulkTaskUserStory" class="form-label">Usor</label>
 					<select class="form-select" id="bulkTaskUserStory">
-						<option value="">Loading user stories...</option>
+						<option value="">Loading usors...</option>
 					</select>
 				</div>
 

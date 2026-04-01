@@ -6,15 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Epic Details - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -23,9 +15,9 @@ require __DIR__ . '/app/init.php';
 
 	<?php
 	$backUrl = 'epics.php';
-	$backLabel = 'Back to Epics';
+	$backLabel = 'Back to Epiks';
 	$headerId = 'epicHeaderContent';
-	$loadingLabel = 'Loading epic...';
+	$loadingLabel = 'Loading epik...';
 	include __DIR__ . '/app/partials/item_header.php';
 	?>
 
@@ -34,7 +26,7 @@ require __DIR__ . '/app/init.php';
 			<div class="col-md-8">
 				<div class="card mb-4">
 					<div class="card-header">
-						<h5 class="mb-0">Epic Details</h5>
+						<h5 class="mb-0">Epik Details</h5>
 					</div>
 					<div class="card-body" id="epicDetailsContent">
 						<div class="loading-spinner">
@@ -60,12 +52,12 @@ require __DIR__ . '/app/init.php';
 
 				<div class="card">
 					<div class="card-header">
-						<h5 class="mb-0">User Stories</h5>
+						<h5 class="mb-0">Usor</h5>
 					</div>
 					<div class="card-body" id="epicStoriesContent">
 						<div class="loading-spinner">
 							<div class="spinner-border" role="status">
-								<span class="visually-hidden">Loading user stories...</span>
+								<span class="visually-hidden">Loading usor...</span>
 							</div>
 						</div>
 					</div>
@@ -75,7 +67,7 @@ require __DIR__ . '/app/init.php';
 			<div class="col-md-4">
 				<div class="card mb-4">
 					<div class="card-header">
-						<h5 class="mb-0">Epic Stats</h5>
+						<h5 class="mb-0">Epik Stats</h5>
 					</div>
 					<div class="card-body" id="epicStatsContent">
 						<div class="loading-spinner">
@@ -140,11 +132,12 @@ require __DIR__ . '/app/init.php';
 			function loadEpicData(epicId) {
 				// Load epic basic info
 				$.ajax({
-					url: apiUrl + '/epics/' + epicId,
+					url: 'api.php/epics/' + epicId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (epic) {
 						displayEpicHeader(epic);
@@ -157,11 +150,11 @@ require __DIR__ . '/app/init.php';
 						loadEpicUserStories(epicId);
 					},
 					error: function (xhr) {
-						console.error('Failed to load epic:', xhr);
+						console.error('Failed to load epik:', xhr);
 						$('#epicHeaderContent').html(`
 					<div class="alert alert-danger">
-						Failed to load epic. Please check if you have access to this epic.
-						<a href="epics.php" class="btn btn-sm btn-outline-danger ms-2">Back to Epics</a>
+						Failed to load epik. Please check if you have access to this epik.
+						<a href="epics.php" class="btn btn-sm btn-outline-danger ms-2">Back to Epiks</a>
 					</div>
 				`);
 					}
@@ -175,7 +168,7 @@ require __DIR__ . '/app/init.php';
 				<div class="col-6">
 					<div class="stats-card">
 						<div class="stat-number">0</div>
-						<small class="text-muted">User Stories</small>
+						<small class="text-muted">Usor</small>
 					</div>
 				</div>
 				<div class="col-6">
@@ -192,20 +185,21 @@ require __DIR__ . '/app/init.php';
 			function loadEpicUserStories(epicId) {
 				// Load user stories for this epic
 				$.ajax({
-					url: apiUrl + '/userstories?epic=' + epicId,
+					url: 'api.php/userstories?epic=' + epicId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (stories) {
 						displayEpicUserStories(stories);
 					},
 					error: function (xhr) {
-						console.error('Failed to load user stories:', xhr);
+						console.error('Failed to load usors:', xhr);
 						$('#epicStoriesContent').html(`
 					<div class="alert alert-warning">
-						Unable to load user stories for this epic.
+						Unable to load usors for this epik.
 					</div>
 				`);
 					}
@@ -216,7 +210,7 @@ require __DIR__ . '/app/init.php';
 				const statusInfo = taigaGetStatusInfo(epic);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
-			<h1 class="display-4 mb-2">${epic.subject || 'Untitled Epic'}</h1>
+			<h1 class="display-4 mb-2">${epic.subject || 'Untitled Epik'}</h1>
 			<p class="lead mb-0">Ref: #${epic.ref}</p>
 			<div class="mt-2 text-white">
 				${statusBadge}
@@ -251,11 +245,12 @@ require __DIR__ . '/app/init.php';
 				// Load project name
 				if (epic.project) {
 					$.ajax({
-						url: apiUrl + '/projects/' + epic.project,
+						url: 'api.php/projects/' + epic.project,
 						type: 'GET',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						success: function (project) {
 							$('#projectName').text(project.name);
@@ -270,8 +265,11 @@ require __DIR__ . '/app/init.php';
 			function displayEpicDescription(epic) {
 				const descriptionHtml = epic.description ?
 					`<p class="card-text">${epic.description}</p>` :
-					`<p class="text-muted">No description provided for this epic.</p>`;
+					'';
 
+				if (!epic.description) {
+					$('#epicDescriptionContent').closest('.card').hide();
+				}
 				$('#epicDescriptionContent').html(descriptionHtml);
 			}
 
@@ -279,7 +277,7 @@ require __DIR__ . '/app/init.php';
 				const metadataHtml = `
 			<div class="small">
 				<div class="mb-2">
-					<strong>Epic ID:</strong><br>
+					<strong>Epik ID:</strong><br>
 					<code>${epic.id}</code>
 				</div>
 				<div class="mb-2">
@@ -306,8 +304,10 @@ require __DIR__ . '/app/init.php';
 			function displayEpicUserStories(stories) {
 				if (stories.length === 0) {
 					$('#epicStoriesContent').html(`
-				<p class="text-muted">No user stories found for this epic.</p>
-			`);
+						<div class="text-muted italic">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
@@ -319,7 +319,7 @@ require __DIR__ . '/app/init.php';
 				<div class="card user-story-card mb-2">
 					<div class="card-body py-2">
 						<div class="d-flex justify-content-between align-items-start">
-							<h6 class="card-title mb-1">${story.subject || 'Untitled Story'}</h6>
+							<h6 class="card-title mb-1">${story.subject || 'Untitled Usor'}</h6>
 							${statusBadge}
 						</div>
 						<p class="card-text text-muted small mb-1">

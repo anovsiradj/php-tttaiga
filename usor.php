@@ -6,15 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Usor Details - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -23,9 +15,9 @@ require __DIR__ . '/app/init.php';
 
 	<?php
 	$backUrl = 'usors.php';
-	$backLabel = 'Back to User Stories';
+	$backLabel = 'Back to Usors';
 	$headerId = 'usorHeaderContent';
-	$loadingLabel = 'Loading user story...';
+	$loadingLabel = 'Loading usor...';
 	include __DIR__ . '/app/partials/item_header.php';
 	?>
 
@@ -134,25 +126,29 @@ require __DIR__ . '/app/init.php';
 			loadUsor(usorId);
 			loadUsorTasks(usorId);
 
+			// Store current user story data for reference
+			let currentUsor = null;
 			function loadUsor(usorId) {
 				$.ajax({
-					url: apiUrl + '/userstories/' + usorId,
+					url: 'api.php/userstories/' + usorId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (usor) {
+						currentUsor = usor; // Store for bulk operations
 						displayUsorHeader(usor);
 						displayUsorDescription(usor);
 						displayUsorMetadata(usor);
 						displayUsorStats(usor);
 					},
 					error: function (xhr) {
-						console.error('Failed to load user story:', xhr);
+						console.error('Failed to load usor:', xhr);
 						$('#usorHeaderContent').html(`
 					<div class="alert alert-danger">
-						Unable to load user story. Please try again.
+						Unable to load usor. Please try again.
 					</div>
 				`);
 					}
@@ -161,11 +157,12 @@ require __DIR__ . '/app/init.php';
 
 			function loadUsorTasks(usorId) {
 				$.ajax({
-					url: apiUrl + '/tasks?user_story=' + usorId,
+					url: 'api.php/tasks?user_story=' + usorId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (tasks) {
 						displayUsorTasks(tasks);
@@ -174,7 +171,7 @@ require __DIR__ . '/app/init.php';
 						console.error('Failed to load tasks:', xhr);
 						$('#usorTasksContent').html(`
 					<div class="alert alert-warning">
-						Unable to load tasks for this user story.
+						Unable to load tasks for this usor.
 					</div>
 				`);
 					}
@@ -185,7 +182,7 @@ require __DIR__ . '/app/init.php';
 				const statusInfo = taigaGetStatusInfo(usor);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
-			<h1 class="display-4 mb-2">${usor.subject || 'Untitled Story'}</h1>
+			<h1 class="display-4 mb-2">${usor.subject || 'Untitled Usor'}</h1>
 			<p class="lead mb-0">Ref: #${usor.ref}</p>
 			<div class="mt-2">
 				${statusBadge}
@@ -195,18 +192,15 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayUsorDescription(usor) {
-				let descriptionHtml;
-				if (usor.description) {
-					descriptionHtml = `
-				<div class="description-content">
-					${usor.description}
-				</div>
-			`;
-				} else {
-					descriptionHtml = `
-				<p class="text-muted">No description provided.</p>
-			`;
+				if (!usor.description) {
+					$('#usorDescriptionContent').closest('.card').hide();
+					return;
 				}
+				const descriptionHtml = `
+					<div class="description-content">
+						${usor.description}
+					</div>
+				`;
 				$('#usorDescriptionContent').html(descriptionHtml);
 			}
 
@@ -218,8 +212,8 @@ require __DIR__ . '/app/init.php';
 			</div>
 			${usor.epic ? `
 				<div class="mb-2">
-					<strong>Epic:</strong><br>
-					<span id="epicName">Loading epic...</span>
+					<strong>Epik:</strong><br>
+					<span id="epicName">Loading epik...</span>
 				</div>
 			` : ''}
 			<div class="mb-2">
@@ -261,7 +255,7 @@ require __DIR__ . '/app/init.php';
 			<hr>
 			<div class="text-center">
 				<div class="stat-number">${usor.points ? usor.points.total || '0' : '0'}</div>
-				<small class="text-muted">Story Points</small>
+				<small class="text-muted">Usor Points</small>
 			</div>
 		`;
 				$('#usorStatsContent').html(statsHtml);
@@ -272,8 +266,10 @@ require __DIR__ . '/app/init.php';
 
 				if (tasks.length === 0) {
 					$('#usorTasksContent').html(`
-				<p class="text-muted">No tasks found for this user story.</p>
-			`);
+						<div class="text-muted italic">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
@@ -306,11 +302,12 @@ require __DIR__ . '/app/init.php';
 
 			function loadProjectName(projectId) {
 				$.ajax({
-					url: apiUrl + '/projects/' + projectId,
+					url: 'api.php/projects/' + projectId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (project) {
 						$('#projectName').text(project.name || 'Unknown Project');
@@ -324,18 +321,19 @@ require __DIR__ . '/app/init.php';
 
 			function loadEpicName(epicId) {
 				$.ajax({
-					url: apiUrl + '/epics/' + epicId,
+					url: 'api.php/epics/' + epicId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (epic) {
-						$('#epicName').text(epic.subject || 'Untitled Epic');
+						$('#epicName').text(epic.subject || 'Untitled Epik');
 					},
 					error: function (xhr) {
-						console.error('Failed to load epic:', xhr);
-						$('#epicName').text('Unknown Epic');
+						console.error('Failed to load epik:', xhr);
+						$('#epicName').text('Unknown Epik');
 					}
 				});
 			}
@@ -368,8 +366,8 @@ require __DIR__ . '/app/init.php';
 				// Populate project dropdown (current project should be selected)
 				$('#bulkTaskProject').html(`<option value="${currentUsor.project}" selected>Current Project</option>`);
 
-				// Populate user story dropdown (current user story should be selected)
-				$('#bulkTaskUserStory').html(`<option value="${currentUsor.id}" selected>Current User Story (#${currentUsor.ref})</option>`);
+				// Populate usor dropdown (current usor should be selected)
+				$('#bulkTaskUserStory').html(`<option value="${currentUsor.id}" selected>Current Usor (#${currentUsor.ref})</option>`);
 
 				// Populate status dropdown
 				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
@@ -388,6 +386,21 @@ require __DIR__ . '/app/init.php';
 					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
 				});
 				$('#bulkUpdateTaskStatus').html(statusHtml);
+
+				const projectId = currentUsor.project;
+
+				// Initialize Usor Select2
+				taigaInitRemoteSelect2('#bulkUpdateTaskUsor', '/userstories', {
+					placeholder: 'No Change',
+					formatText: (item) => `#${item.ref}: ${item.subject}`,
+					additionalParams: () => ({ project: projectId })
+				});
+
+				// Initialize Sprint Select2
+				taigaInitRemoteSelect2('#bulkUpdateTaskSprint', '/milestones', {
+					placeholder: 'No Change',
+					additionalParams: () => ({ project: projectId })
+				});
 
 				// Load current tasks for selection
 				loadTasksForBulkUpdate();
@@ -439,11 +452,12 @@ require __DIR__ . '/app/init.php';
 					};
 
 					return $.ajax({
-						url: apiUrl + '/tasks',
+						url: 'api.php/tasks',
 						type: 'POST',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						data: JSON.stringify(taskData)
 					});
@@ -463,13 +477,14 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function loadTasksForBulkUpdate() {
-				// Load tasks for the current user story
+				// Load tasks for the current usor
 				$.ajax({
-					url: apiUrl + '/tasks?user_story=' + currentUsor.id,
+					url: 'api.php/tasks?user_story=' + currentUsor.id,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (tasks) {
 						let tasksHtml = '';
@@ -508,6 +523,12 @@ require __DIR__ . '/app/init.php';
 
 				if (status) updateData.status = status;
 
+				const usor = $('#bulkUpdateTaskUsor').val();
+				if (usor) updateData.user_story = usor === 'null' ? null : parseInt(usor);
+
+				const sprint = $('#bulkUpdateTaskSprint').val();
+				if (sprint) updateData.milestone = sprint === 'null' ? null : parseInt(sprint);
+
 				if (Object.keys(updateData).length === 0) {
 					alert('Please select at least one field to update');
 					return;
@@ -516,11 +537,12 @@ require __DIR__ . '/app/init.php';
 				// Update tasks sequentially
 				const promises = selectedTasks.map(taskId => {
 					return $.ajax({
-						url: apiUrl + '/tasks/' + taskId,
+						url: 'api.php/tasks/' + taskId,
 						type: 'PATCH',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						data: JSON.stringify(updateData)
 					});
@@ -539,149 +561,13 @@ require __DIR__ . '/app/init.php';
 					});
 			}
 
-			// Store current user story data for reference
-			let currentUsor = null;
-			function loadUsor(usorId) {
-				$.ajax({
-					url: apiUrl + '/userstories/' + usorId,
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
-					},
-					success: function (usor) {
-						currentUsor = usor; // Store for bulk operations
-						displayUsorHeader(usor);
-						displayUsorDescription(usor);
-						displayUsorMetadata(usor);
-						displayUsorStats(usor);
-					},
-					error: function (xhr) {
-						console.error('Failed to load user story:', xhr);
-						$('#usorHeaderContent').html(`
-					<div class="alert alert-danger">
-						Unable to load user story. Please try again.
-					</div>
-				`);
-					}
-				});
 			}
 		});
 	</script>
 
-	<!-- Bulk Create Task Modal -->
-	<div class="modal fade" id="bulkCreateTaskModal" tabindex="-1" aria-labelledby="bulkCreateTaskModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkCreateTaskModalLabel">Bulk Create Tasks</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<div class="mb-3">
-						<label for="bulkTaskTitles" class="form-label">Task Titles (one per line)</label>
-						<textarea class="form-control" id="bulkTaskTitles" rows="5" placeholder="Enter task titles, one per line\nExample:\nDesign database schema\nImplement user authentication\nCreate API endpoints"></textarea>
-						<div class="form-text">Enter each task title on a separate line</div>
-					</div>
-
-					<div class="row">
-						<div class="col-md-6">
-							<div class="mb-3">
-								<label for="bulkTaskStatus" class="form-label">Status</label>
-								<select class="form-select" id="bulkTaskStatus">
-									<option value="">Select Status</option>
-									<option value="new">New</option>
-									<option value="ready">Ready</option>
-									<option value="in progress">In Progress</option>
-									<option value="done">Done</option>
-									<option value="archived">Archived</option>
-									<option value="blocked">Blocked</option>
-								</select>
-							</div>
-						</div>
-						<div class="col-md-6">
-							<div class="mb-3">
-								<label for="bulkTaskProject" class="form-label">Project</label>
-								<select class="form-select" id="bulkTaskProject" disabled>
-									<option value="">Loading...</option>
-								</select>
-							</div>
-						</div>
-					</div>
-
-					<div class="mb-3">
-						<label for="bulkTaskUserStory" class="form-label">User Story</label>
-						<select class="form-select" id="bulkTaskUserStory" disabled>
-							<option value="">Loading...</option>
-						</select>
-					</div>
-
-					<div class="mb-3">
-						<label for="bulkTaskDescription" class="form-label">Description (applies to all tasks)</label>
-						<textarea class="form-control" id="bulkTaskDescription" rows="3" placeholder="Optional description that will be applied to all created tasks"></textarea>
-					</div>
-
-					<div id="bulkTaskPreview" class="alert alert-info">
-						<p class="mb-0">Preview will appear here after clicking "Preview"</p>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-info" id="previewBulkTaskCreate">Preview</button>
-					<button type="button" class="btn btn-success" id="submitBulkTaskCreate">Create Tasks</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Bulk Update Task Modal -->
-	<div class="modal fade" id="bulkUpdateTaskModal" tabindex="-1" aria-labelledby="bulkUpdateTaskModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkUpdateTaskModalLabel">Bulk Update Tasks</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<div class="mb-3">
-						<label class="form-label">Select Tasks to Update</label>
-						<div id="bulkUpdateTaskList" class="border p-3" style="max-height: 200px; overflow-y: auto;">
-							<div class="text-center text-muted">
-								<div class="spinner-border spinner-border-sm" role="status">
-									<span class="visually-hidden">Loading tasks...</span>
-								</div>
-								<p class="mt-2 mb-0">Loading tasks...</p>
-							</div>
-						</div>
-						<div class="form-text">Select the tasks you want to update</div>
-					</div>
-
-					<div class="mb-3">
-						<label for="bulkUpdateTaskStatus" class="form-label">Update Status</label>
-						<select class="form-select" id="bulkUpdateTaskStatus">
-							<option value="">No Change</option>
-							<option value="new">New</option>
-							<option value="ready">Ready</option>
-							<option value="in progress">In Progress</option>
-							<option value="done">Done</option>
-							<option value="archived">Archived</option>
-							<option value="blocked">Blocked</option>
-						</select>
-						<div class="form-text">Leave as "No Change" to keep current status</div>
-					</div>
-
-					<div class="alert alert-warning">
-						<h6 class="alert-heading">⚠️ Warning</h6>
-						<p class="mb-0">This action will update all selected tasks with the chosen settings. This cannot be undone.</p>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="submitBulkTaskUpdate">Update Tasks</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php include __DIR__ . '/app/partials/task_bulk_create.php'; ?>
+	<?php include __DIR__ . '/app/partials/task_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/task_bulk_delete.php'; ?>
 
 </body>
 

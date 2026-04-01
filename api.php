@@ -7,17 +7,22 @@
  */
 
 require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/app/init.php';
 
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Taiga-Api-Url');
 header('Access-Control-Expose-Headers: *');
-header('Content-Type: application/json');
+
+
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+	exit();
+}
+
+if (isset($_SESSION['taiga_token']) && empty($_SERVER['HTTP_AUTHORIZATION'])) {
+	$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $_SESSION['taiga_token'];
 }
 
 // Get the configuration
@@ -25,73 +30,159 @@ $config = include 'app/configs/taiga.php';
 $apiUrl = isset($_SERVER['HTTP_X_TAIGA_API_URL']) ? $_SERVER['HTTP_X_TAIGA_API_URL'] : $config['servers']['default']['api_url'];
 
 // Get the request path
-$requestUri = $_SERVER['REQUEST_URI'];
-$basePath = '/api.php';
-$apiPath = substr($requestUri, strpos($requestUri, $basePath) + strlen($basePath));
-// var_dump($apiPath);
-// die;
+$apiPath = '';
+if (isset($_SERVER['PATH_INFO'])) {
+	$apiPath = $_SERVER['PATH_INFO'];
+} else {
+	$requestUri = $_SERVER['REQUEST_URI'];
+	$scriptName = $_SERVER['SCRIPT_NAME'];
+
+	if (str_starts_with($requestUri, $scriptName)) {
+		$apiPath = substr($requestUri, strlen($scriptName));
+	} else {
+		// Fallback for when script name is omitted in some rewrite configs
+		$apiPath = $requestUri;
+	}
+}
 
 // Remove query parameters from path
 $apiPath = strtok($apiPath, '?');
+if (!$apiPath)
+	$apiPath = '/';
 
 // Get the HTTP method
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Cache configuration
+$cacheablePaths = [
+	'/epic-statuses',
+	'/userstory-statuses',
+	'/task-statuses',
+	'/issue-statuses',
+	'/memberships',
+	'/users'
+];
+
+$isCacheable = ($method === 'GET' && in_array($apiPath, $cacheablePaths));
+$cacheFile = null;
+
+if ($isCacheable) {
+	$cacheDir = __DIR__ . '/storage/tmp';
+	if (!is_dir($cacheDir)) {
+		mkdir($cacheDir, 0777, true);
+	}
+
+	$queryString = $_SERVER['QUERY_STRING'] ?? '';
+	$cacheKey = md5($apiUrl . $apiPath . $queryString);
+	$cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+
+	// Serve from cache if exists and not older than 1 hour (3600 seconds)
+	if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 3600)) {
+		header('X-Cache: HIT');
+		echo file_get_contents($cacheFile);
+		exit();
+	}
+	header('X-Cache: MISS');
+}
+
 // Get headers from the original request
 $headers = [
-    'Content-Type: application/json',
+	'Content-Type: application/json',
 ];
 
 // Forward Authorization header if present
 if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-    $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+	$headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+} else {
+	// Fallback for Apache which sometimes strips the Authorization header
+	if (function_exists('apache_request_headers')) {
+		$requestHeaders = apache_request_headers();
+		if (isset($requestHeaders['Authorization'])) {
+			$headers[] = 'Authorization: ' . $requestHeaders['Authorization'];
+		}
+	}
 }
 
 // Get request body
 $input = file_get_contents('php://input');
 
+// Extract user ID from Authorization header if possible
+$autoMemberId = null;
+if (isset($headers)) {
+	foreach ($headers as $h) {
+		if (str_starts_with($h, 'Authorization: Bearer ')) {
+			$token = substr($h, strlen('Authorization: Bearer '));
+			$parts = explode('.', $token);
+			if (count($parts) === 3) {
+				$payload = json_decode(base64_decode($parts[1]), true);
+				$autoMemberId = $payload['user_id'] ?? $payload['id'] ?? null;
+			}
+		}
+	}
+}
+
 // Build the target URL
 $targetUrl = $apiUrl . $apiPath;
 
-// Add query parameters if present
+// Prepare query parameters
+$queryArray = [];
 if (!empty($_SERVER['QUERY_STRING'])) {
-    $targetUrl .= '?' . $_SERVER['QUERY_STRING'];
+	parse_str($_SERVER['QUERY_STRING'], $queryArray);
 }
-// var_dump($targetUrl);
-// die;
+
+// Auto-append member ID for projects list if missing
+if ($apiPath === '/projects' && $method === 'GET' && !isset($queryArray['member']) && $autoMemberId) {
+	$queryArray['member'] = $autoMemberId;
+}
+
+if (!empty($queryArray)) {
+	$targetUrl .= '?' . http_build_query($queryArray);
+}
+
 // Initialize cURL via php-skit
 $curl = new \anovsiradj\skit\CURL('', $headers, [
-    CURLOPT_URL => $targetUrl,
-    CURLOPT_CUSTOMREQUEST => $method,
-    CURLOPT_FOLLOWLOCATION => true,
+	CURLOPT_URL => $targetUrl,
+	CURLOPT_CUSTOMREQUEST => $method,
+	CURLOPT_FOLLOWLOCATION => true,
+	CURLOPT_ENCODING => '', // Handle gzip/deflate automatically
 ]);
 
 // Add request body for POST/PUT requests
 if (!empty($input)) {
-    $curl->opt(CURLOPT_POSTFIELDS, $input);
+	$curl->opt(CURLOPT_POSTFIELDS, $input);
 }
 
 // Execute the request
 $curl->exec();
 
+
 // Check for cURL errors
 if (curl_errno($curl->handle)) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'Proxy error: ' . curl_error($curl->handle)
-    ]);
-    exit();
+	http_response_code(500);
+	echo json_encode([
+		'error' => 'Proxy error: ' . curl_error($curl->handle)
+	]);
+	exit();
 }
 
-// Get HTTP status code
+// Forward HTTP status code
 http_response_code($curl->code());
+
+
+
+// Save to cache if successful
+if ($isCacheable && $curl->code() === 200 && !empty($curl->data)) {
+	file_put_contents($cacheFile, $curl->data);
+}
 
 // Forward X-* headers
 foreach ($curl->resHeaders as $header) {
-    if (stripos($header, 'X-') === 0) {
-        header($header);
-    }
+	if (stripos($header, 'X-') === 0) {
+		header($header);
+	}
 }
 
+header('Content-Type: application/json');
 // Forward the response
 echo $curl->data;
+

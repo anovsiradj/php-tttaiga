@@ -1,9 +1,9 @@
-<!-- Bulk Create User Story Modal -->
+<!-- Bulk Create Usor Modal -->
 <div class="modal fade" id="bulkCreateModal" tabindex="-1" aria-labelledby="bulkCreateModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title" id="bulkCreateModalLabel">Bulk Create User Stories</h5>
+				<h5 class="modal-title" id="bulkCreateModalLabel">Bulk Create Usors</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
@@ -17,8 +17,8 @@
 						</div>
 					</div>
 					<div class="mb-3">
-						<label class="form-label">User Stories (one per line)</label>
-						<textarea class="form-control" id="bulkCreateText" rows="10" placeholder="Enter user stories, one per line. Format: Subject|Description (optional)|Status (optional)" required></textarea>
+						<label class="form-label">Usors (one per line)</label>
+						<textarea class="form-control" id="bulkCreateText" rows="10" placeholder="Enter usors, one per line. Format: Subject|Description (optional)|Status (optional)" required></textarea>
 						<small class="form-text text-muted">Example: Login page|Create login form with validation|new</small>
 					</div>
 					<div class="row">
@@ -29,9 +29,9 @@
 							</select>
 						</div>
 						<div class="col-md-6">
-							<label class="form-label">Epic (optional)</label>
+							<label class="form-label">Epik (optional)</label>
 							<select class="form-select" id="bulkCreateEpic">
-								<option value="">Select Epic</option>
+								<option value="">Select Epik</option>
 							</select>
 						</div>
 					</div>
@@ -58,7 +58,7 @@
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 				<button type="button" class="btn btn-outline-primary" id="previewBulkCreate">Preview</button>
-				<button type="button" class="btn btn-success" id="submitBulkCreate">Create Stories</button>
+				<button type="button" class="btn btn-success" id="submitBulkCreate">Create Usors</button>
 			</div>
 		</div>
 	</div>

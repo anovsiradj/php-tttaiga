@@ -6,18 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Epics - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -26,11 +15,12 @@ require __DIR__ . '/app/init.php';
 
 	<div class="container mt-4">
 		<?php
-		$pageTitle = 'Epics';
+		$pageTitle = 'Epik';
 		$statusType = 'epic';
 		$bulkCreateModalId = 'bulkCreateEpicModal';
 		$bulkUpdateModalId = 'bulkUpdateEpicModal';
-		$searchPlaceholder = 'Search epics...';
+		$searchPlaceholder = 'Search epiks...';
+		$filterAssignedEnable = true;
 		$sortOptions = [
 			'subject' => 'Subject (A-Z)',
 			'-subject' => 'Subject (Z-A)',
@@ -49,24 +39,22 @@ require __DIR__ . '/app/init.php';
 			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteEpicModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
 		';
 		include __DIR__ . '/app/partials/list_header.php';
-		?>
 
-		<div id="epicsContent">
-			<div class="loading-spinner">
-				<div class="spinner-border text-primary" role="status">
-					<span class="visually-hidden">Loading epics...</span>
-				</div>
-			</div>
-		</div>
-
-		<?php
 		$totalId = 'totalEpics';
 		$filteredId = 'filteredEpics';
 		$selectionCountId = 'selectedEpicsCount';
 		include __DIR__ . '/app/partials/list_status.php';
 		?>
 
-		<nav aria-label="Epics pagination" class="pagination-container">
+		<div id="epicsContent">
+			<div class="loading-spinner">
+				<div class="spinner-border text-primary" role="status">
+					<span class="visually-hidden">Loading epik...</span>
+				</div>
+			</div>
+		</div>
+
+		<nav aria-label="Epiks pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="epicsPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -111,13 +99,13 @@ require __DIR__ . '/app/init.php';
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadEpics);
 
-			taigaBindSelectionLogic('epic-checkbox', function(checkedCount) {
+			taigaBindSelectionLogic('epic-checkbox', function (checkedCount) {
 				const filtered = parseInt($('#filteredEpics').text()) || 0;
 				const total = parseInt($('#totalEpics').text()) || 0;
 				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalEpics', 'filteredEpics', 'selectedEpicsCount');
 			});
 
-			// Bulk Create Epic functionality
+			// Bulk Create Epik functionality
 			$('#bulkCreateEpicModal').on('show.bs.modal', function () {
 				populateBulkCreateEpicDropdowns();
 			});
@@ -130,7 +118,7 @@ require __DIR__ . '/app/init.php';
 				submitBulkCreateEpic();
 			});
 
-			// Bulk Update Epic functionality
+			// Bulk Update Epik functionality
 			$('#bulkUpdateEpicModal').on('show.bs.modal', function () {
 				populateBulkUpdateEpicDropdowns();
 			});
@@ -159,7 +147,7 @@ require __DIR__ . '/app/init.php';
 				});
 
 				if (selectedEpics.length === 0) {
-					alert('Please select at least one epic to delete');
+					alert('Please select at least one epik to delete');
 					return;
 				}
 
@@ -167,13 +155,13 @@ require __DIR__ . '/app/init.php';
 				$btn.prop('disabled', true).text('Deleting...');
 
 				taigaExecuteBulk('/epics/', selectedEpics, 'DELETE', null, (successCount, errorCount) => {
-					$btn.prop('disabled', false).text('Delete Epics');
+					$btn.prop('disabled', false).text('Delete Epiks');
 					if (errorCount === 0) {
-						alert(`Successfully deleted ${successCount} epics!`);
+						alert(`Successfully deleted ${successCount} epiks!`);
 						$('#bulkDeleteEpicModal').modal('hide');
 						loadEpics();
 					} else {
-						alert(`Deleted ${successCount} epics, but ${errorCount} failed.`);
+						alert(`Deleted ${successCount} epiks, but ${errorCount} failed.`);
 					}
 				});
 			});
@@ -181,13 +169,21 @@ require __DIR__ . '/app/init.php';
 			function loadProjectsAndEpics() {
 				// Load projects first
 				$.ajax({
-					url: apiUrl + '/projects',
+					url: 'api.php/projects',
 					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
+					dataType: 'json',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (projects) {
+						if (!Array.isArray(projects)) {
+							console.error('Projects response is not an array:', projects);
+							this.error(null, 'parsererror', 'Not an array');
+							return;
+						}
 						allProjects = projects;
 						populateProjectSelect(projects);
 						loadEpics();
@@ -209,17 +205,24 @@ require __DIR__ . '/app/init.php';
 					...taigaGetFilterParams(),
 					page: page
 				};
-				
+
 				// Load epics for all projects
 				$.ajax({
-					url: apiUrl + '/epics',
+					url: 'api.php/epics',
 					type: 'GET',
 					data: params,
+					dataType: 'json',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (epics, status, xhr) {
+						if (!Array.isArray(epics)) {
+							console.error('Epiks response is not an array:', epics);
+							this.error(xhr, 'parsererror', 'Not an array');
+							return;
+						}
 						allEpics = epics;
 						displayEpics(epics);
 						taigaRenderPagination(xhr, '#epicsPagination', loadEpics);
@@ -239,19 +242,21 @@ require __DIR__ . '/app/init.php';
 
 			function populateProjectSelect(projects) {
 				let html = '<option value="">All Projects</option>';
-				projects.forEach(project => {
-					html += `<option value="${project.id}">${project.name}</option>`;
-				});
+				if (Array.isArray(projects)) {
+					projects.forEach(project => {
+						html += `<option value="${project.id}">${project.name}</option>`;
+					});
+				}
 				$('#projectSelect').html(html);
 			}
 
 			function displayEpics(epics) {
 				if (epics.length === 0) {
 					$('#epicsContent').html(`
-				<div class="alert alert-info">
-					No epics found. Create your first epic in Taiga!
-				</div>
-			`);
+						<div class="text-muted italic p-3 text-center">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
@@ -261,6 +266,8 @@ require __DIR__ . '/app/init.php';
 					const project = allProjects.find(p => p.id === epic.project) || {};
 					const statusInfo = taigaGetStatusInfo(epic);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
+					const assignedTo = epic.assigned_to_extra ? epic.assigned_to_extra.full_name_display : (epic.assigned_to ? 'User ID: ' + epic.assigned_to : 'Unassigned');
+					const owner = epic.owner_extra ? epic.owner_extra.full_name_display : 'Unknown';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-4">
@@ -273,25 +280,37 @@ require __DIR__ . '/app/init.php';
 								</div>
 								${statusBadge}
 							</div>
-							<h5 class="card-title text-truncate pe-5">${epic.subject || 'Untitled Epic'}</h5>
-							<p class="card-text text-muted epic-description">
-								${epic.description || 'No description available.'}
+							<h5 class="card-title text-truncate pe-5">${epic.subject || 'Untitled Epik'}</h5>
+							<p class="card-text text-muted epic-description small">
+								${epic.description || ''}
 							</p>
-							<div class="d-flex justify-content-between align-items-center mt-3">
-								<small class="text-muted">
-									Project: ${project.name || 'Unknown'}
-								</small>
-								<small class="text-muted">
-									Ref: #${epic.ref}
-								</small>
-							</div>
-							<div class="d-flex justify-content-between align-items-center mt-2">
-								<small class="text-muted">
-									Created: ${new Date(epic.created_date).toLocaleDateString()}
-								</small>
-								<small class="text-muted">
-									Modified: ${new Date(epic.modified_date).toLocaleDateString()}
-								</small>
+							<div class="mt-3">
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted">
+										Project: ${project.name || 'Unknown'}
+									</small>
+									<small class="text-muted">
+										Ref: #${epic.ref}
+									</small>
+								</div>
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted">
+										Assigned to: <strong>${assignedTo}</strong>
+									</small>
+								</div>
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted">
+										Created by: ${owner}
+									</small>
+									<small class="text-muted">
+										${new Date(epic.created_date).toLocaleDateString()}
+									</small>
+								</div>
+								<div class="d-flex justify-content-between align-items-center">
+									<small class="text-muted">
+										Updated: ${new Date(epic.modified_date).toLocaleDateString()}
+									</small>
+								</div>
 							</div>
 						</div>
 						<div class="card-footer bg-transparent">
@@ -303,10 +322,9 @@ require __DIR__ . '/app/init.php';
 				</div>
 			`;
 				});
-
 				html += '</div>';
 				$('#epicsContent').html(html);
-				taigaUpdateSelectionUI(epics.length, epics.length, 0);
+				taigaUpdateSelectionUI(epics.length, epics.length, 0, 'totalEpics', 'filteredEpics', 'selectedEpicsCount');
 
 				// Add click event for epic cards
 				$('.view-epic').on('click', function (e) {
@@ -325,17 +343,23 @@ require __DIR__ . '/app/init.php';
 
 
 
-			// Bulk Create Epic Functions
+			// Bulk Create Epik Functions
 			function populateBulkCreateEpicDropdowns() {
 				// Populate project dropdown
 				$.ajax({
-					url: apiUrl + '/projects',
+					url: 'api.php/projects',
 					type: 'GET',
+					data: { member: typeof taigaModel !== 'undefined' ? taigaModel.id : null },
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (projects) {
+						let options = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							options += `<option value="${project.id}">${project.name}</option>`;
+						});
 						$('#bulkCreateEpicProject').html(options).select2({
 							theme: 'bootstrap-5',
 							width: '100%',
@@ -361,14 +385,14 @@ require __DIR__ . '/app/init.php';
 			function previewBulkCreateEpic() {
 				const text = $('#bulkCreateEpicText').val().trim();
 				if (!text) {
-					alert('Please enter some epics to create');
+					alert('Please enter some epiks to create');
 					return;
 				}
 
 				const epics = text.split('\n').filter(line => line.trim()).map(line => {
 					const parts = line.split('|');
 					return {
-						subject: parts[0]?.trim() || 'Untitled Epic',
+						subject: parts[0]?.trim() || 'Untitled Epik',
 						description: parts[1]?.trim() || '',
 						status: parts[2]?.trim() || $('#bulkCreateEpicStatus').val()
 					};
@@ -403,14 +427,14 @@ require __DIR__ . '/app/init.php';
 				}
 
 				if (!text) {
-					alert('Please enter some epics to create');
+					alert('Please enter some epiks to create');
 					return;
 				}
 
 				const epics = text.split('\n').filter(line => line.trim()).map(line => {
 					const parts = line.split('|');
 					return {
-						subject: parts[0]?.trim() || 'Untitled Epic',
+						subject: parts[0]?.trim() || 'Untitled Epik',
 						description: parts[1]?.trim() || '',
 						status: parts[2]?.trim() || defaultStatus
 					};
@@ -434,11 +458,12 @@ require __DIR__ . '/app/init.php';
 					};
 
 					$.ajax({
-						url: apiUrl + '/epics',
+						url: 'api.php/epics',
 						type: 'POST',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						data: JSON.stringify(epicData),
 						success: function () {
@@ -459,7 +484,7 @@ require __DIR__ . '/app/init.php';
 
 			function finishBulkCreateEpic(createdCount, errorCount) {
 				const $btn = $('#submitBulkCreateEpic');
-				$btn.prop('disabled', false).text('Create Epics');
+				$btn.prop('disabled', false).text('Create Epiks');
 
 				if (errorCount === 0) {
 					alert(`Successfully created ${createdCount} epics!`);
@@ -470,7 +495,7 @@ require __DIR__ . '/app/init.php';
 				}
 			}
 
-			// Bulk Update Epic Functions
+			// Bulk Update Epik Functions
 			function populateBulkUpdateEpicDropdowns() {
 				const filterParams = taigaGetFilterParams();
 				const projectId = filterParams.project;
@@ -481,7 +506,7 @@ require __DIR__ . '/app/init.php';
 						<div class="form-check">
 							<input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-epic-${item.id}">
 							<label class="form-check-label" for="bulk-epic-${item.id}">
-								#${item.ref}: ${item.subject || 'Untitled Epic'}
+								#${item.ref}: ${item.subject || 'Untitled Epik'}
 							</label>
 						</div>
 					`;
@@ -503,12 +528,12 @@ require __DIR__ . '/app/init.php';
 				const color = $('#bulkUpdateEpicColor').val();
 
 				if (!selectedEpics || selectedEpics.length === 0) {
-					alert('Please select at least one epic to update');
+					alert('Please select at least one epik to update');
 					return;
 				}
 
 				const updateData = {};
-				if (status) updateData.status = status;
+				if (status) updateData.status = parseInt(status);
 				if (priority) updateData.priority = parseInt(priority);
 				if (description) updateData.description = description;
 				if (color) updateData.color = color;
@@ -522,13 +547,13 @@ require __DIR__ . '/app/init.php';
 				$btn.prop('disabled', true).text('Updating...');
 
 				taigaExecuteBulk('/epics/', selectedEpics, 'PATCH', updateData, (successCount, errorCount) => {
-					$btn.prop('disabled', false).text('Update Epics');
+					$btn.prop('disabled', false).text('Update Epiks');
 					if (errorCount === 0) {
-						alert(`Successfully updated ${successCount} epics!`);
+						alert(`Successfully updated ${successCount} epiks!`);
 						$('#bulkUpdateEpicModal').modal('hide');
 						loadEpics();
 					} else {
-						alert(`Updated ${successCount} epics, but ${errorCount} failed.`);
+						alert(`Updated ${successCount} epiks, but ${errorCount} failed.`);
 					}
 				});
 			}
@@ -537,6 +562,7 @@ require __DIR__ . '/app/init.php';
 
 	<?php include __DIR__ . '/app/partials/epic_bulk_create.php'; ?>
 	<?php include __DIR__ . '/app/partials/epic_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/epic_bulk_delete.php'; ?>
 
 </body>
 

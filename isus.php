@@ -6,18 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Issues - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -26,9 +15,10 @@ require __DIR__ . '/app/init.php';
 
 	<div class="container mt-4">
 		<?php
-		$pageTitle = 'Issues';
+		$pageTitle = 'Isu';
 		$statusType = 'issue';
-		$searchPlaceholder = 'Search issues...';
+		$searchPlaceholder = 'Search isus...';
+		$filterAssignedEnable = true;
 		$sortOptions = [
 			'subject' => 'Subject (A-Z)',
 			'-subject' => 'Subject (Z-A)',
@@ -51,7 +41,7 @@ require __DIR__ . '/app/init.php';
 		';
 		include __DIR__ . '/app/partials/list_header.php';
 
-		$totalLabel = 'Total Issues';
+		$totalLabel = 'Total Isus';
 		$totalId = 'totalIssues';
 		$filteredId = 'filteredIssues';
 		$selectionCountId = 'selectionCount';
@@ -61,12 +51,12 @@ require __DIR__ . '/app/init.php';
 		<div id="issuesContent">
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
-					<span class="visually-hidden">Loading issues...</span>
+					<span class="visually-hidden">Loading Isu...</span>
 				</div>
 			</div>
 		</div>
 
-		<nav aria-label="Issues pagination" class="pagination-container">
+		<nav aria-label="Isus pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="issuesPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -124,7 +114,7 @@ require __DIR__ . '/app/init.php';
 				});
 
 				if (selectedIssues.length === 0) {
-					alert('Please select at least one issue to delete');
+					alert('Please select at least one isu to delete');
 					return;
 				}
 
@@ -155,9 +145,9 @@ require __DIR__ . '/app/init.php';
 					btn.html(originalText).prop('disabled', false);
 					$('#issueBulkDeleteModal').modal('hide');
 					if (errorCount === 0) {
-						alert(`Successfully deleted ${successCount} issues!`);
+						alert(`Successfully deleted ${successCount} isus!`);
 					} else {
-						alert(`Deleted ${successCount} issues, but ${errorCount} failed.`);
+						alert(`Deleted ${successCount} isus, but ${errorCount} failed.`);
 					}
 					loadIssues();
 					$('#selectionCount').text('0');
@@ -175,7 +165,7 @@ require __DIR__ . '/app/init.php';
 				});
 
 				if (selectedIssues.length === 0) {
-					alert('Please select at least one issue to update');
+					alert('Please select at least one isu to update');
 					return;
 				}
 
@@ -242,9 +232,9 @@ require __DIR__ . '/app/init.php';
 					btn.prop('disabled', false).text(originalText);
 					$('#issueBulkUpdateModal').modal('hide');
 					if (errorCount === 0) {
-						alert(`Successfully updated ${successCount} issues!`);
+						alert(`Successfully updated ${successCount} isus!`);
 					} else {
-						alert(`Updated ${successCount} issues, but ${errorCount} failed.`);
+						alert(`Updated ${successCount} isus, but ${errorCount} failed.`);
 					}
 					loadIssues();
 					$('#selectionCount').text('0');
@@ -260,18 +250,19 @@ require __DIR__ . '/app/init.php';
 				$('#issuesContent').html(`
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
-					<span class="visually-hidden">Loading issues...</span>
+					<span class="visually-hidden">Loading Isu...</span>
 				</div>
 			</div>
 		`);
 
 				$.ajax({
-					url: apiUrl + '/issues',
+					url: 'api.php/issues',
 					type: 'GET',
 					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (issues, status, xhr) {
 						displayIssues(issues);
@@ -289,17 +280,16 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-
 			function displayIssues(issues) {
 				$('#totalIssues').text(issues.length);
 				$('#filteredIssues').text(issues.length);
 
 				if (issues.length === 0) {
 					$('#issuesContent').html(`
-				<div class="alert alert-info">
-					No issues found.
-				</div>
-			`);
+						<div class="text-muted italic p-3 text-center">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
@@ -307,7 +297,8 @@ require __DIR__ . '/app/init.php';
 				issues.forEach(issue => {
 					const statusInfo = taigaGetStatusInfo(issue);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
-					const createdDate = issue.created_date ? new Date(issue.created_date).toLocaleDateString() : 'Unknown';
+					const assignedTo = issue.assigned_to_extra ? issue.assigned_to_extra.full_name_display : (issue.assigned_to ? 'User ID: ' + issue.assigned_to : 'Unassigned');
+					const owner = issue.owner_extra ? issue.owner_extra.full_name_display : 'Unknown';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
@@ -321,32 +312,41 @@ require __DIR__ . '/app/init.php';
 								${statusBadge}
 							</div>
 							
-							<h6 class="card-title mb-2">${issue.subject || 'Untitled Issue'}</h6>
+							<h6 class="card-title mb-2">${issue.subject || 'Untitled Isu'}</h6>
 							
-							<div class="d-flex justify-content-between align-items-center mb-2">
-								<span class="badge bg-secondary">${issue.type || 'Bug'}</span>
-								<span class="badge bg-danger">${issue.severity || 'Normal'}</span>
-								<span class="badge bg-info">${issue.priority || 'Normal'}</span>
+							<div class="d-flex flex-wrap gap-1 mb-2">
+								<span class="badge bg-secondary small">${issue.type_extra ? issue.type_extra.name : (issue.type || 'Bug')}</span>
+								<span class="badge bg-danger small">${issue.severity_extra ? issue.severity_extra.name : (issue.severity || 'Normal')}</span>
+								<span class="badge bg-info small">${issue.priority_extra ? issue.priority_extra.name : (issue.priority || 'Normal')}</span>
 							</div>
 							
 							${issue.description ? `
-								<p class="card-text text-muted small mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+								<p class="card-text text-muted small mb-2 text-truncate">
 									${issue.description}
 								</p>
 							` : ''}
 							
-							<div class="d-flex justify-content-between align-items-center">
-								<small class="text-muted">Ref: #${issue.ref}</small>
-								<small class="text-muted">${createdDate}</small>
+							<div class="mt-2 pt-2 border-top">
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted">Ref: #${issue.ref}</small>
+									<small class="text-muted">${new Date(issue.created_date).toLocaleDateString()}</small>
+								</div>
+								
+								<div class="mb-1">
+									<small class="text-muted d-block text-truncate">
+										Assigned: <strong>${assignedTo}</strong>
+									</small>
+								</div>
+								
+								<div class="d-flex justify-content-between align-items-center mb-1">
+									<small class="text-muted text-truncate">By: ${owner}</small>
+									<small class="text-muted">Upd: ${new Date(issue.modified_date).toLocaleDateString()}</small>
+								</div>
 							</div>
 							
-							${issue.project ? `
-								<small class="text-muted d-block mt-2">Project ID: ${issue.project}</small>
-							` : ''}
-							
 							<div class="mt-3">
-								<a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary w-100">
-									View Issue Details
+								<a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary w-100 shadow-sm">
+									View Isu Details
 								</a>
 							</div>
 						</div>
@@ -397,21 +397,21 @@ require __DIR__ . '/app/init.php';
 				$btn.prop('disabled', true).text('Deleting...');
 
 				taigaExecuteBulk('/issues/', selectedIssues, 'DELETE', null, (successCount, errorCount) => {
-					$btn.prop('disabled', false).text('Delete Issues');
+					$btn.prop('disabled', false).text('Delete Isus');
 					if (errorCount === 0) {
-						alert(`Successfully deleted ${successCount} issues!`);
+						alert(`Successfully deleted ${successCount} isus!`);
 						$('#issueBulkDeleteModal').modal('hide');
 						loadIssues();
 					} else {
-						alert(`Deleted ${successCount} issues, but ${errorCount} failed.`);
+						alert(`Deleted ${successCount} isus, but ${errorCount} failed.`);
 					}
 				});
 			});
 		});
 	</script>
 
-	<?php include __DIR__ . '/app/partials/issue_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/issue_bulk_delete.php'; ?>
+	<?php include __DIR__ . '/app/partials/isu_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/isu_bulk_delete.php'; ?>
 
 </body>
 

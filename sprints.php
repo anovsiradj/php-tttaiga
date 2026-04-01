@@ -6,18 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Sprints - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -136,12 +125,13 @@ require __DIR__ . '/app/init.php';
 				`);
 
 				$.ajax({
-					url: apiUrl + '/milestones',
+					url: 'api.php/milestones',
 					type: 'GET',
 					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (sprints, status, xhr) {
 						displaySprints(sprints);
@@ -163,8 +153,8 @@ require __DIR__ . '/app/init.php';
 			function displaySprints(sprints) {
 				if (sprints.length === 0) {
 					$('#sprintsContent').html(`
-						<div class="alert alert-info">
-							No sprints found. Use the "Add Sprint" page to create one!
+						<div class="text-muted italic p-3 text-center">
+							<em>(kosong)</em>
 						</div>
 					`);
 					return;
@@ -189,14 +179,24 @@ require __DIR__ . '/app/init.php';
 										${statusBadge}
 									</div>
 									<h5 class="card-title text-truncate">${sprint.name || 'Untitled Sprint'}</h5>
-									<p class="card-text text-muted small text-truncate-2">
-										${sprint.description || 'No description available.'}
+									<p class="card-text text-muted small text-truncate-2 mb-2">
+										${sprint.description || ''}
 									</p>
-									<div class="mt-3">
-										<small class="text-muted d-block">
-											<i class="bi bi-calendar-event me-1"></i>
-											${sprint.estimated_start || '?'} to ${sprint.estimated_finish || '?'}
-										</small>
+									<div class="mt-2 pt-2 border-top">
+										<div class="d-flex justify-content-between align-items-center mb-1">
+											<small class="text-muted d-block text-truncate">
+												<i class="bi bi-calendar-event me-1"></i>
+												${sprint.estimated_start || '?'} to ${sprint.estimated_finish || '?'}
+											</small>
+										</div>
+										<div class="d-flex justify-content-between align-items-center mb-1">
+											<small class="text-muted text-truncate">
+												By: ${sprint.owner_extra ? (sprint.owner_extra.full_name_display || sprint.owner_extra.username) : (sprint.owner ? 'ID: ' + sprint.owner : 'Unknown')}
+											</small>
+											<small class="text-muted">
+												Upd: ${new Date(sprint.modified_date).toLocaleDateString()}
+											</small>
+										</div>
 										<div class="progress mt-2" style="height: 5px;">
 											<div class="progress-bar" role="progressbar" style="width: ${sprint.closed_points ? Math.round((sprint.closed_points / sprint.total_points) * 100) : 0}%"></div>
 										</div>
@@ -254,11 +254,12 @@ require __DIR__ . '/app/init.php';
 
 				const deletePromises = Array.from(selectedIds).map(id => {
 					return $.ajax({
-						url: apiUrl + '/milestones/' + id,
+						url: 'api.php/milestones/' + id,
 						type: 'DELETE',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						}
 					});
 				});
@@ -282,11 +283,12 @@ require __DIR__ . '/app/init.php';
 			function populateBulkUpdateSprintDropdowns() {
 				// Load sprints for selection in modal
 				$.ajax({
-					url: apiUrl + '/milestones',
+					url: 'api.php/milestones',
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (sprints) {
 						let options = '';
@@ -323,11 +325,12 @@ require __DIR__ . '/app/init.php';
 
 				const updatePromises = selectedSprints.map(id => {
 					return $.ajax({
-						url: apiUrl + '/milestones/' + id,
+						url: 'api.php/milestones/' + id,
 						type: 'PATCH',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						data: JSON.stringify(updateData)
 					});

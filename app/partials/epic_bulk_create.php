@@ -1,16 +1,16 @@
-<!-- Bulk Create Epic Modal -->
+<!-- Bulk Create Epik Modal -->
 <div class="modal fade" id="bulkCreateEpicModal" tabindex="-1" aria-labelledby="bulkCreateEpicModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h5 class="modal-title" id="bulkCreateEpicModalLabel">Bulk Create Epics</h5>
+				<h5 class="modal-title" id="bulkCreateEpicModalLabel">Bulk Create Epiks</h5>
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
 				<form id="bulkCreateEpicForm">
 					<div class="mb-3">
-						<label class="form-label">Epics (one per line)</label>
-						<textarea class="form-control" id="bulkCreateEpicText" rows="10" placeholder="Enter epics, one per line. Format: Subject|Description (optional)|Status (optional)" required></textarea>
+						<label class="form-label">Epiks (one per line)</label>
+						<textarea class="form-control" id="bulkCreateEpicText" rows="10" placeholder="Enter epiks, one per line. Format: Subject|Description (optional)|Status (optional)" required></textarea>
 						<small class="form-text text-muted">Example: Authentication Module|Implement login and registration|new</small>
 					</div>
 					<div class="row">
@@ -46,7 +46,7 @@
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 				<button type="button" class="btn btn-outline-primary" id="previewBulkCreateEpic">Preview</button>
-				<button type="button" class="btn btn-success" id="submitBulkCreateEpic">Create Epics</button>
+				<button type="button" class="btn btn-success" id="submitBulkCreateEpic">Create Epiks</button>
 			</div>
 		</div>
 	</div>

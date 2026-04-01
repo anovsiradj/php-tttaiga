@@ -6,18 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Usors - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -26,12 +15,12 @@ require __DIR__ . '/app/init.php';
 
 	<div class="container mt-4">
 		<?php
-		$pageTitle = 'Usors';
+		$pageTitle = 'Usor';
 		$statusType = 'us';
 
 
 		$bulkDeleteModalId = 'bulkDeleteModal';
-		$searchPlaceholder = 'Search user stories...';
+		$searchPlaceholder = 'Search usors...';
 		$epicSelect = true;
 		$sortOptions = [
 			'subject' => 'Subject (A-Z)',
@@ -56,7 +45,7 @@ require __DIR__ . '/app/init.php';
 		';
 		include __DIR__ . '/app/partials/list_header.php';
 
-		$totalLabel = 'Total Stories';
+		$totalLabel = 'Total Usors';
 		$totalId = 'totalUsors';
 		$filteredId = 'filteredUsors';
 		$selectionCountId = 'selectedUsorsCount';
@@ -66,12 +55,12 @@ require __DIR__ . '/app/init.php';
 		<div id="usorsContent">
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
-					<span class="visually-hidden">Loading user stories...</span>
+					<span class="visually-hidden">Loading Usor...</span>
 				</div>
 			</div>
 		</div>
 
-		<nav aria-label="User Stories pagination" class="pagination-container">
+		<nav aria-label="Usors pagination" class="pagination-container">
 			<ul class="pagination justify-content-center" id="usorsPagination">
 				<!-- Pagination items will be injected here -->
 			</ul>
@@ -113,7 +102,7 @@ require __DIR__ . '/app/init.php';
 			// Initial filter binding (handles Select2 for dropdowns)
 			taigaBindFilters(loadUsors);
 
-			taigaBindSelectionLogic('story-checkbox', function(checkedCount) {
+			taigaBindSelectionLogic('story-checkbox', function (checkedCount) {
 				const filtered = parseInt($('#filteredUsors').text()) || 0;
 				const total = parseInt($('#totalUsors').text()) || 0;
 				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalUsors', 'filteredUsors', 'selectedUsorsCount');
@@ -146,22 +135,23 @@ require __DIR__ . '/app/init.php';
 					...taigaGetFilterParams(),
 					page: page
 				};
-				
+
 				$('#usorsContent').html(`
 			<div class="loading-spinner">
 				<div class="spinner-border text-primary" role="status">
-					<span class="visually-hidden">Loading user stories...</span>
+					<span class="visually-hidden">Loading Usor...</span>
 				</div>
 			</div>
 		`);
 
 				$.ajax({
-					url: apiUrl + '/userstories',
+					url: 'api.php/userstories',
 					type: 'GET',
 					data: params,
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (usors, status, xhr) {
 						displayUsors(usors);
@@ -171,7 +161,7 @@ require __DIR__ . '/app/init.php';
 						console.error('Failed to load user stories:', xhr);
 						$('#usorsContent').html(`
 					<div class="alert alert-danger">
-						Unable to load user stories. Please try again.
+						Unable to load usors. Please try again.
 					</div>
 				`);
 						$('#usorsPagination').empty();
@@ -185,10 +175,10 @@ require __DIR__ . '/app/init.php';
 			function displayUsors(usors) {
 				if (usors.length === 0) {
 					$('#usorsContent').html(`
-				<div class="alert alert-info">
-					No user stories found.
-				</div>
-			`);
+						<div class="text-muted italic p-3 text-center">
+							<em>(kosong)</em>
+						</div>
+					`);
 					return;
 				}
 
@@ -196,6 +186,8 @@ require __DIR__ . '/app/init.php';
 				usors.forEach(usor => {
 					const statusInfo = taigaGetStatusInfo(usor);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
+					const assignedTo = usor.assigned_to_extra ? usor.assigned_to_extra.full_name_display : (usor.assigned_to ? 'User ID: ' + usor.assigned_to : 'Unassigned');
+					const owner = usor.owner_extra ? usor.owner_extra.full_name_display : 'Unknown';
 
 					html += `
 				<div class="col-md-6 col-lg-4 mb-3">
@@ -211,18 +203,37 @@ require __DIR__ . '/app/init.php';
 								<small class="text-muted mt-1">#${usor.ref}</small>
 							</div>
 						</div>
-						<h6 class="card-title mb-1 text-truncate pe-2">${usor.subject || 'Untitled Story'}</h6>
-						<p class="card-text text-muted small mb-1">
-							Ref: #${usor.ref} | Project: ${usor.project || 'N/A'}
-						</p>
-						${usor.epic ? `<p class="card-text text-muted small mb-2">Epic: #${usor.epic}</p>` : ''}
-						<div class="usor-description text-muted small mb-3">
-							${usor.description ? usor.description.substring(0, 120) + '...' : 'No description'}
+						<h6 class="card-title mb-1 text-truncate pe-2">${usor.subject || 'Untitled Usor'}</h6>
+						
+						<div class="mt-2 pt-2 border-top">
+							<div class="d-flex justify-content-between align-items-center mb-1">
+								<small class="text-muted">Ref: #${usor.ref} | Project ID: ${usor.project || 'N/A'}</small>
+								<small class="text-muted">${new Date(usor.created_date).toLocaleDateString()}</small>
+							</div>
+							
+							<div class="mb-1">
+								<small class="text-muted d-block text-truncate">
+									Assigned: <strong>${assignedTo}</strong>
+								</small>
+							</div>
+							
+							<div class="d-flex justify-content-between align-items-center mb-1">
+								<small class="text-muted text-truncate">By: ${owner}</small>
+								<small class="text-muted">Upd: ${new Date(usor.modified_date).toLocaleDateString()}</small>
+							</div>
+
+							${usor.epic_extra ? `
+								<small class="text-muted d-block mt-2 text-truncate">Epik: #${usor.epic_extra.ref} ${usor.epic_extra.subject}</small>
+							` : (usor.epic ? `<small class="text-muted d-block mt-2">Epik ID: #${usor.epic}</small>` : '')}
+						</div>
+
+						<div class="usor-description text-muted small mb-3 text-truncate mt-2">
+							${usor.description || ''}
 						</div>
 						<div class="d-flex justify-content-end">
-							<a href="usor.php?id=${usor.id}" class="btn btn-primary btn-sm">
+							<a href="usor.php?id=${usor.id}" class="btn btn-primary btn-sm shadow-sm">
 								<i class="bi bi-eye me-1"></i>
-								View
+								View Details
 							</a>
 						</div>
 					</div>
@@ -255,11 +266,13 @@ require __DIR__ . '/app/init.php';
 			function populateBulkCreateDropdowns() {
 				// Populate project dropdown
 				$.ajax({
-					url: apiUrl + '/projects',
+					url: 'api.php/projects',
 					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (projects) {
 						let options = '<option value="">Select Project</option>';
@@ -287,23 +300,24 @@ require __DIR__ . '/app/init.php';
 					const projectId = $(this).val();
 					taigaPopulateBulkStatuses('us', $('#bulkCreateStatus'), projectId);
 					taigaPopulateBulkMembers($('#bulkCreateAssignee'), projectId);
-					
+
 					// Also update epics for this project
 					if (projectId) {
 						$.ajax({
-							url: apiUrl + '/epics?project=' + projectId,
+							url: 'api.php/epics?project=' + projectId,
 							type: 'GET',
 							headers: {
 								'Authorization': 'Bearer ' + token,
-								'Content-Type': 'application/json'
+								'Content-Type': 'application/json',
+								'X-Taiga-Api-Url': apiUrl
 							},
 							success: function (epics) {
-								let html = '<option value="">Select Epic</option>';
+								let html = '<option value="">Select Epik</option>';
 								epics.forEach(epic => {
-									html += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
+									html += `<option value="${epic.id}">${epic.subject || 'Untitled Epik'}</option>`;
 								});
 								$('#bulkCreateEpic').html(html);
-								
+
 								// Set default epic from filter if applicable
 								const currentEpicId = $('#epicSelect').val();
 								if (currentEpicId) {
@@ -321,10 +335,10 @@ require __DIR__ . '/app/init.php';
 				if (currentSearch) {
 					$('#activeSearchQuery').text(currentSearch);
 					$('#bulkCreateSearchContext').removeClass('d-none');
-					$('#bulkCreateText').attr('placeholder', `Enter user stories... (Active search: ${currentSearch})`);
+					$('#bulkCreateText').attr('placeholder', `Enter usors... (Active search: ${currentSearch})`);
 				} else {
 					$('#bulkCreateSearchContext').addClass('d-none');
-					$('#bulkCreateText').attr('placeholder', 'Enter user stories, one per line. Format: Subject|Description (optional)|Status (optional)');
+					$('#bulkCreateText').attr('placeholder', 'Enter usors, one per line. Format: Subject|Description (optional)|Status (optional)');
 				}
 
 				// Initial load if project is already selected
@@ -339,14 +353,14 @@ require __DIR__ . '/app/init.php';
 			function previewBulkCreate() {
 				const text = $('#bulkCreateText').val().trim();
 				if (!text) {
-					alert('Please enter some user stories to create');
+					alert('Please enter some usors to create');
 					return;
 				}
 
 				const stories = text.split('\n').filter(line => line.trim()).map(line => {
 					const parts = line.split('|');
 					return {
-						subject: parts[0]?.trim() || 'Untitled Story',
+						subject: parts[0]?.trim() || 'Untitled Usor',
 						description: parts[1]?.trim() || '',
 						status: parts[2]?.trim() || $('#bulkCreateStatus').val()
 					};
@@ -382,7 +396,7 @@ require __DIR__ . '/app/init.php';
 				}
 
 				if (!text) {
-					alert('Please enter some user stories to create');
+					alert('Please enter some usors to create');
 					return;
 				}
 
@@ -391,7 +405,7 @@ require __DIR__ . '/app/init.php';
 
 				const stories = text.split('\n').filter(line => line.trim()).map(line => {
 					const parts = line.split('|');
-					let subject = parts[0]?.trim() || 'Untitled Story';
+					let subject = parts[0]?.trim() || 'Untitled Usor';
 					if (currentSearch && prependSearch) {
 						subject = `[${currentSearch}] ${subject}`;
 					}
@@ -424,11 +438,12 @@ require __DIR__ . '/app/init.php';
 					}
 
 					$.ajax({
-						url: apiUrl + '/userstories',
+						url: 'api.php/userstories',
 						type: 'POST',
 						headers: {
 							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json'
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
 						},
 						data: JSON.stringify(storyData),
 						success: function () {
@@ -452,11 +467,11 @@ require __DIR__ . '/app/init.php';
 				$btn.prop('disabled', false).text('Create Stories');
 
 				if (errorCount === 0) {
-					alert(`Successfully created ${createdCount} user stories!`);
+					alert(`Successfully created ${createdCount} usors!`);
 					$('#bulkCreateModal').modal('hide');
 					loadUsors();
 				} else {
-					alert(`Created ${createdCount} user stories, but ${errorCount} failed.`);
+					alert(`Created ${createdCount} usors, but ${errorCount} failed.`);
 				}
 			}
 
@@ -472,7 +487,7 @@ require __DIR__ . '/app/init.php';
 						<div class="form-check">
 							<input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-usor-${item.id}">
 							<label class="form-check-label" for="bulk-usor-${item.id}">
-								#${item.ref}: ${item.subject || 'Untitled Story'}
+								#${item.ref}: ${item.subject || 'Untitled Usor'}
 							</label>
 						</div>
 					`;
@@ -489,13 +504,17 @@ require __DIR__ . '/app/init.php';
 				});
 
 				if (selectedUsors.length === 0) {
-					alert('Please select at least one user story to update');
+					alert('Please select at least one usor to update');
 					return;
 				}
 
 				const updateData = {};
-				if (status) updateData.status = status;
+				const status = $('#bulkUpdateStatus').val();
 				const assignee = $('#bulkUpdateAssignee').val();
+				const priority = $('#bulkUpdatePriority').val();
+				const description = $('#bulkUpdateDescription').val()?.trim();
+
+				if (status) updateData.status = parseInt(status);
 				if (assignee) updateData.assigned_to = parseInt(assignee);
 				if (priority) updateData.priority = parseInt(priority);
 				if (description) updateData.description = description;
@@ -509,13 +528,13 @@ require __DIR__ . '/app/init.php';
 				$btn.prop('disabled', true).text('Updating...');
 
 				taigaExecuteBulk('/userstories/', selectedUsors, 'PATCH', updateData, (successCount, errorCount) => {
-					$btn.prop('disabled', false).text('Update Stories');
+					$btn.prop('disabled', false).text('Update Usors');
 					if (errorCount === 0) {
-						alert(`Successfully updated ${successCount} user stories!`);
+						alert(`Successfully updated ${successCount} usors!`);
 						$('#bulkUpdateModal').modal('hide');
 						loadUsors();
 					} else {
-						alert(`Updated ${successCount} user stories, but ${errorCount} failed.`);
+						alert(`Updated ${successCount} usors, but ${errorCount} failed.`);
 					}
 				});
 			}
@@ -540,7 +559,7 @@ require __DIR__ . '/app/init.php';
 				});
 
 				if (selectedUsors.length === 0) {
-					alert('Please select at least one user story to delete');
+					alert('Please select at least one usor to delete');
 					return;
 				}
 
@@ -548,13 +567,13 @@ require __DIR__ . '/app/init.php';
 				$btn.prop('disabled', true).text('Deleting...');
 
 				taigaExecuteBulk('/userstories/', selectedUsors, 'DELETE', null, (successCount, errorCount) => {
-					$btn.prop('disabled', false).text('Delete Stories');
+					$btn.prop('disabled', false).text('Delete Usors');
 					if (errorCount === 0) {
-						alert(`Successfully deleted ${successCount} user stories!`);
+						alert(`Successfully deleted ${successCount} usors!`);
 						$('#bulkDeleteModal').modal('hide');
 						loadUsors();
 					} else {
-						alert(`Deleted ${successCount} user stories, but ${errorCount} failed.`);
+						alert(`Deleted ${successCount} usors, but ${errorCount} failed.`);
 					}
 				});
 			});

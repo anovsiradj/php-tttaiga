@@ -6,15 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Project Details - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -124,11 +116,12 @@ require __DIR__ . '/app/init.php';
 			function loadProjectData(projectId) {
 				// Load project basic info
 				$.ajax({
-					url: apiUrl + '/projects/' + projectId,
+					url: 'api.php/projects/' + projectId,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (project) {
 						displayProjectHeader(project);
@@ -159,7 +152,7 @@ require __DIR__ . '/app/init.php';
 				<div class="col-4">
 					<div class="stats-card">
 						<div class="stat-number">0</div>
-						<small class="text-muted">User Stories</small>
+						<small class="text-muted">Usor</small>
 					</div>
 				</div>
 				<div class="col-4">
@@ -171,7 +164,7 @@ require __DIR__ . '/app/init.php';
 				<div class="col-4">
 					<div class="stats-card">
 						<div class="stat-number">0</div>
-						<small class="text-muted">Issues</small>
+						<small class="text-muted">Isu</small>
 					</div>
 				</div>
 			</div>
@@ -182,11 +175,12 @@ require __DIR__ . '/app/init.php';
 			function loadProjectMembers(projectId) {
 				// Load project members
 				$.ajax({
-					url: apiUrl + '/projects/' + projectId + '/memberships',
+					url: 'api.php/projects/' + projectId + '/memberships',
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (members) {
 						displayProjectMembers(members);

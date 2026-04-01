@@ -6,18 +6,7 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Sprint - Taiga API</title>
-	<!-- Bootstrap CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-	<!-- Select2 CSS -->
-	<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-	<!-- Custom CSS -->
-	<link href="assets/app.css" rel="stylesheet">
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
 <body>
@@ -130,11 +119,12 @@ require __DIR__ . '/app/init.php';
 
 			function loadSprint(id) {
 				$.ajax({
-					url: apiUrl + '/milestones/' + id,
+					url: 'api.php/milestones/' + id,
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (sprint) {
 						$('#sprintHeaderContent').html(`<h2 class="text-white">${sprint.name}</h2>`);
@@ -178,17 +168,17 @@ require __DIR__ . '/app/init.php';
 				}
 
 				const method = sprintId ? 'PATCH' : 'POST';
-				const url = sprintId ? `${apiUrl}/milestones/${sprintId}` : `${apiUrl}/milestones`;
 
 				const $btn = $('#saveBtn');
 				$btn.prop('disabled', true).text('Saving...');
 
 				$.ajax({
-					url: url,
+					url: sprintId ? `api.php/milestones/${sprintId}` : `api.php/milestones`,
 					type: method,
 					headers: {
 						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
 					},
 					data: JSON.stringify(formData),
 					success: function () {

@@ -1,19 +1,25 @@
 function taigaLoadProjects(apiUrl, token, targetSelectId = '#projectSelect') {
 	$.ajax({
-		url: apiUrl + '/projects',
+		url: `api.php/projects`,
 		data: {
-			'member': taigaModel.id,
+			'member': taigaModel?.id ?? null,
 		},
 		type: 'GET',
+		dataType: 'json',
 		headers: {
-			'Authorization': `Bearer ${taigaToken}`,
-			'Content-Type': 'application/json'
+			'Authorization': `Bearer ${window.taigaToken}`,
+			'Content-Type': 'application/json',
+			'X-Taiga-Api-Url': apiUrl
 		},
 		success: function (projects) {
-			let html = '<option value="">All Projects</option>';
-			projects.forEach(project => {
-				html += `<option value="${project.id}">${project.name}</option>`;
-			});
+			let html = '<option value="">(Semua Project)</option>';
+			if (Array.isArray(projects)) {
+				projects.forEach(project => {
+					html += `<option value="${project.id}">${project.name}</option>`;
+				});
+			} else {
+				console.warn('taigaLoadProjects: projects is not an array', projects);
+			}
 			$(targetSelectId).html(html);
 		},
 		error: function (xhr) {
@@ -66,12 +72,14 @@ function taigaFetchStatuses(apiUrl, token, projectId, type) {
 	}
 
 	return $.ajax({
-		url: `${apiUrl}${endpoint}`,
+		url: `api.php${endpoint}`,
 		data: { project: projectId },
 		type: 'GET',
+		dataType: 'json',
 		headers: {
 			'Authorization': `Bearer ${token}`,
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'X-Taiga-Api-Url': apiUrl
 		}
 	});
 }
@@ -119,10 +127,14 @@ function taigaRenderStatusBadge(statusInfo) {
  * @param {Array} statuses - List of status objects
  */
 function taigaPopulateStatusDropdown($select, statuses) {
-	let html = '<option value="">All Statuses</option>';
-	statuses.forEach(status => {
-		html += `<option value="${status.id}">${status.name}</option>`;
-	});
+	let html = '<option value="">(Semua Status)</option>';
+	if (Array.isArray(statuses)) {
+		statuses.forEach(status => {
+			html += `<option value="${status.id}">${status.name}</option>`;
+		});
+	} else {
+		console.warn('taigaPopulateStatusDropdown: statuses is not an array', statuses);
+	}
 	$select.html(html);
 }
 
@@ -214,6 +226,7 @@ function taigaGetFilterParams() {
 	const status = $('#statusSelect').val();
 	const epic = $('#epicSelect').val();
 	const usor = $('#userStorySelect').val();
+	const assignedTo = $('#assignedToSelect').val();
 	const orderBy = $('#sortSelect').val();
 
 	if (q) params.q = q;
@@ -221,6 +234,7 @@ function taigaGetFilterParams() {
 	if (status) params.status = status;
 	if (epic) params.epic = epic;
 	if (usor) params.user_story = usor;
+	if (assignedTo) params.assigned_to = assignedTo;
 	if (orderBy) params.order_by = orderBy;
 
 	return params;
@@ -236,12 +250,15 @@ function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
 	$el.select2({
 		theme: 'bootstrap-5',
 		ajax: {
-			url: function() { return window.apiUrl + endpoint; },
+			url: function() {
+				return 'api.php' + endpoint;
+			},
 			dataType: 'json',
 			delay: 250,
 			headers: {
 				'Authorization': `Bearer ${window.taigaToken}`,
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'X-Taiga-Api-Url': window.apiUrl
 			},
 			data: function (params) {
 				let query = {
@@ -270,7 +287,8 @@ function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
 		},
 		placeholder: options.placeholder || 'Select an option',
 		allowClear: true,
-		width: '100%'
+		width: '100%',
+		dropdownParent: options.dropdownParent || ($el.closest('.modal').length ? $el.closest('.modal') : $(document.body))
 	});
 }
 
@@ -290,14 +308,14 @@ function taigaBindFilters(onFilterChange) {
 	// Initialize Select2 Dropdowns
 	if ($('#projectSelect').length) {
 		taigaInitRemoteSelect2('#projectSelect', '/projects', {
-			placeholder: 'All Projects',
+			placeholder: '(Semua Project)',
 			additionalParams: () => ({ member: taigaModel.id })
 		});
 	}
 
 	if ($('#epicSelect').length) {
 		taigaInitRemoteSelect2('#epicSelect', '/epics', {
-			placeholder: 'All Epics',
+			placeholder: '(Semua Epik)',
 			additionalParams: () => {
 				const pid = $('#projectSelect').val();
 				return pid ? { project: pid } : {};
@@ -307,7 +325,7 @@ function taigaBindFilters(onFilterChange) {
 
 	if ($('#userStorySelect').length) {
 		taigaInitRemoteSelect2('#userStorySelect', '/userstories', {
-			placeholder: 'All User Stories',
+			placeholder: '(Semua Usor)',
 			formatText: (item) => `#${item.ref}: ${item.subject}`,
 			additionalParams: () => {
 				const pid = $('#projectSelect').val();
@@ -316,17 +334,34 @@ function taigaBindFilters(onFilterChange) {
 		});
 	}
 
+	if ($('#assignedToSelect').length) {
+		taigaInitRemoteSelect2('#assignedToSelect', '/users', {
+			placeholder: '(Semua User)',
+			formatText: (item) => item.full_name || item.username,
+			additionalParams: () => {
+				return {}; 
+			}
+		});
+	}
+
 	// Status and Sort remain standard for now unless we want remote search for them too.
 	// But let's at least make them Select2 (non-remote)
-	$('#statusSelect, #sortSelect').select2({
+	$('#statusSelect').select2({
 		theme: 'bootstrap-5',
 		width: '100%',
-		placeholder: 'Select...',
+		placeholder: '(Semua Status)',
+		allowClear: true
+	});
+
+	$('#sortSelect').select2({
+		theme: 'bootstrap-5',
+		width: '100%',
+		placeholder: 'Urutkan...',
 		allowClear: true
 	});
 
 	// Dropdown and Select2 changes
-	const $selectors = $('#projectSelect, #statusSelect, #epicSelect, #userStorySelect, #sortSelect');
+	const $selectors = $('#projectSelect, #statusSelect, #epicSelect, #userStorySelect, #assignedToSelect, #sortSelect');
 	$selectors.on('change', function () {
 		// When project changes, clear dependent Select2 dropdowns
 		if ($(this).attr('id') === 'projectSelect') {
@@ -356,12 +391,13 @@ function taigaLoadBulkItems(endpoint, $container, formatItemCallback) {
 	$container.html('<div class="text-center p-3"><div class="spinner-border spinner-border-sm" role="status"></div> Loading...</div>');
 
 	$.ajax({
-		url: window.apiUrl + endpoint,
+		url: 'api.php' + endpoint,
 		type: 'GET',
 		data: params,
 		headers: {
 			'Authorization': `Bearer ${window.taigaToken}`,
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'X-Taiga-Api-Url': window.apiUrl
 		},
 		success: function (items) {
 			if (items.length === 0) {
@@ -412,11 +448,12 @@ function taigaExecuteBulk(endpoint, items, method, data, onComplete) {
 		}
 
 		$.ajax({
-			url: window.apiUrl + endpoint + id,
+			url: 'api.php' + endpoint + id,
 			type: method,
 			headers: {
 				'Authorization': `Bearer ${window.taigaToken}`,
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'X-Taiga-Api-Url': window.apiUrl
 			},
 			data: requestData ? JSON.stringify(requestData) : undefined,
 			success: function () {
@@ -454,9 +491,13 @@ function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Sele
 	taigaFetchStatuses(window.apiUrl, window.taigaToken, projectId, type)
 		.done(function (statuses) {
 			let html = `<option value="">${defaultText}</option>`;
-			statuses.forEach(status => {
-				html += `<option value="${status.id}">${status.name}</option>`;
-			});
+			if (Array.isArray(statuses)) {
+				statuses.forEach(status => {
+					html += `<option value="${status.id}">${status.name}</option>`;
+				});
+			} else {
+				console.warn('taigaPopulateBulkStatuses: statuses is not an array', statuses);
+			}
 			$select.html(html);
 			
 			// Initialize Select2
@@ -479,12 +520,14 @@ function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Sele
  */
 function taigaFetchMembers(apiUrl, token, projectId) {
 	return $.ajax({
-		url: `${apiUrl}/memberships`,
+		url: `api.php/memberships`,
 		data: { project: projectId },
 		type: 'GET',
+		dataType: 'json',
 		headers: {
 			'Authorization': `Bearer ${token}`,
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'X-Taiga-Api-Url': apiUrl
 		}
 	});
 }
@@ -504,10 +547,14 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 	taigaFetchMembers(window.apiUrl, window.taigaToken, projectId)
 		.done(function (memberships) {
 			let html = `<option value="">${defaultText}</option>`;
-			memberships.forEach(m => {
-				const name = m.full_name || m.user_email || 'Unknown';
-				html += `<option value="${m.user}">${name}</option>`;
-			});
+			if (Array.isArray(memberships)) {
+				memberships.forEach(m => {
+					const name = m.full_name || m.user_email || 'Unknown';
+					html += `<option value="${m.user}">${name}</option>`;
+				});
+			} else {
+				console.warn('taigaPopulateBulkMembers: memberships is not an array', memberships);
+			}
 			$select.html(html);
 			
 			// Initialize Select2
@@ -536,22 +583,28 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 function taigaUpdateSelectionUI(total, filtered, selected, totalId, filteredId, selectionId) {
 	selectionId = selectionId || 'selectedCount';
 
-	$('#' + totalId + '_simple').text(total);
-	$('#' + filteredId + '_simple').text(filtered);
-	$('#' + totalId).text(total);
-	$('#' + filteredId).text(filtered);
-	$('#' + selectionId).text(selected);
+	if (totalId) {
+		$('#' + totalId + '_simple').text(total);
+		$('#' + totalId).text(total);
+	}
+	if (filteredId) {
+		$('#' + filteredId + '_simple').text(filtered);
+		$('#' + filteredId).text(filtered);
+	}
+	if (selectionId) {
+		$('#' + selectionId).text(selected);
+	}
 
 	var $bulkBar = $('#bulkActionsBar');
-	var $simpleBar = $('#simpleInfoBar');
+	if ($bulkBar.length) {
+		$bulkBar.toggleClass('has-selection', selected > 0);
+	}
 
-	if (selected > 0) {
-		$bulkBar.removeClass('d-none');
-		$simpleBar.addClass('invisible');
-	} else {
-		$bulkBar.addClass('d-none');
-		$simpleBar.removeClass('invisible');
-		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', false);
+	$('#clearSelectionBtn').prop('disabled', selected === 0);
+	$('#bulkActionsDropdown').prop('disabled', selected === 0);
+
+	if (selected === 0) {
+		$('#masterCheckbox').prop('checked', false);
 	}
 }
 
@@ -561,9 +614,9 @@ function taigaUpdateSelectionUI(total, filtered, selected, totalId, filteredId, 
  * @param {Function} onSelectionChange - Callback receives (checkedCount)
  */
 function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
-	$(document).off('change', '#masterCheckbox, #initialMasterCheckbox').on('change', '#masterCheckbox, #initialMasterCheckbox', function () {
+	$(document).off('change', '#masterCheckbox').on('change', '#masterCheckbox', function () {
 		var isChecked = $(this).is(':checked');
-		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', isChecked);
+		$('#masterCheckbox').prop('checked', isChecked);
 		$('.' + itemCheckboxClass).prop('checked', isChecked).trigger('change.selection');
 		var checkedCount = isChecked ? $('.' + itemCheckboxClass).length : 0;
 		if (typeof onSelectionChange === 'function') {
@@ -572,17 +625,18 @@ function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
 	});
 
 	$(document).off('change.selection', '.' + itemCheckboxClass).on('change.selection', '.' + itemCheckboxClass, function () {
+		$(this).closest('.card').toggleClass('taiga-selected', $(this).is(':checked'));
 		var totalCount = $('.' + itemCheckboxClass).length;
 		var checkedCount = $('.' + itemCheckboxClass + ':checked').length;
 		var allChecked = totalCount > 0 && checkedCount === totalCount;
-		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', allChecked);
+		$('#masterCheckbox').prop('checked', allChecked);
 		if (typeof onSelectionChange === 'function') {
 			onSelectionChange(checkedCount);
 		}
 	});
 
 	$('#clearSelectionBtn').off('click').on('click', function () {
-		$('#masterCheckbox, #initialMasterCheckbox').prop('checked', false);
+		$('#masterCheckbox').prop('checked', false);
 		$('.' + itemCheckboxClass).prop('checked', false).trigger('change.selection');
 		if (typeof onSelectionChange === 'function') {
 			onSelectionChange(0);

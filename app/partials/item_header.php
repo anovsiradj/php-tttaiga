@@ -2,7 +2,7 @@
 /**
  * Expected variables:
  * $backUrl - URL to go back
- * $backLabel - Label for back button (e.g. 'Back to User Stories')
+ * $backLabel - Label for back button (e.g. 'Back to Usors')
  * $headerId - ID for the dynamic header content (e.g. 'usorHeaderContent')
  * $loadingLabel - text for the loading spinner
  */

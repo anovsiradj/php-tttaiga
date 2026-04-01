@@ -33,6 +33,25 @@
 				</div>
 
 				<div class="mb-3">
+					<label for="bulkUpdateTaskUsor" class="form-label">Update Usor</label>
+					<select class="form-select" id="bulkUpdateTaskUsor">
+						<option value="">No Change</option>
+						<option value="null">None (Unassign)</option>
+					</select>
+					<div class="form-text">Leave as "No Change" to keep current usor</div>
+				</div>
+
+				<div class="mb-3">
+					<label for="bulkUpdateTaskSprint" class="form-label">Update Sprint</label>
+					<select class="form-select" id="bulkUpdateTaskSprint">
+						<option value="">No Change</option>
+						<option value="null">None (Unassign)</option>
+					</select>
+					<div class="form-text">Leave as "No Change" to keep current sprint</div>
+				</div>
+
+
+				<div class="mb-3">
 					<label for="bulkUpdateTaskAssignee" class="form-label">Assign To</label>
 					<select class="form-select" id="bulkUpdateTaskAssignee">
 						<option value="">No Change</option>
