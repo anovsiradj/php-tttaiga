@@ -560,8 +560,6 @@ require __DIR__ . '/app/init.php';
 						alert('Failed to update some tasks. Please check the console for details.');
 					});
 			}
-
-			}
 		});
 	</script>
 

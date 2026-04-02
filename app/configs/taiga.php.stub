@@ -1,0 +1,11 @@
+<?php
+
+return [
+    'servers' => [
+        'default' => [
+            'name' => 'MyTaigaServer',
+            'url' => 'https://mytaigaserver.id',
+            'api_url' => 'https://mytaigaserver.id/api/v1',
+        ],
+    ],
+];

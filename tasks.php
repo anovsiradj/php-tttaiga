@@ -142,7 +142,7 @@ require __DIR__ . '/app/init.php';
 				populateBulkUpdateTaskDropdowns();
 			});
 
-			$('#submitBulkUpdateTask').on('click', function () {
+			$('#submitBulkTaskUpdate').on('click', function () {
 				submitBulkTaskUpdate();
 			});
 
