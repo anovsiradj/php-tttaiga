@@ -73,11 +73,28 @@ if ($isCacheable) {
 	}
 
 	$queryString = $_SERVER['QUERY_STRING'] ?? '';
-	$cacheKey = md5($apiUrl . $apiPath . $queryString);
+	$cacheQuery = [];
+	if ($queryString !== '') {
+		parse_str($queryString, $cacheQuery);
+	}
+
+	if (is_array($cacheQuery)) {
+		ksort($cacheQuery);
+	}
+
+	if (in_array($apiPath, ['/memberships', '/epic-statuses', '/userstory-statuses', '/task-statuses', '/issue-statuses'])) {
+		$projectId = $cacheQuery['project'] ?? null;
+		$cacheQuery = ['project' => $projectId];
+	}
+
+	$cacheKey = md5($apiUrl . $apiPath . json_encode($cacheQuery));
 	$cacheFile = $cacheDir . '/' . $cacheKey . '.json';
 
-	// Serve from cache if exists and not older than 1 hour (3600 seconds)
-	if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 3600)) {
+	$cacheTtl = 3600;
+	if ($apiPath === '/memberships') $cacheTtl = 300;
+	if ($apiPath === '/users') $cacheTtl = 300;
+
+	if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheTtl)) {
 		header('X-Cache: HIT');
 		echo file_get_contents($cacheFile);
 		exit();

@@ -26,30 +26,4 @@ $(document).ready(function () {
 			window.location.href = 'login.php';
 		});
 	});
-
-	// Handle project selection change to load statuses
-	$('#projectSelect').on('change', function () {
-		const projectId = $(this).val();
-		const $statusSelect = $('#statusSelect');
-		const type = $statusSelect.data('status-type');
-		const apiUrl = localStorage.getItem('taiga_api_url');
-		const token = localStorage.getItem('taiga_token');
-
-		if (projectId && type && apiUrl && token) {
-			$statusSelect.html('<option value="">Memuat status...</option>');
-			taigaFetchStatuses(apiUrl, token, projectId, type)
-				.then(statuses => {
-					if (!Array.isArray(statuses)) {
-						throw new Error('Statuses response is not an array');
-					}
-					taigaPopulateStatusDropdown($statusSelect, statuses);
-				})
-				.catch(err => {
-					console.error('Failed to load statuses:', err);
-					$statusSelect.html('<option value="">Error loading statuses</option>');
-				});
-		} else {
-			$statusSelect.html('<option value="">(Semua Status)</option>');
-		}
-	});
 });

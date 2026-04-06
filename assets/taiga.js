@@ -71,6 +71,19 @@ function taigaFetchStatuses(apiUrl, token, projectId, type) {
 		default: return Promise.reject('Invalid status type');
 	}
 
+	window.taigaCache = window.taigaCache || {};
+	window.taigaCache.statusByProjectType = window.taigaCache.statusByProjectType || {};
+	window.taigaCache.statusFetchedAt = window.taigaCache.statusFetchedAt || {};
+
+	const cacheKey = `${type}:${String(projectId)}`;
+	const cached = window.taigaCache.statusByProjectType[cacheKey];
+	const fetchedAt = window.taigaCache.statusFetchedAt[cacheKey];
+	const ttlMs = 5 * 60 * 1000;
+
+	if (cached && fetchedAt && (Date.now() - fetchedAt) < ttlMs) {
+		return $.Deferred().resolve(cached).promise();
+	}
+
 	return $.ajax({
 		url: `api.php${endpoint}`,
 		data: { project: projectId },
@@ -81,6 +94,9 @@ function taigaFetchStatuses(apiUrl, token, projectId, type) {
 			'Content-Type': 'application/json',
 			'X-Taiga-Api-Url': apiUrl
 		}
+	}).done(function (statuses) {
+		window.taigaCache.statusByProjectType[cacheKey] = statuses;
+		window.taigaCache.statusFetchedAt[cacheKey] = Date.now();
 	});
 }
 
@@ -292,6 +308,22 @@ function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
 	});
 }
 
+function taigaInitStaticSelect2($el, options = {}) {
+	if (!$el || !$el.length) return;
+
+	if ($el.data('select2')) {
+		$el.select2('destroy');
+	}
+
+	$el.select2({
+		theme: 'bootstrap-5',
+		placeholder: options.placeholder || 'Select an option',
+		allowClear: true,
+		width: '100%',
+		dropdownParent: options.dropdownParent || ($el.closest('.modal').length ? $el.closest('.modal') : $(document.body))
+	});
+}
+
 /**
  * Binds standardized event listeners and initializes Select2 filters.
  * @param {Function} onFilterChange Callback function to trigger on filter update.
@@ -335,23 +367,131 @@ function taigaBindFilters(onFilterChange) {
 	}
 
 	if ($('#assignedToSelect').length) {
-		taigaInitRemoteSelect2('#assignedToSelect', '/users', {
-			placeholder: '(Semua User)',
-			formatText: (item) => item.full_name || item.username,
-			additionalParams: () => {
-				return {}; 
+		taigaInitStaticSelect2($('#assignedToSelect'), {
+			placeholder: '(Semua User)'
+		});
+
+		const refreshAssignedToFilter = function () {
+			const pid = $('#projectSelect').val();
+			const $assigned = $('#assignedToSelect');
+			const dropdownParent = $assigned.closest('.modal').length ? $assigned.closest('.modal') : $(document.body);
+
+			$assigned.val(null);
+
+			if (!pid) {
+				$assigned.prop('disabled', true);
+				$assigned.html('<option value="">(Pilih Project dulu)</option>');
+				taigaInitStaticSelect2($assigned, {
+					placeholder: '(Pilih Project dulu)',
+					dropdownParent: dropdownParent
+				});
+				return;
 			}
+
+			$assigned.prop('disabled', true);
+			$assigned.html('<option value="">Loading...</option>');
+			taigaInitStaticSelect2($assigned, {
+				placeholder: '(Semua User)',
+				dropdownParent: dropdownParent
+			});
+
+			taigaFetchMembers(window.apiUrl, window.taigaToken, pid)
+				.done(function (memberships) {
+					let html = '<option value="">(Semua User)</option>';
+					if (Array.isArray(memberships)) {
+						memberships.forEach(m => {
+							const name = m.full_name || m.user_email || 'Unknown';
+							html += `<option value="${m.user}">${name}</option>`;
+						});
+					}
+					$assigned.html(html);
+					$assigned.prop('disabled', false);
+					taigaInitStaticSelect2($assigned, {
+						placeholder: '(Semua User)',
+						dropdownParent: dropdownParent
+					});
+				})
+				.fail(function () {
+					$assigned.html('<option value="">Error loading users</option>');
+					$assigned.prop('disabled', true);
+					taigaInitStaticSelect2($assigned, {
+						placeholder: 'Error loading users',
+						dropdownParent: dropdownParent
+					});
+				});
+		};
+
+		refreshAssignedToFilter();
+
+		$('#projectSelect').off('change.assignedFilter').on('change.assignedFilter', function () {
+			refreshAssignedToFilter();
 		});
 	}
 
-	// Status and Sort remain standard for now unless we want remote search for them too.
-	// But let's at least make them Select2 (non-remote)
-	$('#statusSelect').select2({
-		theme: 'bootstrap-5',
-		width: '100%',
-		placeholder: '(Semua Status)',
-		allowClear: true
-	});
+	if ($('#statusSelect').length) {
+		taigaInitStaticSelect2($('#statusSelect'), {
+			placeholder: '(Pilih Project dulu)'
+		});
+
+		const refreshStatusFilter = function () {
+			const pid = $('#projectSelect').val();
+			const $status = $('#statusSelect');
+			const type = $status.data('status-type');
+			const dropdownParent = $status.closest('.modal').length ? $status.closest('.modal') : $(document.body);
+
+			$status.val(null);
+
+			if (!pid) {
+				$status.prop('disabled', true);
+				$status.html('<option value="">(Pilih Project dulu)</option>');
+				taigaInitStaticSelect2($status, {
+					placeholder: '(Pilih Project dulu)',
+					dropdownParent: dropdownParent
+				});
+				return;
+			}
+
+			if (!type) {
+				$status.prop('disabled', true);
+				$status.html('<option value="">Status type missing</option>');
+				taigaInitStaticSelect2($status, {
+					placeholder: 'Status type missing',
+					dropdownParent: dropdownParent
+				});
+				return;
+			}
+
+			$status.prop('disabled', true);
+			$status.html('<option value="">Loading...</option>');
+			taigaInitStaticSelect2($status, {
+				placeholder: '(Semua Status)',
+				dropdownParent: dropdownParent
+			});
+
+			taigaFetchStatuses(window.apiUrl, window.taigaToken, pid, type)
+				.done(function (statuses) {
+					taigaPopulateStatusDropdown($status, statuses);
+					$status.prop('disabled', false);
+					taigaInitStaticSelect2($status, {
+						placeholder: '(Semua Status)',
+						dropdownParent: dropdownParent
+					});
+				})
+				.fail(function () {
+					$status.html('<option value="">Error loading statuses</option>');
+					$status.prop('disabled', true);
+					taigaInitStaticSelect2($status, {
+						placeholder: 'Error loading statuses',
+						dropdownParent: dropdownParent
+					});
+				});
+		};
+
+		refreshStatusFilter();
+		$('#projectSelect').off('change.statusFilter').on('change.statusFilter', function () {
+			refreshStatusFilter();
+		});
+	}
 
 	$('#sortSelect').select2({
 		theme: 'bootstrap-5',
@@ -366,6 +506,8 @@ function taigaBindFilters(onFilterChange) {
 		// When project changes, clear dependent Select2 dropdowns
 		if ($(this).attr('id') === 'projectSelect') {
 			$('#epicSelect, #userStorySelect').val(null).trigger('change.select2');
+			$('#statusSelect').val(null).trigger('change.select2');
+			$('#assignedToSelect').val(null).trigger('change.select2');
 		}
 		onFilterChange(1);
 	});
@@ -519,6 +661,19 @@ function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Sele
  * Data Layer: Fetches project members (memberships).
  */
 function taigaFetchMembers(apiUrl, token, projectId) {
+	window.taigaCache = window.taigaCache || {};
+	window.taigaCache.memberByProject = window.taigaCache.memberByProject || {};
+	window.taigaCache.memberFetchedAt = window.taigaCache.memberFetchedAt || {};
+
+	const cacheKey = String(projectId);
+	const cached = window.taigaCache.memberByProject[cacheKey];
+	const fetchedAt = window.taigaCache.memberFetchedAt[cacheKey];
+	const ttlMs = 5 * 60 * 1000;
+
+	if (cached && fetchedAt && (Date.now() - fetchedAt) < ttlMs) {
+		return $.Deferred().resolve(cached).promise();
+	}
+
 	return $.ajax({
 		url: `api.php/memberships`,
 		data: { project: projectId },
@@ -529,6 +684,9 @@ function taigaFetchMembers(apiUrl, token, projectId) {
 			'Content-Type': 'application/json',
 			'X-Taiga-Api-Url': apiUrl
 		}
+	}).done(function (memberships) {
+		window.taigaCache.memberByProject[cacheKey] = memberships;
+		window.taigaCache.memberFetchedAt[cacheKey] = Date.now();
 	});
 }
 
@@ -570,7 +728,8 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 			console.error(`Failed to fetch members for project ${projectId}:`, xhr);
 			$select.html(`<option value="">Error loading members</option>`);
 		});
-}
+}
+
 /**
  * Updates the selection bar visibility and counts.
  * @param {number} total
