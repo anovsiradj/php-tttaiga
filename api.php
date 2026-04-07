@@ -64,6 +64,7 @@ $cacheablePaths = [
 ];
 
 $isCacheable = ($method === 'GET' && in_array($apiPath, $cacheablePaths));
+$cacheKey = null;
 $cacheFile = null;
 
 if ($isCacheable) {
@@ -96,6 +97,7 @@ if ($isCacheable) {
 
 	if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheTtl)) {
 		header('X-Cache: HIT');
+		header("X-Api-Cache-Key: {$cacheKey}");
 		echo file_get_contents($cacheFile);
 		exit();
 	}
@@ -105,6 +107,7 @@ if ($isCacheable) {
 // Get headers from the original request
 $headers = [
 	'Content-Type: application/json',
+	'X-Api-Cache-Key: ' . $cacheKey,
 ];
 
 // Forward Authorization header if present

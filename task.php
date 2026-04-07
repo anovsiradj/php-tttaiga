@@ -1,0 +1,282 @@
+<?php
+require __DIR__ . '/app/init.php';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
+</head>
+
+<body>
+	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
+
+	<?php
+	$backUrl = 'tasks.php';
+	$backLabel = 'Back to Tasks';
+	$headerId = 'taskHeaderContent';
+	$loadingLabel = 'Loading task...';
+	include __DIR__ . '/app/partials/item_header.php';
+	?>
+
+	<div class="container">
+		<div class="row">
+			<div class="col-md-8">
+				<div class="card mb-4">
+					<div class="card-header">
+						<h5 class="mb-0">Task Details</h5>
+					</div>
+					<div class="card-body" id="taskDetailsContent">
+						<div class="loading-spinner text-center p-3">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading details...</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-4">
+					<div class="card-header">
+						<h5 class="mb-0">Description</h5>
+					</div>
+					<div class="card-body" id="taskDescriptionContent">
+						<div class="loading-spinner text-center p-3">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading description...</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-4">
+				<div class="card mb-4">
+					<div class="card-header">
+						<h5 class="mb-0">Belongs To</h5>
+					</div>
+					<div class="card-body" id="taskBelongsToContent">
+						<div class="loading-spinner text-center p-3">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading links...</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="card">
+					<div class="card-header">
+						<h5 class="mb-0">Metadata</h5>
+					</div>
+					<div class="card-body" id="taskMetadataContent">
+						<div class="loading-spinner text-center p-3">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading metadata...</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+	<script src="assets/app.js"></script>
+	<script src="assets/taiga.js"></script>
+	<script src="assets/theme.js"></script>
+
+	<script>
+		$(document).ready(function () {
+			const token = localStorage.getItem('taiga_token');
+			const userData = localStorage.getItem('taiga_user');
+
+			if (!token || !userData) {
+				window.location.href = 'login.php';
+				return;
+			}
+
+			const config = <?php echo json_encode(include 'app/configs/taiga.php'); ?>;
+			const apiUrl = localStorage.getItem('taiga_api_url') || config.servers.default.api_url;
+
+			const urlParams = new URLSearchParams(window.location.search);
+			const taskId = urlParams.get('id');
+
+			if (!taskId) {
+				window.location.href = 'tasks.php';
+				return;
+			}
+
+			const apiGet = function (url) {
+				return $.ajax({
+					url: url,
+					type: 'GET',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					}
+				});
+			};
+
+			apiGet('api.php/tasks/' + encodeURIComponent(taskId))
+				.done(function (task) {
+					displayTaskHeader(task);
+					displayTaskDetails(task);
+					displayTaskDescription(task);
+					displayTaskMetadata(task);
+					displayTaskBelongsTo(task);
+				})
+				.fail(function (xhr) {
+					console.error('Failed to load task:', xhr);
+					$('#taskHeaderContent').html(`
+						<div class="alert alert-danger">
+							Failed to load task. It might have been deleted or you don't have access.
+							<a href="tasks.php" class="btn btn-sm btn-outline-light ms-2">Back to Tasks</a>
+						</div>
+					`);
+					$('#taskDetailsContent, #taskDescriptionContent, #taskMetadataContent, #taskBelongsToContent').html('');
+				});
+
+			function displayTaskHeader(task) {
+				const statusInfo = taigaGetStatusInfo(task);
+				const statusBadge = taigaRenderStatusBadge(statusInfo);
+				const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+				const headerHtml = `
+					<h1 class="display-4 mb-2 text-white">${task.subject || 'Untitled Task'}</h1>
+					<p class="lead mb-0 text-white-50">Ref: #${task.ref}</p>
+					<div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+						${statusBadge}
+						<span class="badge bg-dark-subtle text-dark">Assigned: <strong>${assignedTo}</strong></span>
+					</div>
+				`;
+				$('#taskHeaderContent').html(headerHtml);
+			}
+
+			function displayTaskDetails(task) {
+				const projectName = task.project_extra?.name || (task.project ? ('Project ID: ' + task.project) : 'N/A');
+				const usorLabel = task.user_story_extra ? `#${task.user_story_extra.ref}: ${task.user_story_extra.subject}` : (task.user_story ? ('Usor ID: ' + task.user_story) : 'None');
+				const sprintLabel = task.milestone_extra?.name || (task.milestone ? ('Sprint ID: ' + task.milestone) : 'None');
+
+				const detailsHtml = `
+					<div class="row">
+						<div class="col-6">
+							<strong>Project:</strong><br>
+							<span id="taskProjectName">${projectName}</span>
+						</div>
+						<div class="col-6">
+							<strong>Usor:</strong><br>
+							<span id="taskUsorName">${usorLabel}</span>
+						</div>
+						<div class="col-6 mt-3">
+							<strong>Sprint:</strong><br>
+							<span id="taskSprintName">${sprintLabel}</span>
+						</div>
+						<div class="col-6 mt-3">
+							<strong>Created:</strong><br>
+							${task.created_date ? new Date(task.created_date).toLocaleString() : 'Unknown'}
+						</div>
+						<div class="col-6 mt-3">
+							<strong>Modified:</strong><br>
+							${task.modified_date ? new Date(task.modified_date).toLocaleString() : 'Unknown'}
+						</div>
+					</div>
+				`;
+				$('#taskDetailsContent').html(detailsHtml);
+
+				if (task.project && !task.project_extra?.name) {
+					apiGet('api.php/projects/' + encodeURIComponent(task.project))
+						.done(function (project) {
+							$('#taskProjectName').text(project.name || ('Project ID: ' + task.project));
+						});
+				}
+
+				if (task.user_story && !task.user_story_extra) {
+					apiGet('api.php/userstories/' + encodeURIComponent(task.user_story))
+						.done(function (usor) {
+							$('#taskUsorName').text(`#${usor.ref}: ${usor.subject || 'Untitled Usor'}`);
+						});
+				}
+
+				if (task.milestone && !task.milestone_extra?.name) {
+					apiGet('api.php/milestones/' + encodeURIComponent(task.milestone))
+						.done(function (sprint) {
+							$('#taskSprintName').text(sprint.name || ('Sprint ID: ' + task.milestone));
+						});
+				}
+			}
+
+			function displayTaskDescription(task) {
+				if (!task.description) {
+					$('#taskDescriptionContent').closest('.card').hide();
+					return;
+				}
+				const descriptionHtml = `
+					<div class="description-content">
+						${task.description}
+					</div>
+				`;
+				$('#taskDescriptionContent').html(descriptionHtml);
+			}
+
+			function displayTaskMetadata(task) {
+				const owner = task.owner_extra ? task.owner_extra.full_name_display : (task.owner ? 'User ID: ' + task.owner : 'N/A');
+				const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+				const metadataHtml = `
+					<div class="small">
+						<div class="mb-2">
+							<strong>Task ID:</strong><br>
+							<code>${task.id}</code>
+						</div>
+						<div class="mb-2">
+							<strong>Version:</strong><br>
+							${task.version || '1'}
+						</div>
+						<div class="mb-2">
+							<strong>Owner:</strong><br>
+							${owner}
+						</div>
+						<div class="mb-2">
+							<strong>Assigned To:</strong><br>
+							${assignedTo}
+						</div>
+						<div>
+							<strong>Project ID:</strong><br>
+							<code>${task.project || 'N/A'}</code>
+						</div>
+					</div>
+				`;
+				$('#taskMetadataContent').html(metadataHtml);
+			}
+
+			function displayTaskBelongsTo(task) {
+				let html = '<div class="d-grid gap-2">';
+
+				if (task.project) {
+					html += `<a class="btn btn-outline-primary btn-sm" href="project.php?id=${encodeURIComponent(task.project)}">View Project Details</a>`;
+				}
+
+				if (task.user_story) {
+					html += `<a class="btn btn-outline-primary btn-sm" href="usor.php?id=${encodeURIComponent(task.user_story)}">View Usor Details</a>`;
+				}
+
+				if (task.milestone) {
+					html += `<a class="btn btn-outline-primary btn-sm" href="sprint.php?id=${encodeURIComponent(task.milestone)}">View Sprint Details</a>`;
+				}
+
+				if (!task.project && !task.user_story && !task.milestone) {
+					html += `<div class="text-muted italic"><em>(kosong)</em></div>`;
+				}
+
+				html += '</div>';
+
+				$('#taskBelongsToContent').html(html);
+			}
+		});
+	</script>
+
+</body>
+
+</html>
+

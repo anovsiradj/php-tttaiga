@@ -96,11 +96,14 @@ require __DIR__ . '/app/init.php';
 			window.apiUrl = apiUrl;
 			window.taigaToken = token;
 
-			// Load initial user stories list
-			loadUsors();
+			let allowFilterLoad = true;
+			const onFilterChange = function (page = 1) {
+				if (!allowFilterLoad) return;
+				loadUsors(page);
+			};
 
 			// Initial filter binding (handles Select2 for dropdowns)
-			taigaBindFilters(loadUsors);
+			taigaBindFilters(onFilterChange);
 
 			taigaBindSelectionLogic('story-checkbox', function (checkedCount) {
 				const filtered = parseInt($('#filteredUsors').text()) || 0;
@@ -130,7 +133,21 @@ require __DIR__ . '/app/init.php';
 				submitBulkUpdate();
 			});
 
+			allowFilterLoad = false;
+			taigaApplyFiltersFromUrl().then(function (page) {
+				allowFilterLoad = true;
+				loadUsors(page);
+			}, function () {
+				allowFilterLoad = true;
+				loadUsors(1);
+			});
+
 			function loadUsors(page = 1) {
+				taigaReplaceUrlQuery({
+					...taigaGetFilterParams(),
+					page: page
+				});
+
 				const params = {
 					...taigaGetFilterParams(),
 					page: page

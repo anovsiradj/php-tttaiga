@@ -91,11 +91,14 @@ require __DIR__ . '/app/init.php';
 			window.apiUrl = apiUrl;
 			window.taigaToken = token;
 
-			// Load issues list
-			loadIssues();
+			let allowFilterLoad = true;
+			const onFilterChange = function (page = 1) {
+				if (!allowFilterLoad) return;
+				loadIssues(page);
+			};
 
 			// Initial filter binding
-			taigaBindFilters(loadIssues);
+			taigaBindFilters(onFilterChange);
 
 			taigaBindSelectionLogic('issue-checkbox', function (checkedCount) {
 				const filtered = parseInt($('#filteredIssues').text()) || 0;
@@ -241,7 +244,21 @@ require __DIR__ . '/app/init.php';
 				});
 			});
 
+			allowFilterLoad = false;
+			taigaApplyFiltersFromUrl().then(function (page) {
+				allowFilterLoad = true;
+				loadIssues(page);
+			}, function () {
+				allowFilterLoad = true;
+				loadIssues(1);
+			});
+
 			function loadIssues(page = 1) {
+				taigaReplaceUrlQuery({
+					...taigaGetFilterParams(),
+					page: page
+				});
+
 				const params = {
 					...taigaGetFilterParams(),
 					page: page

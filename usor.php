@@ -42,14 +42,9 @@ require __DIR__ . '/app/init.php';
 						<h5 class="mb-0">Tasks</h5>
 						<div>
 							<small class="text-muted me-3" id="tasksCount">Loading...</small>
-							<button class="btn btn-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal">
-								<i class="bi bi-plus-lg me-1"></i>
-								Bulk Create
-							</button>
-							<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal">
-								<i class="bi bi-pencil-square me-1"></i>
-								Bulk Update
-							</button>
+							<a class="btn btn-outline-primary btn-sm" id="viewTasksListBtn" href="tasks.php">
+								View Task List
+							</a>
 						</div>
 					</div>
 					<div class="card-body" id="usorTasksContent">
@@ -143,6 +138,8 @@ require __DIR__ . '/app/init.php';
 						displayUsorDescription(usor);
 						displayUsorMetadata(usor);
 						displayUsorStats(usor);
+						const url = `tasks.php?project=${encodeURIComponent(usor.project)}&user_story=${encodeURIComponent(usor.id)}`;
+						$('#viewTasksListBtn').attr('href', url);
 					},
 					error: function (xhr) {
 						console.error('Failed to load usor:', xhr);
@@ -277,6 +274,7 @@ require __DIR__ . '/app/init.php';
 				tasks.forEach(task => {
 					const statusInfo = taigaGetStatusInfo(task);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
+					const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
 					html += `
 				<div class="card task-card mb-2">
 					<div class="card-body py-2">
@@ -284,9 +282,10 @@ require __DIR__ . '/app/init.php';
 							<h6 class="card-title mb-1">${task.subject || 'Untitled Task'}</h6>
 							${statusBadge}
 						</div>
-						<p class="card-text text-muted small mb-1">
-							Ref: #${task.ref}
-						</p>
+						<div class="d-flex justify-content-between align-items-center mb-1">
+							<small class="text-muted">Ref: #${task.ref}</small>
+							<small class="text-muted text-truncate ms-2">Assigned: <strong>${assignedTo}</strong></small>
+						</div>
 						${task.description ? `
 							<p class="card-text small text-muted mb-0">
 								${task.description.substring(0, 80) + (task.description.length > 80 ? '...' : '')}
@@ -337,235 +336,8 @@ require __DIR__ . '/app/init.php';
 					}
 				});
 			}
-
-
-
-			// Bulk Task Create functionality
-			$('#bulkCreateTaskModal').on('show.bs.modal', function () {
-				populateBulkCreateTaskDropdowns();
-			});
-
-			$('#previewBulkTaskCreate').on('click', function () {
-				previewBulkTaskCreate();
-			});
-
-			$('#submitBulkTaskCreate').on('click', function () {
-				submitBulkTaskCreate();
-			});
-
-			// Bulk Task Update functionality
-			$('#bulkUpdateTaskModal').on('show.bs.modal', function () {
-				populateBulkUpdateTaskDropdowns();
-			});
-
-			$('#submitBulkTaskUpdate').on('click', function () {
-				submitBulkTaskUpdate();
-			});
-
-			function populateBulkCreateTaskDropdowns() {
-				// Populate project dropdown (current project should be selected)
-				$('#bulkTaskProject').html(`<option value="${currentUsor.project}" selected>Current Project</option>`);
-
-				// Populate usor dropdown (current usor should be selected)
-				$('#bulkTaskUserStory').html(`<option value="${currentUsor.id}" selected>Current Usor (#${currentUsor.ref})</option>`);
-
-				// Populate status dropdown
-				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
-				let statusHtml = '<option value="">Select Status</option>';
-				statusOptions.forEach(status => {
-					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
-				});
-				$('#bulkTaskStatus').html(statusHtml);
-			}
-
-			function populateBulkUpdateTaskDropdowns() {
-				// Populate status dropdown for bulk update
-				const statusOptions = ['New', 'Ready', 'In Progress', 'Done', 'Archived', 'Blocked'];
-				let statusHtml = '<option value="">No Change</option>';
-				statusOptions.forEach(status => {
-					statusHtml += `<option value="${status.toLowerCase()}">${status}</option>`;
-				});
-				$('#bulkUpdateTaskStatus').html(statusHtml);
-
-				const projectId = currentUsor.project;
-
-				// Initialize Usor Select2
-				taigaInitRemoteSelect2('#bulkUpdateTaskUsor', '/userstories', {
-					placeholder: 'No Change',
-					formatText: (item) => `#${item.ref}: ${item.subject}`,
-					additionalParams: () => ({ project: projectId })
-				});
-
-				// Initialize Sprint Select2
-				taigaInitRemoteSelect2('#bulkUpdateTaskSprint', '/milestones', {
-					placeholder: 'No Change',
-					additionalParams: () => ({ project: projectId })
-				});
-
-				// Load current tasks for selection
-				loadTasksForBulkUpdate();
-			}
-
-			function previewBulkTaskCreate() {
-				const taskTitles = $('#bulkTaskTitles').val().trim();
-				if (!taskTitles) {
-					alert('Please enter task titles');
-					return;
-				}
-
-				const taskLines = taskTitles.split('\n').filter(line => line.trim());
-				let previewHtml = `<p>${taskLines.length} tasks will be created:</p>`;
-				previewHtml += '<ul class="list-group">';
-
-				taskLines.forEach((title, index) => {
-					previewHtml += `<li class="list-group-item">${index + 1}. ${title}</li>`;
-				});
-
-				previewHtml += '</ul>';
-				$('#bulkTaskPreview').html(previewHtml);
-			}
-
-			function submitBulkTaskCreate() {
-				const taskTitles = $('#bulkTaskTitles').val().trim();
-				const status = $('#bulkTaskStatus').val();
-				const description = $('#bulkTaskDescription').val().trim();
-
-				if (!taskTitles) {
-					alert('Please enter task titles');
-					return;
-				}
-
-				const taskLines = taskTitles.split('\n').filter(line => line.trim());
-				if (taskLines.length === 0) {
-					alert('No valid tasks to create');
-					return;
-				}
-
-				// Create tasks sequentially
-				const promises = taskLines.map((title, index) => {
-					const taskData = {
-						subject: title.trim(),
-						status: status || 'new',
-						description: description,
-						user_story: currentUsor.id,
-						project: currentUsor.project
-					};
-
-					return $.ajax({
-						url: 'api.php/tasks',
-						type: 'POST',
-						headers: {
-							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json',
-							'X-Taiga-Api-Url': apiUrl
-						},
-						data: JSON.stringify(taskData)
-					});
-				});
-
-				// Execute all promises
-				Promise.all(promises)
-					.then(() => {
-						alert(`Successfully created ${taskLines.length} tasks!`);
-						$('#bulkCreateTaskModal').modal('hide');
-						loadUsorTasks(currentUsor.id); // Reload tasks
-					})
-					.catch(error => {
-						console.error('Failed to create tasks:', error);
-						alert('Failed to create some tasks. Please check the console for details.');
-					});
-			}
-
-			function loadTasksForBulkUpdate() {
-				// Load tasks for the current usor
-				$.ajax({
-					url: 'api.php/tasks?user_story=' + currentUsor.id,
-					type: 'GET',
-					headers: {
-						'Authorization': 'Bearer ' + token,
-						'Content-Type': 'application/json',
-						'X-Taiga-Api-Url': apiUrl
-					},
-					success: function (tasks) {
-						let tasksHtml = '';
-						tasks.forEach(task => {
-							tasksHtml += `
-						<div class="form-check">
-							<input class="form-check-input" type="checkbox" value="${task.id}" id="task-${task.id}">
-							<label class="form-check-label" for="task-${task.id}">
-								#${task.ref}: ${task.subject}
-							</label>
-						</div>
-					`;
-						});
-						$('#bulkUpdateTaskList').html(tasksHtml || '<p>No tasks available for update.</p>');
-					},
-					error: function (xhr) {
-						console.error('Failed to load tasks:', xhr);
-						$('#bulkUpdateTaskList').html('<p class="text-danger">Failed to load tasks.</p>');
-					}
-				});
-			}
-
-			function submitBulkTaskUpdate() {
-				const selectedTasks = [];
-				$('#bulkUpdateTaskList input:checked').each(function () {
-					selectedTasks.push($(this).val());
-				});
-
-				if (selectedTasks.length === 0) {
-					alert('Please select at least one task to update');
-					return;
-				}
-
-				const updateData = {};
-				const status = $('#bulkUpdateTaskStatus').val();
-
-				if (status) updateData.status = status;
-
-				const usor = $('#bulkUpdateTaskUsor').val();
-				if (usor) updateData.user_story = usor === 'null' ? null : parseInt(usor);
-
-				const sprint = $('#bulkUpdateTaskSprint').val();
-				if (sprint) updateData.milestone = sprint === 'null' ? null : parseInt(sprint);
-
-				if (Object.keys(updateData).length === 0) {
-					alert('Please select at least one field to update');
-					return;
-				}
-
-				// Update tasks sequentially
-				const promises = selectedTasks.map(taskId => {
-					return $.ajax({
-						url: 'api.php/tasks/' + taskId,
-						type: 'PATCH',
-						headers: {
-							'Authorization': 'Bearer ' + token,
-							'Content-Type': 'application/json',
-							'X-Taiga-Api-Url': apiUrl
-						},
-						data: JSON.stringify(updateData)
-					});
-				});
-
-				// Execute all promises
-				Promise.all(promises)
-					.then(() => {
-						alert(`Successfully updated ${selectedTasks.length} tasks!`);
-						$('#bulkUpdateTaskModal').modal('hide');
-						loadUsorTasks(currentUsor.id); // Reload tasks
-					})
-					.catch(error => {
-						console.error('Failed to update tasks:', error);
-						alert('Failed to update some tasks. Please check the console for details.');
-					});
-			}
 		});
 	</script>
-
-	<?php include __DIR__ . '/app/partials/task_bulk_create.php'; ?>
-	<?php include __DIR__ . '/app/partials/task_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/task_bulk_delete.php'; ?>
 
 </body>
 

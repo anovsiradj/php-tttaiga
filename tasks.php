@@ -93,16 +93,27 @@ require __DIR__ . '/app/init.php';
 			window.apiUrl = apiUrl;
 			window.taigaToken = token;
 
-			// Load initial tasks list
-			loadTasks();
+			let allowFilterLoad = true;
+			const onFilterChange = function (page = 1) {
+				if (!allowFilterLoad) return;
+				loadTasks(page);
+			};
 
-			// Initial filter binding (handles Select2 for dropdowns)
-			taigaBindFilters(loadTasks);
+			taigaBindFilters(onFilterChange);
 
 			taigaBindSelectionLogic('task-checkbox', function(checkedCount) {
 				const filtered = parseInt($('#filteredTasks').text()) || 0;
 				const total = parseInt($('#totalTasks').text()) || 0;
 				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalTasks', 'filteredTasks', 'selectedTasksCount');
+			});
+
+			allowFilterLoad = false;
+			taigaApplyFiltersFromUrl().then(function (page) {
+				allowFilterLoad = true;
+				loadTasks(page);
+			}, function () {
+				allowFilterLoad = true;
+				loadTasks(1);
 			});
 
 			// Bulk Task Create functionality (same as in usor.php)
@@ -147,6 +158,11 @@ require __DIR__ . '/app/init.php';
 			});
 
 			function loadTasks(page = 1) {
+				taigaReplaceUrlQuery({
+					...taigaGetFilterParams(),
+					page: page
+				});
+
 				const params = {
 					...taigaGetFilterParams(),
 					page: page
@@ -250,10 +266,15 @@ require __DIR__ . '/app/init.php';
 								` : (task.user_story ? `<small class="text-muted d-block mt-2">Usor Ref: #${task.user_story}</small>` : '')}
 							</div>
 							
-							<div class="mt-3">
-								<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary shadow-sm">
-									View Usor Details
+							<div class="mt-3 d-flex gap-2 flex-wrap">
+								<a href="task.php?id=${task.id}" class="btn btn-sm btn-outline-secondary shadow-sm">
+									View Task Details
 								</a>
+								${task.user_story ? `
+									<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary shadow-sm">
+										View Usor Details
+									</a>
+								` : ''}
 							</div>
 						</div>
 					</div>
@@ -269,10 +290,11 @@ require __DIR__ . '/app/init.php';
 
 				// Add click event to cards (excluding checkbox area)
 				$('.task-card').on('click', function (e) {
-					if (!$(e.target).is('.form-check, .form-check-input, .form-check-label')) {
+					if (!$(e.target).is('.form-check, .form-check-input, .form-check-label') && $(e.target).closest('a').length === 0) {
 						const taskId = $(this).data('task-id');
-						// You could implement a task detail view here
-						console.log('Clicked task:', taskId);
+						if (taskId) {
+							window.location.href = `task.php?id=${taskId}`;
+						}
 					}
 				});
 			}

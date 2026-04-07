@@ -315,6 +315,7 @@ require __DIR__ . '/app/init.php';
 				stories.forEach(story => {
 					const statusInfo = taigaGetStatusInfo(story);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
+					const assignedTo = story.assigned_to_extra ? story.assigned_to_extra.full_name_display : (story.assigned_to ? 'User ID: ' + story.assigned_to : 'Unassigned');
 					html += `
 				<div class="card user-story-card mb-2">
 					<div class="card-body py-2">
@@ -322,12 +323,15 @@ require __DIR__ . '/app/init.php';
 							<h6 class="card-title mb-1">${story.subject || 'Untitled Usor'}</h6>
 							${statusBadge}
 						</div>
-						<p class="card-text text-muted small mb-1">
-							Ref: #${story.ref}
-						</p>
-						<p class="card-text small text-muted mb-0">
-							${story.description ? story.description.substring(0, 100) + '...' : 'No description'}
-						</p>
+						<div class="d-flex justify-content-between align-items-center">
+							<small class="text-muted">Ref: #${story.ref}</small>
+							<small class="text-muted text-truncate ms-2">Assigned: <strong>${assignedTo}</strong></small>
+						</div>
+						${story.description ? `
+							<p class="card-text small text-muted mb-0 mt-1">
+								${story.description.substring(0, 100) + (story.description.length > 100 ? '...' : '')}
+							</p>
+						` : ''}
 					</div>
 				</div>
 			`;

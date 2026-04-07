@@ -92,11 +92,14 @@ $filterStatusEnable = false;
 			window.apiUrl = apiUrl;
 			window.taigaToken = token;
 
-			// Load projects list (data, not dropdown)
-			loadProjects();
+			let allowFilterLoad = true;
+			const onFilterChange = function (page = 1) {
+				if (!allowFilterLoad) return;
+				loadProjects(page);
+			};
 
 			// Initial filter binding (handles Select2 for dropdowns)
-			taigaBindFilters(loadProjects);
+			taigaBindFilters(onFilterChange);
 
 			taigaBindSelectionLogic('project-checkbox', function(checkedCount) {
 				const filtered = parseInt($('#filteredProjects').text()) || 0;
@@ -113,7 +116,21 @@ $filterStatusEnable = false;
 				submitBulkProjectUpdate();
 			});
 
+			allowFilterLoad = false;
+			taigaApplyFiltersFromUrl().then(function (page) {
+				allowFilterLoad = true;
+				loadProjects(page);
+			}, function () {
+				allowFilterLoad = true;
+				loadProjects(1);
+			});
+
 			function loadProjects(page = 1) {
+				taigaReplaceUrlQuery({
+					...taigaGetFilterParams(),
+					page: page
+				});
+
 				const params = {
 					...taigaGetFilterParams(),
 					member: window.taigaModel ? window.taigaModel.id : null,

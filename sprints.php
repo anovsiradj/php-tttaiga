@@ -89,11 +89,14 @@ require __DIR__ . '/app/init.php';
 
 			let selectedIds = new Set();
 
-			// Load initial sprints list
-			loadSprints();
+			let allowFilterLoad = true;
+			const onFilterChange = function (page = 1) {
+				if (!allowFilterLoad) return;
+				loadSprints(page);
+			};
 
 			// Initial filter binding
-			taigaBindFilters(loadSprints);
+			taigaBindFilters(onFilterChange);
 
 			taigaBindSelectionLogic('sprint-checkbox', function(checkedCount) {
 				const filtered = parseInt($('#filteredSprints').text()) || 0;
@@ -110,7 +113,21 @@ require __DIR__ . '/app/init.php';
 				submitBulkUpdateSprint();
 			});
 
+			allowFilterLoad = false;
+			taigaApplyFiltersFromUrl().then(function (page) {
+				allowFilterLoad = true;
+				loadSprints(page);
+			}, function () {
+				allowFilterLoad = true;
+				loadSprints(1);
+			});
+
 			function loadSprints(page = 1) {
+				taigaReplaceUrlQuery({
+					...taigaGetFilterParams(),
+					page: page
+				});
+
 				const params = {
 					...taigaGetFilterParams(),
 					page: page

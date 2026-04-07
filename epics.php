@@ -93,11 +93,14 @@ require __DIR__ . '/app/init.php';
 			window.apiUrl = apiUrl;
 			window.taigaToken = token;
 
-			// Load initial epics list
-			loadEpics();
+			let allowFilterLoad = true;
+			const onFilterChange = function (page = 1) {
+				if (!allowFilterLoad) return;
+				loadEpics(page);
+			};
 
 			// Initial filter binding (handles Select2 for dropdowns)
-			taigaBindFilters(loadEpics);
+			taigaBindFilters(onFilterChange);
 
 			taigaBindSelectionLogic('epic-checkbox', function (checkedCount) {
 				const filtered = parseInt($('#filteredEpics').text()) || 0;
@@ -166,6 +169,15 @@ require __DIR__ . '/app/init.php';
 				});
 			});
 
+			allowFilterLoad = false;
+			taigaApplyFiltersFromUrl().then(function (page) {
+				allowFilterLoad = true;
+				loadEpics(page);
+			}, function () {
+				allowFilterLoad = true;
+				loadEpics(1);
+			});
+
 			function loadProjectsAndEpics() {
 				// Load projects first
 				$.ajax({
@@ -201,6 +213,11 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function loadEpics(page = 1) {
+				taigaReplaceUrlQuery({
+					...taigaGetFilterParams(),
+					page: page
+				});
+
 				const params = {
 					...taigaGetFilterParams(),
 					page: page
