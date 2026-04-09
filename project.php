@@ -86,6 +86,7 @@ require __DIR__ . '/app/init.php';
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 	<script src="assets/app.js"></script>
+	<script src="assets/taiga.js"></script>
 	<script src="assets/theme.js"></script>
 
 	<script>
@@ -198,13 +199,25 @@ require __DIR__ . '/app/init.php';
 
 			function displayProjectHeader(project) {
 				const headerHtml = `
-			<h1 class="display-4 mb-2">${project.name}</h1>
-			<p class="lead mb-0">${project.slug}</p>
-			<span class="badge bg-${project.is_private ? 'secondary' : 'primary'} mt-2">
-				${project.is_private ? 'Private Project' : 'Public Project'}
-			</span>
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
+				<div class="me-3">
+					<h1 class="display-4 mb-2">${project.name}</h1>
+					<p class="lead mb-0">${project.slug}</p>
+					<span class="badge bg-${project.is_private ? 'secondary' : 'primary'} mt-2">
+						${project.is_private ? 'Private Project' : 'Public Project'}
+					</span>
+				</div>
+				<div class="mt-3 mt-md-0">
+					<a class="btn btn-light btn-sm d-none" id="projectTaigaLinkBtn" href="#" target="_blank" rel="noopener">Open in Taiga</a>
+				</div>
+			</div>
 		`;
 				$('#projectHeaderContent').html(headerHtml);
+
+				const taigaLink = taigaItemPermalink('project', project, apiUrl);
+				if (taigaLink) {
+					$('#projectTaigaLinkBtn').removeClass('d-none').attr('href', taigaLink);
+				}
 			}
 
 			function displayProjectDetails(project) {
@@ -236,11 +249,8 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayProjectDescription(project) {
-				const descriptionHtml = project.description
-					? `<p class="card-text">${project.description}</p>`
-					: `<p class="text-muted">No description provided for this project.</p>`;
-
-				$('#projectDescriptionContent').html(descriptionHtml);
+				const html = taigaRenderMarkdown(project.description || '');
+				$('#projectDescriptionContent').html(html);
 			}
 
 			function displayProjectMembers(members) {

@@ -179,26 +179,37 @@ require __DIR__ . '/app/init.php';
 				const statusInfo = taigaGetStatusInfo(usor);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
-			<h1 class="display-4 mb-2">${usor.subject || 'Untitled Usor'}</h1>
-			<p class="lead mb-0">Ref: #${usor.ref}</p>
-			<div class="mt-2">
-				${statusBadge}
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
+				<div class="me-3">
+					<h1 class="display-4 mb-2">${usor.subject || 'Untitled Usor'}</h1>
+					<p class="lead mb-0">Ref: #${usor.ref}</p>
+					<div class="mt-2">
+						${statusBadge}
+					</div>
+				</div>
+				<div class="mt-3 mt-md-0">
+					<a class="btn btn-light btn-sm d-none" id="usorTaigaLinkBtn" href="#" target="_blank" rel="noopener">Open in Taiga</a>
+				</div>
 			</div>
 		`;
 				$('#usorHeaderContent').html(headerHtml);
+
+				const taigaLink = taigaItemPermalink('usor', usor, apiUrl);
+				if (taigaLink) {
+					$('#usorTaigaLinkBtn').removeClass('d-none').attr('href', taigaLink);
+				} else if (usor.project) {
+					taigaGetProjectSlug(usor.project, apiUrl, token).then(function (projectSlug) {
+						const link = taigaItemPermalink('usor', usor, apiUrl, { projectSlug: projectSlug });
+						if (link) {
+							$('#usorTaigaLinkBtn').removeClass('d-none').attr('href', link);
+						}
+					});
+				}
 			}
 
 			function displayUsorDescription(usor) {
-				if (!usor.description) {
-					$('#usorDescriptionContent').closest('.card').hide();
-					return;
-				}
-				const descriptionHtml = `
-					<div class="description-content">
-						${usor.description}
-					</div>
-				`;
-				$('#usorDescriptionContent').html(descriptionHtml);
+				const html = taigaRenderMarkdown(usor.description || '');
+				$('#usorDescriptionContent').html(html);
 			}
 
 			function displayUsorMetadata(usor) {

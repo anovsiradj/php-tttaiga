@@ -349,11 +349,6 @@ require __DIR__ . '/app/init.php';
 					const epicId = $(this).data('epic-id');
 					window.location.href = `epic.php?id=${epicId}`;
 				});
-
-				$('.epic-card').on('click', function () {
-					const epicId = $(this).data('epic-id');
-					window.location.href = `epic.php?id=${epicId}`;
-				});
 			}
 
 			// Local filter function removed as filtering is now done via API.

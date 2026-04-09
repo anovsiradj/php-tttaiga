@@ -242,17 +242,8 @@ $filterStatusEnable = false;
 				// Update counts
 				taigaUpdateSelectionUI(projects.length, projects.length, 0, 'totalProjects', 'filteredProjects', 'selectedProjectsCount');
 
-				// Add click event for project cards
 				$('.view-project').on('click', function (e) {
 					e.stopPropagation();
-					const projectId = $(this).data('project-id');
-					window.location.href = `project.php?id=${projectId}`;
-				});
-
-				$('.project-card').on('click', function (e) {
-					// Don't trigger redirect if clicking on checkbox or its container
-					if ($(e.target).closest('.project-checkbox, .form-check').length) return;
-
 					const projectId = $(this).data('project-id');
 					window.location.href = `project.php?id=${projectId}`;
 				});

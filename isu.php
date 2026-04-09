@@ -132,13 +132,32 @@ require __DIR__ . '/app/init.php';
 				const statusInfo = taigaGetStatusInfo(issue);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
-			<h1 class="display-4 mb-2 text-white">${issue.subject || 'Untitled Isu'}</h1>
-			<p class="lead mb-0 text-white-50">Ref: #${issue.ref}</p>
-			<div class="mt-2">
-				${statusBadge}
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
+				<div class="me-3">
+					<h1 class="display-4 mb-2 text-white">${issue.subject || 'Untitled Isu'}</h1>
+					<p class="lead mb-0 text-white-50">Ref: #${issue.ref}</p>
+					<div class="mt-2">
+						${statusBadge}
+					</div>
+				</div>
+				<div class="mt-3 mt-md-0">
+					<a class="btn btn-light btn-sm d-none" id="issueTaigaLinkBtn" href="#" target="_blank" rel="noopener">Open in Taiga</a>
+				</div>
 			</div>
 		`;
 				$('#issueHeaderContent').html(headerHtml);
+
+				const taigaLink = taigaItemPermalink('issue', issue, apiUrl);
+				if (taigaLink) {
+					$('#issueTaigaLinkBtn').removeClass('d-none').attr('href', taigaLink);
+				} else if (issue.project) {
+					taigaGetProjectSlug(issue.project, apiUrl, token).then(function (projectSlug) {
+						const link = taigaItemPermalink('issue', issue, apiUrl, { projectSlug: projectSlug });
+						if (link) {
+							$('#issueTaigaLinkBtn').removeClass('d-none').attr('href', link);
+						}
+					});
+				}
 			}
 
 			function displayIssueDetails(issue) {
@@ -193,13 +212,8 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayIssueDescription(issue) {
-				if (!issue.description) {
-					$('#issueDescriptionContent').closest('.card').hide();
-					return;
-				}
-				const formattedDesc = issue.description.replace(/\n/g, '<br>');
-				const descriptionHtml = `<p class="card-text">${formattedDesc}</p>`;
-				$('#issueDescriptionContent').html(descriptionHtml);
+				const html = taigaRenderMarkdown(issue.description || '');
+				$('#issueDescriptionContent').html(html);
 			}
 
 			function displayIssueMetadata(issue) {

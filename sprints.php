@@ -220,9 +220,9 @@ require __DIR__ . '/app/init.php';
 									</div>
 								</div>
 								<div class="card-footer bg-transparent border-top-0 d-flex justify-content-between">
-									<button class="btn btn-outline-primary btn-sm view-sprint" data-sprint-id="${sprint.id}">
-										View Details
-									</button>
+									<a href="sprint.php?id=${sprint.id}" class="btn btn-outline-primary btn-sm">
+										Lihat
+									</a>
 								</div>
 							</div>
 						</div>

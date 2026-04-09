@@ -127,7 +127,14 @@ require __DIR__ . '/app/init.php';
 						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (sprint) {
-						$('#sprintHeaderContent').html(`<h2 class="text-white">${sprint.name}</h2>`);
+						$('#sprintHeaderContent').html(`
+							<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
+								<h2 class="text-white mb-0">${sprint.name}</h2>
+								<div class="mt-3 mt-md-0">
+									<a class="btn btn-light btn-sm d-none" id="sprintTaigaLinkBtn" href="#" target="_blank" rel="noopener">Open in Taiga</a>
+								</div>
+							</div>
+						`);
 						$('#sprintName').val(sprint.name);
 						$('#startDate').val(sprint.estimated_start);
 						$('#finishDate').val(sprint.estimated_finish);
@@ -138,6 +145,22 @@ require __DIR__ . '/app/init.php';
 						if (sprint.project) {
 							const $newOption = new Option(sprint.project_extra?.name || 'Current Project', sprint.project, true, true);
 							$('#projectSelect').append($newOption).trigger('change');
+						}
+
+						const renderTaigaLink = function (projectSlug) {
+							const link = taigaItemPermalink('sprint', sprint, apiUrl, { projectSlug: projectSlug });
+							if (link) {
+								$('#sprintTaigaLinkBtn').removeClass('d-none').attr('href', link);
+							}
+						};
+
+						const directProjectSlug = sprint.project_extra && sprint.project_extra.slug ? sprint.project_extra.slug : null;
+						if (directProjectSlug) {
+							renderTaigaLink(directProjectSlug);
+						} else if (sprint.project) {
+							taigaGetProjectSlug(sprint.project, apiUrl, token).then(function (projectSlug) {
+								renderTaigaLink(projectSlug);
+							});
 						}
 
 						if (sprint.closed) {

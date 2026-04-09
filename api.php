@@ -16,7 +16,6 @@ header('Access-Control-Expose-Headers: *');
 
 
 
-// Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 	exit();
 }
@@ -25,35 +24,24 @@ if (isset($_SESSION['taiga_token']) && empty($_SERVER['HTTP_AUTHORIZATION'])) {
 	$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $_SESSION['taiga_token'];
 }
 
-// Get the configuration
 $config = include 'app/configs/taiga.php';
-$apiUrl = isset($_SERVER['HTTP_X_TAIGA_API_URL']) ? $_SERVER['HTTP_X_TAIGA_API_URL'] : $config['servers']['default']['api_url'];
+$apiUrl = $_SERVER['HTTP_X_TAIGA_API_URL'] ?? $config['servers']['default']['api_url'];
+$method = $_SERVER['REQUEST_METHOD'];
 
-// Get the request path
-$apiPath = '';
-if (isset($_SERVER['PATH_INFO'])) {
-	$apiPath = $_SERVER['PATH_INFO'];
-} else {
-	$requestUri = $_SERVER['REQUEST_URI'];
-	$scriptName = $_SERVER['SCRIPT_NAME'];
+$apiPath = $_SERVER['PATH_INFO'] ?? '';
+if ($apiPath === '') {
+	$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+	$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 
 	if (str_starts_with($requestUri, $scriptName)) {
 		$apiPath = substr($requestUri, strlen($scriptName));
 	} else {
-		// Fallback for when script name is omitted in some rewrite configs
 		$apiPath = $requestUri;
 	}
 }
 
-// Remove query parameters from path
-$apiPath = strtok($apiPath, '?');
-if (!$apiPath)
-	$apiPath = '/';
+$apiPath = strtok($apiPath, '?') ?: '/';
 
-// Get the HTTP method
-$method = $_SERVER['REQUEST_METHOD'];
-
-// Cache configuration
 $cacheablePaths = [
 	'/epic-statuses',
 	'/userstory-statuses',
@@ -63,7 +51,7 @@ $cacheablePaths = [
 	'/users'
 ];
 
-$isCacheable = ($method === 'GET' && in_array($apiPath, $cacheablePaths));
+$isCacheable = ($method === 'GET' && in_array($apiPath, $cacheablePaths, true));
 $cacheKey = null;
 $cacheFile = null;
 
@@ -104,17 +92,17 @@ if ($isCacheable) {
 	header('X-Cache: MISS');
 }
 
-// Get headers from the original request
 $headers = [
 	'Content-Type: application/json',
-	'X-Api-Cache-Key: ' . $cacheKey,
 ];
 
-// Forward Authorization header if present
+if ($isCacheable && $cacheKey) {
+	$headers[] = 'X-Api-Cache-Key: ' . $cacheKey;
+}
+
 if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
 	$headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
 } else {
-	// Fallback for Apache which sometimes strips the Authorization header
 	if (function_exists('apache_request_headers')) {
 		$requestHeaders = apache_request_headers();
 		if (isset($requestHeaders['Authorization'])) {
@@ -123,34 +111,37 @@ if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
 	}
 }
 
-// Get request body
 $input = file_get_contents('php://input');
+$input = $input === false ? '' : $input;
 
-// Extract user ID from Authorization header if possible
 $autoMemberId = null;
-if (isset($headers)) {
-	foreach ($headers as $h) {
-		if (str_starts_with($h, 'Authorization: Bearer ')) {
-			$token = substr($h, strlen('Authorization: Bearer '));
-			$parts = explode('.', $token);
-			if (count($parts) === 3) {
-				$payload = json_decode(base64_decode($parts[1]), true);
-				$autoMemberId = $payload['user_id'] ?? $payload['id'] ?? null;
+foreach ($headers as $h) {
+	if (str_starts_with($h, 'Authorization: Bearer ')) {
+		$token = substr($h, strlen('Authorization: Bearer '));
+		$parts = explode('.', $token);
+		if (count($parts) === 3) {
+			$payload64 = $parts[1];
+			$payload64 = strtr($payload64, '-_', '+/');
+			$payload64 .= str_repeat('=', (4 - (strlen($payload64) % 4)) % 4);
+
+			$payloadJson = base64_decode($payload64, true);
+			if ($payloadJson !== false) {
+				$payload = json_decode($payloadJson, true);
+				if (is_array($payload)) {
+					$autoMemberId = $payload['user_id'] ?? $payload['id'] ?? null;
+				}
 			}
 		}
 	}
 }
 
-// Build the target URL
 $targetUrl = $apiUrl . $apiPath;
 
-// Prepare query parameters
 $queryArray = [];
 if (!empty($_SERVER['QUERY_STRING'])) {
 	parse_str($_SERVER['QUERY_STRING'], $queryArray);
 }
 
-// Auto-append member ID for projects list if missing
 if ($apiPath === '/projects' && $method === 'GET' && !isset($queryArray['member']) && $autoMemberId) {
 	$queryArray['member'] = $autoMemberId;
 }
@@ -159,7 +150,6 @@ if (!empty($queryArray)) {
 	$targetUrl .= '?' . http_build_query($queryArray);
 }
 
-// Initialize cURL via php-skit
 $curl = new \anovsiradj\skit\CURL('', $headers, [
 	CURLOPT_URL => $targetUrl,
 	CURLOPT_CUSTOMREQUEST => $method,
@@ -167,35 +157,37 @@ $curl = new \anovsiradj\skit\CURL('', $headers, [
 	CURLOPT_ENCODING => '', // Handle gzip/deflate automatically
 ]);
 
-// Add request body for POST/PUT requests
-if (!empty($input)) {
+if ($input !== '') {
 	$curl->opt(CURLOPT_POSTFIELDS, $input);
 }
 
-// Execute the request
 $curl->exec();
 
+$statusCode = $curl->code();
+$responseBody = $curl->data;
 
-// Check for cURL errors
-if (curl_errno($curl->handle)) {
-	http_response_code(500);
-	echo json_encode([
-		'error' => 'Proxy error: ' . curl_error($curl->handle)
-	]);
+if ($responseBody === false || $responseBody === null) {
+	http_response_code(502);
+	header('Content-Type: application/json');
+	echo json_encode(['error' => 'Proxy error']);
 	exit();
 }
 
-// Forward HTTP status code
-http_response_code($curl->code());
+http_response_code($statusCode);
 
+if ($isCacheable && $statusCode === 200 && $responseBody) {
+	$decoded = json_decode($responseBody, true);
+	$isApiError = is_array($decoded) && (
+		array_key_exists('error', $decoded)
+		|| array_key_exists('_error_message', $decoded)
+		|| array_key_exists('_error_type', $decoded)
+	);
 
-
-// Save to cache if successful
-if ($isCacheable && $curl->code() === 200 && !empty($curl->data)) {
-	file_put_contents($cacheFile, $curl->data);
+	if ($decoded && !$isApiError) {
+		file_put_contents($cacheFile, $responseBody);
+	}
 }
 
-// Forward X-* headers
 foreach ($curl->resHeaders as $header) {
 	if (stripos($header, 'X-') === 0) {
 		header($header);
@@ -203,6 +195,5 @@ foreach ($curl->resHeaders as $header) {
 }
 
 header('Content-Type: application/json');
-// Forward the response
-echo $curl->data;
+echo $responseBody;
 

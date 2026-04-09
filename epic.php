@@ -210,13 +210,32 @@ require __DIR__ . '/app/init.php';
 				const statusInfo = taigaGetStatusInfo(epic);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const headerHtml = `
-			<h1 class="display-4 mb-2">${epic.subject || 'Untitled Epik'}</h1>
-			<p class="lead mb-0">Ref: #${epic.ref}</p>
-			<div class="mt-2 text-white">
-				${statusBadge}
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
+				<div class="me-3">
+					<h1 class="display-4 mb-2">${epic.subject || 'Untitled Epik'}</h1>
+					<p class="lead mb-0">Ref: #${epic.ref}</p>
+					<div class="mt-2 text-white">
+						${statusBadge}
+					</div>
+				</div>
+				<div class="mt-3 mt-md-0">
+					<a class="btn btn-light btn-sm d-none" id="epicTaigaLinkBtn" href="#" target="_blank" rel="noopener">Open in Taiga</a>
+				</div>
 			</div>
 		`;
 				$('#epicHeaderContent').html(headerHtml);
+
+				const taigaLink = taigaItemPermalink('epic', epic, apiUrl);
+				if (taigaLink) {
+					$('#epicTaigaLinkBtn').removeClass('d-none').attr('href', taigaLink);
+				} else if (epic.project) {
+					taigaGetProjectSlug(epic.project, apiUrl, token).then(function (projectSlug) {
+						const link = taigaItemPermalink('epic', epic, apiUrl, { projectSlug: projectSlug });
+						if (link) {
+							$('#epicTaigaLinkBtn').removeClass('d-none').attr('href', link);
+						}
+					});
+				}
 			}
 
 			function displayEpicDetails(epic) {
@@ -263,14 +282,8 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayEpicDescription(epic) {
-				const descriptionHtml = epic.description ?
-					`<p class="card-text">${epic.description}</p>` :
-					'';
-
-				if (!epic.description) {
-					$('#epicDescriptionContent').closest('.card').hide();
-				}
-				$('#epicDescriptionContent').html(descriptionHtml);
+				const html = taigaRenderMarkdown(epic.description || '');
+				$('#epicDescriptionContent').html(html);
 			}
 
 			function displayEpicMetadata(epic) {

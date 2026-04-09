@@ -287,16 +287,6 @@ require __DIR__ . '/app/init.php';
 
 				// Add click event to checkboxes
 				$('.task-checkbox').on('change', updateSelectionCount);
-
-				// Add click event to cards (excluding checkbox area)
-				$('.task-card').on('click', function (e) {
-					if (!$(e.target).is('.form-check, .form-check-input, .form-check-label') && $(e.target).closest('a').length === 0) {
-						const taskId = $(this).data('task-id');
-						if (taskId) {
-							window.location.href = `task.php?id=${taskId}`;
-						}
-					}
-				});
 			}
 
 			// Local filter function removed as filtering is now done via API.

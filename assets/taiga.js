@@ -137,6 +137,95 @@ function taigaRenderStatusBadge(statusInfo) {
 	return `<span class="badge status-badge" style="background-color: ${color}; color: ${textColor}; border: 1px solid rgba(0,0,0,0.1);">${statusInfo.name}</span>`;
 }
 
+function taigaBaseUrlFromApi(apiUrl) {
+	if (!apiUrl) return '';
+	return String(apiUrl).replace(/\/api\/v\d+$/, '');
+}
+
+function taigaGetProjectSlug(projectId, apiUrl, token) {
+	window.taigaCache = window.taigaCache || {};
+	window.taigaCache.projectSlugById = window.taigaCache.projectSlugById || {};
+
+	const pid = projectId ? String(projectId) : '';
+	if (!pid) return $.Deferred().resolve(null).promise();
+
+	const cached = window.taigaCache.projectSlugById[pid];
+	if (cached) return $.Deferred().resolve(cached).promise();
+
+	return $.ajax({
+		url: 'api.php/projects/' + encodeURIComponent(pid),
+		type: 'GET',
+		headers: {
+			'Authorization': 'Bearer ' + (token || window.taigaToken),
+			'Content-Type': 'application/json',
+			'X-Taiga-Api-Url': apiUrl || window.apiUrl
+		}
+	}).then(function (project) {
+		const slug = project && project.slug ? String(project.slug) : null;
+		if (slug) {
+			window.taigaCache.projectSlugById[pid] = slug;
+		}
+		return slug;
+	}, function () {
+		return null;
+	});
+}
+
+function taigaItemPermalink(type, item, apiUrl, options) {
+	options = options || {};
+	if (item && item.permalink) return item.permalink;
+	const base = taigaBaseUrlFromApi(apiUrl || window.apiUrl);
+	if (!base) return null;
+
+	const projectSlug = options.projectSlug
+		|| item?.project_extra?.slug
+		|| (item?.project && window.taigaCache?.projectSlugById ? window.taigaCache.projectSlugById[String(item.project)] : null)
+		|| null;
+
+	const ref = item ? (item.ref ?? item.ref_id ?? item.ref_number ?? item.id) : null;
+
+	switch (String(type || '').toLowerCase()) {
+		case 'project':
+			return item && item.slug ? base + '/project/' + item.slug : null;
+		case 'task':
+			return (projectSlug && ref) ? base + '/project/' + projectSlug + '/task/' + encodeURIComponent(String(ref)) : null;
+		case 'us':
+		case 'usor':
+		case 'userstory':
+			return (projectSlug && ref) ? base + '/project/' + projectSlug + '/us/' + encodeURIComponent(String(ref)) : null;
+		case 'issue':
+		case 'isu':
+			return (projectSlug && ref) ? base + '/project/' + projectSlug + '/issue/' + encodeURIComponent(String(ref)) : null;
+		case 'epic':
+		case 'epik':
+			return (projectSlug && ref) ? base + '/project/' + projectSlug + '/epic/' + encodeURIComponent(String(ref)) : null;
+		case 'sprint':
+			return (projectSlug && item && item.slug) ? base + '/project/' + projectSlug + '/taskboard/' + item.slug : null;
+		default:
+			return null;
+	}
+}
+
+function taigaRenderMarkdown(text) {
+	const content = String(text || '').trim();
+	if (!content) {
+		return '<p class="text-muted"><em>(kosong)</em></p>';
+	}
+	try {
+		if (window.commonmark) {
+			const reader = new commonmark.Parser();
+			const writer = new commonmark.HtmlRenderer({ safe: false });
+			const parsed = reader.parse(content);
+			return writer.render(parsed);
+		}
+	} catch (e) {}
+	const escaped = content
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
+	return escaped.replace(/\n/g, '<br>');
+}
+
 /**
  * View Layer: Updates select elements with status options.
  * @param {jQuery} $select - The jQuery select element

@@ -144,14 +144,33 @@ require __DIR__ . '/app/init.php';
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
 				const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
 				const headerHtml = `
-					<h1 class="display-4 mb-2 text-white">${task.subject || 'Untitled Task'}</h1>
-					<p class="lead mb-0 text-white-50">Ref: #${task.ref}</p>
-					<div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
-						${statusBadge}
-						<span class="badge bg-dark-subtle text-dark">Assigned: <strong>${assignedTo}</strong></span>
+					<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
+						<div class="me-3">
+							<h1 class="display-4 mb-2 text-white">${task.subject || 'Untitled Task'}</h1>
+							<p class="lead mb-0 text-white-50">Ref: #${task.ref}</p>
+							<div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+								${statusBadge}
+								<span class="badge bg-dark-subtle text-dark">Assigned: <strong>${assignedTo}</strong></span>
+							</div>
+						</div>
+						<div class="mt-3 mt-md-0">
+							<a class="btn btn-light btn-sm d-none" id="taskTaigaLinkBtn" href="#" target="_blank" rel="noopener">Open in Taiga</a>
+						</div>
 					</div>
 				`;
 				$('#taskHeaderContent').html(headerHtml);
+
+				const taigaLink = taigaItemPermalink('task', task, apiUrl);
+				if (taigaLink) {
+					$('#taskTaigaLinkBtn').removeClass('d-none').attr('href', taigaLink);
+				} else if (task.project) {
+					taigaGetProjectSlug(task.project, apiUrl, token).then(function (projectSlug) {
+						const link = taigaItemPermalink('task', task, apiUrl, { projectSlug: projectSlug });
+						if (link) {
+							$('#taskTaigaLinkBtn').removeClass('d-none').attr('href', link);
+						}
+					});
+				}
 			}
 
 			function displayTaskDetails(task) {
@@ -208,16 +227,8 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayTaskDescription(task) {
-				if (!task.description) {
-					$('#taskDescriptionContent').closest('.card').hide();
-					return;
-				}
-				const descriptionHtml = `
-					<div class="description-content">
-						${task.description}
-					</div>
-				`;
-				$('#taskDescriptionContent').html(descriptionHtml);
+				const html = taigaRenderMarkdown(task.description || '');
+				$('#taskDescriptionContent').html(html);
 			}
 
 			function displayTaskMetadata(task) {
@@ -279,4 +290,3 @@ require __DIR__ . '/app/init.php';
 </body>
 
 </html>
-
