@@ -2,7 +2,7 @@
 
 require __DIR__ . '/app/init.php';
 
-$pageTitle = 'My Projects';
+$pageTitle = 'Projek';
 $searchPlaceholder = 'Search projects...';
 $bulkActions = '<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal"><i class="bi bi-pencil-square me-2"></i> Bulk Prefix</a></li>';
 

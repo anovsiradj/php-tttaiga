@@ -6,23 +6,14 @@ require __DIR__ . '/app/init.php';
 <html lang="en">
 
 <head>
-	<?php 
-	$pageTitle = 'Profile';
-	include __DIR__ . '/app/layouts/main_head.php'; 
+	<?php
+	$pageTitle = 'Me';
+	include __DIR__ . '/app/layouts/main_head.php';
 	?>
 </head>
 
 <body>
-
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
-
-	<?php
-	$backUrl = 'projects.php';
-	$backLabel = 'Back to Projects';
-	$headerId = 'profileHeaderContent';
-	$loadingLabel = 'Loading profile...';
-	include __DIR__ . '/app/partials/item_header.php';
-	?>
 
 	<div class="container pb-5">
 		<div class="row justify-content-center">
@@ -49,7 +40,7 @@ require __DIR__ . '/app/init.php';
 	<script src="assets/theme.js"></script>
 
 	<script>
-		$(document).ready(function () {
+		$(document).ready(function() {
 			const token = localStorage.getItem('taiga_token');
 			const userData = localStorage.getItem('taiga_user');
 
@@ -59,7 +50,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 			const user = JSON.parse(userData);
-			$('#profileHeaderContent').html(`<h1 class="display-4 text-white mb-0">My Profile</h1>`);
+			$('#profileHeaderContent').html(`<h1 class="display-4 text-white mb-0">Me</h1>`);
 			renderProfile(user);
 
 

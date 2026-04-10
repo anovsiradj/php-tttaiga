@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "../php-skit",
-                "reference": "b0fe860d78209dfd1c7e453f4dcbca865272d414"
+                "reference": "85440ebbe518500de20020f51a10a03e3bb1aa26"
             },
             "require": {
                 "php": ">=7.4"
@@ -47,7 +47,7 @@
             "dist": {
                 "type": "path",
                 "url": "../web-skit",
-                "reference": "68a44e1f3586ebbe5cc258d957c86a8f2ae14ba9"
+                "reference": "d55d97da5805a5082daf219df9293c738721d98c"
             },
             "require-dev": {
                 "anovsiradj/cutter": "@dev",
