@@ -1081,3 +1081,168 @@ function taigaApplyFiltersFromUrl() {
 		return page;
 	});
 }
+
+function taigaCacheGet(key, ttlMs) {
+	ttlMs = typeof ttlMs === 'number' ? ttlMs : 0;
+	try {
+		const raw = localStorage.getItem(key);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed !== 'object') return null;
+		const t = parsed.t;
+		if (!t || (ttlMs > 0 && (Date.now() - t) > ttlMs)) return null;
+		return parsed.v;
+	} catch (e) {
+		return null;
+	}
+}
+
+function taigaCacheSet(key, value) {
+	try {
+		localStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value }));
+		return true;
+	} catch (e) {
+		return false;
+	}
+}
+
+function taigaCacheKey(parts) {
+	parts = Array.isArray(parts) ? parts : [parts];
+	const safe = parts.map(p => String(p == null ? '' : p));
+	return 'taiga_cache:' + safe.join('|');
+}
+
+function taigaCachedGetJson(url, ajaxOptions, cacheKey, ttlMs) {
+	const cached = taigaCacheGet(cacheKey, ttlMs);
+	if (cached !== null) {
+		return $.Deferred().resolve(cached).promise();
+	}
+
+	ajaxOptions = ajaxOptions || {};
+	return $.ajax({
+		url: url,
+		type: 'GET',
+		data: ajaxOptions.data,
+		dataType: 'json',
+		headers: ajaxOptions.headers
+	}).then(function (data) {
+		taigaCacheSet(cacheKey, data);
+		return data;
+	});
+}
+
+function taigaHistoryTypeFromItemType(type) {
+	const t = String(type || '').toLowerCase().trim();
+	if (t === 'us' || t === 'usor' || t === 'userstory' || t === 'user_story') return 'userstory';
+	if (t === 'task') return 'task';
+	if (t === 'issue' || t === 'isu') return 'issue';
+	if (t === 'wiki' || t === 'wikipage') return 'wiki';
+	return t;
+}
+
+function taigaFormatDateTime(value) {
+	if (!value) return '';
+	const d = new Date(value);
+	if (isNaN(d.getTime())) return String(value);
+	return d.toLocaleString();
+}
+
+function taigaExtractHistoryComments(historyEntries) {
+	const entries = Array.isArray(historyEntries) ? historyEntries : [];
+	const comments = [];
+
+	entries.forEach(entry => {
+		if (!entry || typeof entry !== 'object') return;
+
+		const isDeleted = entry.comment_deleted || entry.is_comment_deleted || entry.deleted || entry.is_deleted;
+		if (isDeleted) return;
+
+		const html = entry.comment_html || entry.commentHtml || null;
+		const text = entry.comment || entry.comment_text || entry.text || null;
+		const raw = html ? html : text;
+		if (!raw || String(raw).trim() === '') return;
+
+		const authorObj = entry.user || entry.owner || entry.by || entry.created_by || entry.user_extra || null;
+		const author = authorObj
+			? (authorObj.full_name_display || authorObj.full_name || authorObj.name || authorObj.username || authorObj.email || null)
+			: null;
+
+		const date = entry.created_at || entry.created_date || entry.created || entry.date || entry.modified_at || null;
+		const bodyHtml = html ? html : taigaRenderMarkdown(String(text || ''));
+
+		comments.push({
+			id: entry.id || entry.comment_id || entry.pk || null,
+			author: author || 'Unknown',
+			date: date,
+			html: bodyHtml
+		});
+	});
+
+	comments.sort(function (a, b) {
+		const ta = a && a.date ? new Date(a.date).getTime() : 0;
+		const tb = b && b.date ? new Date(b.date).getTime() : 0;
+		return ta - tb;
+	});
+
+	return comments;
+}
+
+function taigaRenderCommentsList(comments) {
+	if (!Array.isArray(comments) || comments.length === 0) {
+		return '<div class="text-muted italic"><em>(kosong)</em></div>';
+	}
+
+	let html = '';
+	comments.forEach(c => {
+		const author = c && c.author ? String(c.author) : 'Unknown';
+		const date = c && c.date ? taigaFormatDateTime(c.date) : '';
+		const body = c && c.html ? String(c.html) : '';
+
+		html += `
+			<div class="mb-3">
+				<div class="d-flex justify-content-between align-items-center">
+					<strong>${author}</strong>
+					<small class="text-muted">${date}</small>
+				</div>
+				<div class="mt-2 description-content">${body}</div>
+			</div>
+		`;
+	});
+	return html;
+}
+
+function taigaLoadComments(targetSelector, itemType, itemId, apiUrl, token, options) {
+	options = options || {};
+	const ttlMs = typeof options.ttlMs === 'number' ? options.ttlMs : (2 * 60 * 1000);
+	const historyType = taigaHistoryTypeFromItemType(itemType);
+	const id = itemId ? String(itemId) : '';
+	const $target = $(targetSelector);
+	if (!$target.length || !id) return $.Deferred().resolve([]).promise();
+
+	const cacheKey = taigaCacheKey(['history', apiUrl || window.apiUrl, historyType, id]);
+
+	return taigaCachedGetJson(
+		'api.php/history/' + encodeURIComponent(historyType) + '/' + encodeURIComponent(id),
+		{
+			headers: {
+				'Authorization': 'Bearer ' + (token || window.taigaToken),
+				'Content-Type': 'application/json',
+				'X-Taiga-Api-Url': apiUrl || window.apiUrl
+			}
+		},
+		cacheKey,
+		ttlMs
+	).then(function (historyEntries) {
+		const comments = taigaExtractHistoryComments(historyEntries);
+		$target.html(taigaRenderCommentsList(comments));
+		return comments;
+	}, function (xhr) {
+		const status = xhr && xhr.status ? xhr.status : 0;
+		if (status === 404) {
+			$target.html('<div class="text-muted italic"><em>(comment tidak tersedia)</em></div>');
+		} else {
+			$target.html('<div class="alert alert-warning mb-0">Unable to load comments.</div>');
+		}
+		return [];
+	});
+}

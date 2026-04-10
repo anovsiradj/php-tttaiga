@@ -2,13 +2,84 @@
 
 /* Base styles */
 :root {
-	--card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	--card-shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.15);
+	--color-theme: #A32B2B;
+	--color-light: #CBCBC5;
+	--color-gray: #646668;
+	--color-dark: #2F3128;
+
+	--color-theme-rgb: 163, 43, 43;
+	--color-light-rgb: 203, 203, 197;
+	--color-gray-rgb: 100, 102, 104;
+	--color-dark-rgb: 47, 49, 40;
+
+	--app-brand: var(--color-theme);
+	--app-brand-rgb: var(--color-theme-rgb);
+
+	--app-bg: #F9F9F7;
+	--app-surface: #FFFFFF;
+	--app-surface-muted: var(--color-light);
+
+	--app-text: var(--color-dark);
+	--app-text-muted: var(--color-gray);
+	--app-border: rgba(var(--color-dark-rgb), 0.18);
+
+	--shadow-card: 0 2px 4px rgba(0, 0, 0, 0.1);
+	--shadow-card-hover: 0 6px 12px rgba(0, 0, 0, 0.15);
+
+	--card-shadow: var(--shadow-card);
+	--card-shadow-hover: var(--shadow-card-hover);
+}
+
+[data-bs-theme="light"] {
+	--bs-primary: var(--app-brand);
+	--bs-primary-rgb: var(--app-brand-rgb);
+	--bs-primary-border-subtle: rgba(var(--app-brand-rgb), 0.35);
+
+	--bs-body-bg: var(--app-bg);
+	--bs-body-color: var(--app-text);
+	--bs-emphasis-color: var(--app-text);
+	--bs-secondary-color: var(--app-text-muted);
+
+	--bs-border-color: var(--app-border);
+	--bs-secondary-bg: var(--app-surface-muted);
+	--bs-tertiary-bg: var(--app-surface-muted);
+	--bs-secondary-border-subtle: rgba(var(--color-dark-rgb), 0.08);
+
+	--bs-link-color: var(--app-brand);
+	--bs-link-hover-color: rgba(var(--app-brand-rgb), 0.85);
 }
 
 [data-bs-theme="dark"] {
-	--card-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-	--card-shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.6);
+	--app-bg: #151613;
+	--app-surface: #1F201B;
+	--app-surface-muted: #2B2C26;
+
+	--app-text: rgba(var(--color-light-rgb), 0.94);
+	--app-text-muted: rgba(var(--color-light-rgb), 0.72);
+	--app-border: rgba(var(--color-light-rgb), 0.16);
+
+	--shadow-card: 0 2px 4px rgba(0, 0, 0, 0.5);
+	--shadow-card-hover: 0 6px 12px rgba(0, 0, 0, 0.6);
+
+	--card-shadow: var(--shadow-card);
+	--card-shadow-hover: var(--shadow-card-hover);
+
+	--bs-primary: var(--app-brand);
+	--bs-primary-rgb: var(--app-brand-rgb);
+	--bs-primary-border-subtle: rgba(var(--app-brand-rgb), 0.35);
+
+	--bs-body-bg: var(--app-bg);
+	--bs-body-color: var(--app-text);
+	--bs-emphasis-color: var(--app-text);
+	--bs-secondary-color: var(--app-text-muted);
+
+	--bs-border-color: var(--app-border);
+	--bs-secondary-bg: var(--app-surface-muted);
+	--bs-tertiary-bg: var(--app-surface-muted);
+	--bs-secondary-border-subtle: rgba(var(--color-light-rgb), 0.1);
+
+	--bs-link-color: rgba(var(--app-brand-rgb), 0.9);
+	--bs-link-hover-color: var(--app-brand);
 }
 
 body {
@@ -16,7 +87,7 @@ body {
 }
 
 .navbar-brand {
-	color: #e4405f !important;
+	color: var(--app-brand) !important;
 	font-weight: bold;
 }
 
@@ -66,7 +137,7 @@ body {
 .task-card,
 .user-story-card,
 .usor-card {
-	border-left: 4px solid #007bff;
+	border-left: 4px solid var(--bs-primary);
 }
 
 .task-card:hover,
@@ -159,9 +230,9 @@ body {
 	font-weight: bold;
 }
 
-.stat-number.project { color: #e4405f; }
-.stat-number.usor { color: #007bff; }
-.stat-number.epic { color: #fd7e14; }
+.stat-number.project { color: var(--app-brand); }
+.stat-number.usor { color: var(--app-brand); }
+.stat-number.epic { color: var(--app-brand); }
 
 /* Back buttons */
 .back-btn {
@@ -299,7 +370,7 @@ body.login-page {
 }
 
 .taiga-logo {
-	color: #e4405f;
+	color: var(--app-brand);
 	font-weight: bold;
 	font-size: 2rem;
 	text-align: center;

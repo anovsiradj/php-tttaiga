@@ -48,6 +48,19 @@ require __DIR__ . '/app/init.php';
 						</div>
 					</div>
 				</div>
+
+				<div class="card mb-4">
+					<div class="card-header">
+						<h5 class="mb-0">Komentar</h5>
+					</div>
+					<div class="card-body" id="taskCommentsContent">
+						<div class="loading-spinner text-center p-3">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading comments...</span>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="col-md-4">
@@ -107,6 +120,8 @@ require __DIR__ . '/app/init.php';
 				window.location.href = 'tasks.php';
 				return;
 			}
+
+			taigaLoadComments('#taskCommentsContent', 'task', taskId, apiUrl, token);
 
 			const apiGet = function (url) {
 				return $.ajax({

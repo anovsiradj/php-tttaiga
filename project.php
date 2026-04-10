@@ -49,6 +49,19 @@ require __DIR__ . '/app/init.php';
 						</div>
 					</div>
 				</div>
+
+				<div class="card mb-4">
+					<div class="card-header">
+						<h5 class="mb-0">Komentar</h5>
+					</div>
+					<div class="card-body" id="projectCommentsContent">
+						<div class="loading-spinner">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading comments...</span>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="col-md-4">
@@ -110,6 +123,8 @@ require __DIR__ . '/app/init.php';
 				window.location.href = 'projects.php';
 				return;
 			}
+
+			taigaLoadComments('#projectCommentsContent', 'project', projectId, apiUrl, token);
 
 			// Load project data
 			loadProjectData(projectId);

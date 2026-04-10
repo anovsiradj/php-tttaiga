@@ -50,6 +50,19 @@ require __DIR__ . '/app/init.php';
 					</div>
 				</div>
 
+				<div class="card mb-4">
+					<div class="card-header">
+						<h5 class="mb-0">Komentar</h5>
+					</div>
+					<div class="card-body" id="epicCommentsContent">
+						<div class="loading-spinner">
+							<div class="spinner-border" role="status">
+								<span class="visually-hidden">Loading comments...</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<div class="card">
 					<div class="card-header">
 						<h5 class="mb-0">Usor</h5>
@@ -124,6 +137,8 @@ require __DIR__ . '/app/init.php';
 				window.location.href = 'epics.php';
 				return;
 			}
+
+			taigaLoadComments('#epicCommentsContent', 'epic', epicId, apiUrl, token);
 
 			// Load epic data
 			loadEpicData(epicId);
