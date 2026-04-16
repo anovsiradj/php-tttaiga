@@ -108,16 +108,17 @@ body {
 .usor-card,
 .epic-card,
 .task-card,
-.user-story-card {
+.user-story-card,
+.index-item-card {
 	transition: transform 0.2s, box-shadow 0.2s;
-	cursor: pointer;
 }
 
 .project-card:hover,
 .usor-card:hover,
 .epic-card:hover,
 .task-card:hover,
-.user-story-card:hover {
+.user-story-card:hover,
+.index-item-card:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--card-shadow-hover);
 }
@@ -136,12 +137,14 @@ body {
 /* Side border cards */
 .task-card,
 .user-story-card,
-.usor-card {
+.usor-card,
+.index-item-card {
 	border-left: 4px solid var(--bs-primary);
 }
 
 .task-card:hover,
-.user-story-card:hover {
+.user-story-card:hover,
+.index-item-card:hover {
 	transform: translateX(4px);
 }
 
@@ -183,36 +186,39 @@ body {
 }
 
 /* Status background colors */
-.bg-new { background-color: #17a2b8; }
-.bg-in-progress { background-color: #007bff; }
-.bg-done { background-color: #28a745; }
-.bg-archived { background-color: #6c757d; }
-.bg-ready { background-color: #6f42c1; }
-.bg-blocked { background-color: #dc3545; }
+.bg-new {
+	background-color: #17a2b8;
+}
+
+.bg-in-progress {
+	background-color: #007bff;
+}
+
+.bg-done {
+	background-color: #28a745;
+}
+
+.bg-archived {
+	background-color: #6c757d;
+}
+
+.bg-ready {
+	background-color: #6f42c1;
+}
+
+.bg-blocked {
+	background-color: #dc3545;
+}
 
 /* Header sections */
-.project-header,
-.usor-header,
-.epic-header {
+.item-header {
+	--header-start: #A32B2B;
+	--header-end: #f76707;
+
 	background: linear-gradient(135deg, var(--header-start) 0%, var(--header-end) 100%);
 	color: white;
 	padding: 2rem 0;
 	margin-bottom: 2rem;
-}
-
-.project-header {
-	--header-start: #667eea;
-	--header-end: #764ba2;
-}
-
-.usor-header {
-	--header-start: #007bff;
-	--header-end: #0056b3;
-}
-
-.epic-header {
-	--header-start: #fd7e14;
-	--header-end: #f76707;
 }
 
 /* Stats cards */
@@ -230,9 +236,17 @@ body {
 	font-weight: bold;
 }
 
-.stat-number.project { color: var(--app-brand); }
-.stat-number.usor { color: var(--app-brand); }
-.stat-number.epic { color: var(--app-brand); }
+.stat-number.project {
+	color: var(--app-brand);
+}
+
+.stat-number.usor {
+	color: var(--app-brand);
+}
+
+.stat-number.epic {
+	color: var(--app-brand);
+}
 
 /* Back buttons */
 .back-btn {

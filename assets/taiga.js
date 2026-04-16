@@ -112,7 +112,7 @@ function taigaGetStatusInfo(item) {
 			color: item.status_extra.color || '#666666'
 		};
 	}
-	
+
 	// Fallback if status_extra is missing
 	return {
 		name: item.status || 'Unknown',
@@ -218,7 +218,7 @@ function taigaRenderMarkdown(text) {
 			const parsed = reader.parse(content);
 			return writer.render(parsed);
 		}
-	} catch (e) {}
+	} catch (e) { }
 	const escaped = content
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
@@ -275,20 +275,20 @@ function taigaRenderPagination(xhr, containerSelector, onPageChange) {
 		if (total <= 7) {
 			return Array.from({ length: total }, (_, i) => i + 1);
 		}
-		
+
 		if (current <= 4) {
 			return [1, 2, 3, 4, 5, '...', total];
 		}
-		
+
 		if (current >= total - 3) {
 			return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
 		}
-		
+
 		return [1, '...', current - 1, current, current + 1, '...', total];
 	}
-	
+
 	const pageItems = getPageItems(current, totalPages);
-	
+
 	pageItems.forEach(item => {
 		if (item === '...') {
 			paginationHtml += `
@@ -355,7 +355,7 @@ function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
 	$el.select2({
 		theme: 'bootstrap-5',
 		ajax: {
-			url: function() {
+			url: function () {
 				return 'api.php' + endpoint;
 			},
 			dataType: 'json',
@@ -669,11 +669,11 @@ function taigaExecuteBulk(endpoint, items, method, data, onComplete) {
 	items.forEach(item => {
 		const id = typeof item === 'object' ? item.id : item;
 		const version = typeof item === 'object' ? item.version : null;
-		
+
 		// Clone data and add version if PATCHing an object with version
 		// SUPPORT: data can be a function (item) => requestData
 		let requestData = typeof data === 'function' ? data(item) : data;
-		
+
 		if (method === 'PATCH' && version !== null) {
 			requestData = { ...requestData, version: version };
 		}
@@ -730,7 +730,7 @@ function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Sele
 				console.warn('taigaPopulateBulkStatuses: statuses is not an array', statuses);
 			}
 			$select.html(html);
-			
+
 			// Initialize Select2
 			$select.select2({
 				theme: 'bootstrap-5',
@@ -803,7 +803,7 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 				console.warn('taigaPopulateBulkMembers: memberships is not an array', memberships);
 			}
 			$select.html(html);
-			
+
 			// Initialize Select2
 			$select.select2({
 				theme: 'bootstrap-5',
@@ -1181,7 +1181,7 @@ function taigaExtractHistoryComments(historyEntries) {
 	comments.sort(function (a, b) {
 		const ta = a && a.date ? new Date(a.date).getTime() : 0;
 		const tb = b && b.date ? new Date(b.date).getTime() : 0;
-		return ta - tb;
+		return tb - ta;
 	});
 
 	return comments;
