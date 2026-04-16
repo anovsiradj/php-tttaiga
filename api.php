@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Taiga API Proxy
  * 
@@ -196,4 +197,3 @@ foreach ($curl->resHeaders as $header) {
 
 header('Content-Type: application/json');
 echo $responseBody;
-

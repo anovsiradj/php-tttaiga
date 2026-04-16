@@ -1,0 +1,35 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+			"file_exclude_patterns": [
+				"tttaiga/*sublime*",
+			],
+		},
+		{
+			"path": "C:\\projects\\anoop\\php-skit",
+			"folder_exclude_patterns": [
+				"php-skit/tests",
+			],
+			"file_exclude_patterns": [
+				"php-skit/.git*",
+				"php-skit/composer*",
+				"php-skit/*-project",
+				"php-skit/*-workspace",
+			],
+		},
+		{
+			"path": "C:\\projects\\anoop\\web-skit",
+			"folder_exclude_patterns": [
+				"web-skit/tests",
+			],
+			"file_exclude_patterns": [
+				"web-skit/.git*",
+				"web-skit/composer*",
+				"web-skit/*-project",
+				"web-skit/*-workspace",
+			],
+		},
+	],
+}
