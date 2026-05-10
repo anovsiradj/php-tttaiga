@@ -218,7 +218,7 @@ function taigaRenderMarkdown(text) {
 			const parsed = reader.parse(content);
 			return writer.render(parsed);
 		}
-	} catch (e) { }
+	} catch (e) {}
 	const escaped = content
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')

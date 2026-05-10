@@ -98,10 +98,11 @@ require __DIR__ . '/app/init.php';
 
 	<script src="assets/app.js"></script>
 	<script src="assets/taiga.js"></script>
+	<script src="assets/taiga-view.js"></script>
 	<script src="assets/theme.js"></script>
 
 	<script>
-		$(document).ready(function () {
+		$(document).ready(function() {
 			const token = localStorage.getItem('taiga_token');
 			const userData = localStorage.getItem('taiga_user');
 
@@ -123,7 +124,7 @@ require __DIR__ . '/app/init.php';
 
 			taigaLoadComments('#taskCommentsContent', 'task', taskId, apiUrl, token);
 
-			const apiGet = function (url) {
+			const apiGet = function(url) {
 				return $.ajax({
 					url: url,
 					type: 'GET',
@@ -136,14 +137,14 @@ require __DIR__ . '/app/init.php';
 			};
 
 			apiGet('api.php/tasks/' + encodeURIComponent(taskId))
-				.done(function (task) {
+				.done(function(task) {
 					displayTaskHeader(task);
 					displayTaskDetails(task);
 					displayTaskDescription(task);
 					displayTaskMetadata(task);
 					displayTaskBelongsTo(task);
 				})
-				.fail(function (xhr) {
+				.fail(function(xhr) {
 					console.error('Failed to load task:', xhr);
 					$('#taskHeaderContent').html(`
 						<div class="alert alert-danger">
@@ -179,8 +180,10 @@ require __DIR__ . '/app/init.php';
 				if (taigaLink) {
 					$('#taskTaigaLinkBtn').removeClass('d-none').attr('href', taigaLink);
 				} else if (task.project) {
-					taigaGetProjectSlug(task.project, apiUrl, token).then(function (projectSlug) {
-						const link = taigaItemPermalink('task', task, apiUrl, { projectSlug: projectSlug });
+					taigaGetProjectSlug(task.project, apiUrl, token).then(function(projectSlug) {
+						const link = taigaItemPermalink('task', task, apiUrl, {
+							projectSlug: projectSlug
+						});
 						if (link) {
 							$('#taskTaigaLinkBtn').removeClass('d-none').attr('href', link);
 						}
@@ -221,29 +224,31 @@ require __DIR__ . '/app/init.php';
 
 				if (task.project && !task.project_extra?.name) {
 					apiGet('api.php/projects/' + encodeURIComponent(task.project))
-						.done(function (project) {
+						.done(function(project) {
 							$('#taskProjectName').text(project.name || ('Project ID: ' + task.project));
 						});
 				}
 
 				if (task.user_story && !task.user_story_extra) {
 					apiGet('api.php/userstories/' + encodeURIComponent(task.user_story))
-						.done(function (usor) {
+						.done(function(usor) {
 							$('#taskUsorName').text(`#${usor.ref}: ${usor.subject || 'Untitled Usor'}`);
 						});
 				}
 
 				if (task.milestone && !task.milestone_extra?.name) {
 					apiGet('api.php/milestones/' + encodeURIComponent(task.milestone))
-						.done(function (sprint) {
+						.done(function(sprint) {
 							$('#taskSprintName').text(sprint.name || ('Sprint ID: ' + task.milestone));
 						});
 				}
 			}
 
 			function displayTaskDescription(task) {
-				const html = taigaRenderMarkdown(task.description || '');
+				const html = taigaRenderMarkdown(task.description_html);
 				$('#taskDescriptionContent').html(html);
+
+				taigaViewAdjustTable('#taskDescriptionContent')
 			}
 
 			function displayTaskMetadata(task) {
