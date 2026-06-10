@@ -1,0 +1,4 @@
+interface:
+  display_name: "Taiga API"
+  short_description: "Build against the Taiga REST API"
+  default_prompt: "Use $taiga-api to implement a Taiga REST API integration."
