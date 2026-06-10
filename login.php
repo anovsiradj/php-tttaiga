@@ -4,13 +4,26 @@ require __DIR__ . '/app/init.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 	$action = $_POST['action'];
 	if ($action === 'login') {
-		$_SESSION['taiga_token'] = $_POST['taiga_token'] ?? '';
+		$config = include __DIR__ . '/app/configs/taiga.php';
+		$apiUrl = tttaiga_resolve_api_url($config, $_POST['taiga_api_url'] ?? null);
+		$token = trim((string) ($_POST['taiga_token'] ?? ''));
+		if (!$apiUrl || $token === '') {
+			tttaiga_json_error(400, 'Invalid login session');
+		}
+
+		session_regenerate_id(true);
+		$_SESSION['taiga_token'] = $token;
 		$_SESSION['taiga_user'] = $_POST['taiga_user'] ?? '';
-		$_SESSION['taiga_api_url'] = $_POST['taiga_api_url'] ?? '';
+		$_SESSION['taiga_api_url'] = $apiUrl;
 		header('Content-Type: application/json');
 		echo json_encode(['success' => true]);
 		exit;
 	} elseif ($action === 'logout') {
+		$_SESSION = [];
+		if (ini_get('session.use_cookies')) {
+			$params = session_get_cookie_params();
+			setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+		}
 		session_destroy();
 		header('Content-Type: application/json');
 		echo json_encode(['success' => true]);
@@ -170,11 +183,6 @@ $pageTitle = 'Login';
 						password: password
 					}),
 					success: function (response) {
-						localStorage.setItem('taiga_token', response.auth_token);
-						localStorage.setItem('taiga_user', JSON.stringify(response));
-						localStorage.setItem('taiga_api_url', apiUrl);
-
-						// POST to self to set session
 						$.ajax({
 							url: 'login.php',
 							type: 'POST',
@@ -185,6 +193,9 @@ $pageTitle = 'Login';
 								taiga_api_url: apiUrl
 							},
 							success: function () {
+								localStorage.setItem('taiga_token', 'session');
+								localStorage.setItem('taiga_user', JSON.stringify(response));
+								localStorage.setItem('taiga_api_url', apiUrl);
 								window.location.href = 'projects.php';
 							}
 						});

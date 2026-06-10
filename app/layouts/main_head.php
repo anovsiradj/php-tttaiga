@@ -1,3 +1,12 @@
+<?php
+$sessionUser = null;
+if (!empty($_SESSION['taiga_user'])) {
+	$decodedUser = json_decode((string) $_SESSION['taiga_user'], true);
+	if (is_array($decodedUser)) {
+		$sessionUser = $decodedUser;
+	}
+}
+?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo (isset($pageTitle) ? $pageTitle . ' - ' : '') . 'TTTaiga'; ?></title>
@@ -12,20 +21,25 @@
 <link href="assets/app.css" rel="stylesheet">
 
 <script>
-	// Sync PHP session to localStorage
 	(function() {
-		const sessionToken = <?php echo json_encode($_SESSION['taiga_token'] ?? null); ?>;
-		const sessionUser = <?php echo json_encode($_SESSION['taiga_user'] ?? null); ?>;
+		const sessionUser = <?php echo json_encode($sessionUser); ?>;
 		const sessionApiUrl = <?php echo json_encode($_SESSION['taiga_api_url'] ?? null); ?>;
+		const isAuthenticated = <?php echo !empty($_SESSION['taiga_token']) ? 'true' : 'false'; ?>;
 
-		if (sessionToken) localStorage.setItem('taiga_token', sessionToken);
-		if (sessionUser) localStorage.setItem('taiga_user', sessionUser);
-		if (sessionApiUrl) localStorage.setItem('taiga_api_url', sessionApiUrl);
+		window.TTTaigaSession = {
+			authenticated: isAuthenticated,
+			user: sessionUser,
+			apiUrl: sessionApiUrl
+		};
 
-		// If session is empty but localStorage has data, we might need to handle that, 
-		// but per request "fully use php session" suggests PHP is the source of truth.
-		if (!sessionToken && !window.location.pathname.endsWith('login.php')) {
-			// localStorage.clear(); // Optional: clear if session is gone?
+		if (isAuthenticated) {
+			localStorage.setItem('taiga_token', 'session');
+			if (sessionUser) localStorage.setItem('taiga_user', JSON.stringify(sessionUser));
+			if (sessionApiUrl) localStorage.setItem('taiga_api_url', sessionApiUrl);
+		} else {
+			localStorage.removeItem('taiga_token');
+			localStorage.removeItem('taiga_user');
+			localStorage.removeItem('taiga_api_url');
 		}
 	})();
 </script>

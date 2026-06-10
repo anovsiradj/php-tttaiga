@@ -15,26 +15,27 @@ abstract class App
 	public static function config($name, $key = null, $valAlt = null)
 	{
 		$env = static::env();
+		$configName = $name;
 		$names = [
-			"{$name}.php",
-			"{$name}.{$env}.php",
-			"{$name}.any.php",
+			"{$configName}.php",
+			"{$configName}.{$env}.php",
+			"{$configName}.any.php",
 		];
-		if (empty(static::$configCaches[$name])) {
+		if (empty(static::$configCaches[$configName])) {
 			$config = [];
 			foreach (static::$configDirs as $dir) {
-				foreach ($names as $name) {
-					if (is_file($file = "{$dir}/{$name}")) {
+				foreach ($names as $fileName) {
+					if (is_file($file = "{$dir}/{$fileName}")) {
 						$config = array_merge($config, require $file);
 					}
 				}
-				static::$configCaches[$name] = $config;
+				static::$configCaches[$configName] = $config;
 				break;
 			}
 		}
 		if ($key) {
-			return static::$configCaches[$name][$key] ?? $valAlt;
+			return static::$configCaches[$configName][$key] ?? $valAlt;
 		}
-		return static::$configCaches[$name];
+		return static::$configCaches[$configName];
 	}
 }

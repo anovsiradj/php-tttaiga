@@ -14,6 +14,13 @@
     "repositories": [
         {
             "type": "path",
+            "url": "../wiet",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
             "url": "../php-skit",
             "options": {
                 "symlink": true
@@ -34,6 +41,7 @@
     },
     "require": {
         "php": ">=8.1",
+        "anovsiradj/wiet": "@dev",
         "anovsiradj/skit": "@dev",
         "anovsiradj/web-skit": "@dev",
         "symfony/var-dumper": "^5.4",

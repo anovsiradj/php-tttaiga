@@ -10,9 +10,17 @@
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/app/init.php';
 
-header('Access-Control-Allow-Origin: *');
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin !== '') {
+	$originParts = parse_url($origin);
+	$hostParts = parse_url((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? ''));
+	if (($originParts['host'] ?? null) === ($hostParts['host'] ?? null)) {
+		header('Access-Control-Allow-Origin: ' . $origin);
+		header('Vary: Origin');
+	}
+}
 header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Taiga-Api-Url');
+header('Access-Control-Allow-Headers: Content-Type, X-Taiga-Api-Url');
 header('Access-Control-Expose-Headers: *');
 
 
@@ -21,12 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 	exit();
 }
 
-if (isset($_SESSION['taiga_token']) && empty($_SERVER['HTTP_AUTHORIZATION'])) {
-	$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $_SESSION['taiga_token'];
-}
-
 $config = include 'app/configs/taiga.php';
-$apiUrl = $_SERVER['HTTP_X_TAIGA_API_URL'] ?? $config['servers']['default']['api_url'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 $apiPath = $_SERVER['PATH_INFO'] ?? '';
@@ -42,6 +45,20 @@ if ($apiPath === '') {
 }
 
 $apiPath = strtok($apiPath, '?') ?: '/';
+$isAuthRequest = ($apiPath === '/auth' && $method === 'POST');
+$apiUrl = tttaiga_resolve_api_url(
+	$config,
+	$isAuthRequest ? ($_SERVER['HTTP_X_TAIGA_API_URL'] ?? null) : null,
+	$_SESSION['taiga_api_url'] ?? null
+);
+
+if (!$apiUrl) {
+	tttaiga_json_error(400, 'Invalid Taiga API server');
+}
+
+if (!$isAuthRequest && !tttaiga_is_authenticated()) {
+	tttaiga_json_error(401, 'Session expired');
+}
 
 $cacheablePaths = [
 	'/epic-statuses',
@@ -101,15 +118,8 @@ if ($isCacheable && $cacheKey) {
 	$headers[] = 'X-Api-Cache-Key: ' . $cacheKey;
 }
 
-if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-	$headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
-} else {
-	if (function_exists('apache_request_headers')) {
-		$requestHeaders = apache_request_headers();
-		if (isset($requestHeaders['Authorization'])) {
-			$headers[] = 'Authorization: ' . $requestHeaders['Authorization'];
-		}
-	}
+if (!$isAuthRequest) {
+	$headers[] = 'Authorization: Bearer ' . $_SESSION['taiga_token'];
 }
 
 $input = file_get_contents('php://input');
@@ -166,6 +176,10 @@ $curl->exec();
 
 $statusCode = $curl->code();
 $responseBody = $curl->data;
+
+if (!$isAuthRequest && in_array($statusCode, [401, 403], true)) {
+	unset($_SESSION['taiga_token'], $_SESSION['taiga_user'], $_SESSION['taiga_api_url']);
+}
 
 if ($responseBody === false || $responseBody === null) {
 	http_response_code(502);

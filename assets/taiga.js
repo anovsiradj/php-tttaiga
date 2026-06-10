@@ -142,6 +142,15 @@ function taigaBaseUrlFromApi(apiUrl) {
 	return String(apiUrl).replace(/\/api\/v\d+$/, '');
 }
 
+function taigaEscapeHtml(value) {
+	return String(value ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
 function taigaGetProjectSlug(projectId, apiUrl, token) {
 	window.taigaCache = window.taigaCache || {};
 	window.taigaCache.projectSlugById = window.taigaCache.projectSlugById || {};
@@ -214,7 +223,7 @@ function taigaRenderMarkdown(text) {
 	try {
 		if (window.commonmark) {
 			const reader = new commonmark.Parser();
-			const writer = new commonmark.HtmlRenderer({ safe: false });
+			const writer = new commonmark.HtmlRenderer({ safe: true });
 			const parsed = reader.parse(content);
 			return writer.render(parsed);
 		}
@@ -1168,7 +1177,7 @@ function taigaExtractHistoryComments(historyEntries) {
 			: null;
 
 		const date = entry.created_at || entry.created_date || entry.created || entry.date || entry.modified_at || null;
-		const bodyHtml = html ? html : taigaRenderMarkdown(String(text || ''));
+		const bodyHtml = html ? taigaEscapeHtml(html).replace(/\n/g, '<br>') : taigaRenderMarkdown(String(text || ''));
 
 		comments.push({
 			id: entry.id || entry.comment_id || entry.pk || null,
@@ -1194,8 +1203,8 @@ function taigaRenderCommentsList(comments) {
 
 	let html = '';
 	comments.forEach(c => {
-		const author = c && c.author ? String(c.author) : 'Unknown';
-		const date = c && c.date ? taigaFormatDateTime(c.date) : '';
+		const author = taigaEscapeHtml(c && c.author ? String(c.author) : 'Unknown');
+		const date = taigaEscapeHtml(c && c.date ? taigaFormatDateTime(c.date) : '');
 		const body = c && c.html ? String(c.html) : '';
 
 		html += `
