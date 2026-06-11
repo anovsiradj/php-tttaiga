@@ -43,6 +43,7 @@ require __DIR__ . '/app/init.php';
 		$totalLabel = 'Total Tasks';
 		$totalId = 'totalTasks';
 		$filteredId = 'filteredTasks';
+		$selectionCountId = 'selectedTasksCount';
 		include __DIR__ . '/app/partials/list_status.php';
 		?>
 
@@ -186,7 +187,7 @@ require __DIR__ . '/app/init.php';
 						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (tasks, status, xhr) {
-						displayTasks(tasks);
+						displayTasks(tasks, xhr);
 						taigaRenderPagination(xhr, '#tasksPagination', loadTasks);
 					},
 					error: function (xhr) {
@@ -204,9 +205,8 @@ require __DIR__ . '/app/init.php';
 
 			// loadUsors function removed as it is now handled by taigaLoadUsors in taiga.js
 
-			function displayTasks(tasks) {
-				$('#totalTasks').text(tasks.length);
-				$('#filteredTasks').text(tasks.length);
+			function displayTasks(tasks, xhr) {
+				taigaUpdateListCounts(xhr, tasks.length, 'totalTasks', 'filteredTasks', 'selectedTasksCount');
 
 				if (tasks.length === 0) {
 					$('#tasksContent').html(`
@@ -217,7 +217,7 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
-				let html = '<div class="row">';
+				let html = '<div class="row taiga-list-grid">';
 				tasks.forEach(task => {
 					const statusInfo = taigaGetStatusInfo(task);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
@@ -225,8 +225,8 @@ require __DIR__ . '/app/init.php';
 					const owner = task.owner_extra ? task.owner_extra.full_name_display : 'Unknown';
 
 					html += `
-				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card task-card h-100" data-task-id="${task.id}">
+				<div class="col-md-6 col-lg-4">
+					<div class="card taiga-list-card task-card h-100" data-task-id="${task.id}">
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
@@ -236,15 +236,13 @@ require __DIR__ . '/app/init.php';
 								${statusBadge}
 							</div>
 							
-							<h6 class="card-title mb-2">${task.subject || 'Untitled Task'}</h6>
+							<h6 class="card-title text-truncate">${task.subject || 'Untitled Task'}</h6>
 							
-							${task.description ? `
-								<p class="card-text task-description text-muted small mb-2 text-truncate">
-									${task.description}
-								</p>
-							` : ''}
+							<p class="card-text taiga-card-description task-description text-muted small mb-0">
+								${task.description || ''}
+							</p>
 							
-							<div class="mt-2 pt-2 border-top">
+							<div class="taiga-card-meta">
 								<div class="d-flex justify-content-between align-items-center mb-1">
 									<small class="text-muted">Ref: #${task.ref}</small>
 									<small class="text-muted">${new Date(task.created_date).toLocaleDateString()}</small>
@@ -265,17 +263,16 @@ require __DIR__ . '/app/init.php';
 									<small class="text-muted d-block mt-2 text-truncate">Usor: #${task.user_story_extra.ref} ${task.user_story_extra.subject}</small>
 								` : (task.user_story ? `<small class="text-muted d-block mt-2">Usor Ref: #${task.user_story}</small>` : '')}
 							</div>
-							
-							<div class="mt-3 d-flex gap-2 flex-wrap">
+						</div>
+						<div class="card-footer taiga-card-actions">
 								<a href="task.php?id=${task.id}" class="btn btn-sm btn-outline-secondary shadow-sm">
-									View Task Details
+									View Task
 								</a>
 								${task.user_story ? `
 									<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary shadow-sm">
-										View Usor Details
+										View Usor
 									</a>
 								` : ''}
-							</div>
 						</div>
 					</div>
 				</div>
@@ -293,7 +290,7 @@ require __DIR__ . '/app/init.php';
 
 			function updateSelectionCount() {
 				const selectedCount = $('#tasksContent input:checked').length;
-				$('#selectionCount').text(selectedCount);
+				$('#selectedTasksCount').text(selectedCount);
 			}
 
 

@@ -4,7 +4,11 @@ require __DIR__ . '/app/init.php';
 
 $pageTitle = 'Projek';
 $searchPlaceholder = 'Search projects...';
-$bulkActions = '<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal"><i class="bi bi-pencil-square me-2"></i> Bulk Prefix</a></li>';
+$bulkActions = '
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateProjectModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal"><i class="bi bi-pencil-square me-2"></i> Bulk Prefix</a></li>
+	<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteProjectModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+';
 
 $sortOptions = [
 	'name' => 'Name (A-Z)',
@@ -116,6 +120,68 @@ $filterStatusEnable = false;
 				submitBulkProjectUpdate();
 			});
 
+			$('#previewBulkCreateProjects').on('click', function () {
+				const items = taigaParseBulkLines($('#bulkCreateProjectText').val());
+				taigaRenderBulkPreview($('#bulkCreateProjectPreview'), items, 'name');
+			});
+
+			$('#submitBulkCreateProjects').on('click', function () {
+				const items = taigaParseBulkLines($('#bulkCreateProjectText').val());
+				if (items.length === 0) {
+					alert('Please enter at least one project');
+					return;
+				}
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Creating...');
+				taigaExecuteBulkCreate('/projects', items, item => ({
+					name: item.name,
+					description: item.description || item.name
+				}), (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Create Projects');
+					if (errorCount === 0) {
+						$('#bulkCreateProjectModal').modal('hide');
+						$('#bulkCreateProjectText').val('');
+						$('#bulkCreateProjectPreview').addClass('d-none').empty();
+						loadProjects();
+					}
+					alert(errorCount === 0
+						? `Successfully created ${successCount} projects!`
+						: `Created ${successCount} projects, but ${errorCount} failed.`);
+				});
+			});
+
+			$('#bulkDeleteProjectModal').on('show.bs.modal', function () {
+				const list = $('<ul class="list-group list-group-flush"></ul>');
+				$('#projectsContent input.project-checkbox:checked').each(function () {
+					list.append($('<li class="list-group-item py-1 small"></li>').text($(this).data('name') || $(this).val()));
+				});
+				$('#selectedProjectsDeleteList').empty().append(list.children().length ? list : $('<div class="text-muted"></div>').text('No projects selected.'));
+			});
+
+			$('#confirmBulkDeleteProjects').on('click', function () {
+				const selectedProjects = [];
+				$('#projectsContent input.project-checkbox:checked').each(function () {
+					selectedProjects.push({
+						id: $(this).val(),
+						version: $(this).data('version')
+					});
+				});
+				if (selectedProjects.length === 0) {
+					alert('Please select at least one project');
+					return;
+				}
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Deleting...');
+				taigaExecuteBulk('/projects/', selectedProjects, 'DELETE', null, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Delete Projects');
+					$('#bulkDeleteProjectModal').modal('hide');
+					loadProjects();
+					alert(errorCount === 0
+						? `Successfully deleted ${successCount} projects!`
+						: `Deleted ${successCount} projects, but ${errorCount} failed.`);
+				});
+			});
+
 			allowFilterLoad = false;
 			taigaApplyFiltersFromUrl().then(function (page) {
 				allowFilterLoad = true;
@@ -159,7 +225,7 @@ $filterStatusEnable = false;
 							return;
 						}
 						allProjects = projects;
-						displayProjects(projects);
+						displayProjects(projects, xhr);
 						taigaRenderPagination(xhr, '#projectsPagination', loadProjects);
 					},
 					error: function (xhr) {
@@ -175,7 +241,9 @@ $filterStatusEnable = false;
 				});
 			}
 
-			function displayProjects(projects) {
+			function displayProjects(projects, xhr) {
+				taigaUpdateListCounts(xhr, projects.length, 'totalProjects', 'filteredProjects', 'selectedProjectsCount');
+
 				if (projects.length === 0) {
 					$('#projectsContent').html(`
 						<div class="text-muted italic p-3 text-center">
@@ -185,13 +253,13 @@ $filterStatusEnable = false;
 					return;
 				}
 
-				let html = '<div class="row">';
+				let html = '<div class="row taiga-list-grid">';
 
 				if (Array.isArray(projects)) {
 					projects.forEach(project => {
 						html += `
-				<div class="col-md-6 col-lg-4 mb-4">
-					<div class="card project-card h-100" data-project-id="${project.id}">
+				<div class="col-md-6 col-lg-4">
+					<div class="card taiga-list-card project-card h-100" data-project-id="${project.id}">
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
@@ -202,11 +270,11 @@ $filterStatusEnable = false;
 									${project.is_private ? 'Private' : 'Public'}
 								</span>
 							</div>
-							<h5 class="card-title text-truncate">${project.name}</h5>
-							<p class="card-text text-muted project-description small">
+							<h6 class="card-title text-truncate">${project.name}</h6>
+							<p class="card-text text-muted taiga-card-description project-description small mb-0">
 								${project.description || ''}
 							</p>
-							<div class="mt-3 pt-2 border-top">
+							<div class="taiga-card-meta">
 								<div class="d-flex justify-content-between align-items-center mb-1">
 									<small class="text-muted">
 										Created by: ${project.owner ? project.owner.full_name_display || project.owner.username : 'Unknown'}
@@ -225,8 +293,8 @@ $filterStatusEnable = false;
 								</div>
 							</div>
 						</div>
-						<div class="card-footer bg-transparent">
-							<button class="btn btn-primary btn-sm view-project" data-project-id="${project.id}">
+						<div class="card-footer taiga-card-actions">
+							<button class="btn btn-outline-primary btn-sm view-project" data-project-id="${project.id}">
 								View Details
 							</button>
 						</div>
@@ -238,9 +306,6 @@ $filterStatusEnable = false;
 
 				html += '</div>';
 				$('#projectsContent').html(html);
-
-				// Update counts
-				taigaUpdateSelectionUI(projects.length, projects.length, 0, 'totalProjects', 'filteredProjects', 'selectedProjectsCount');
 
 				$('.view-project').on('click', function (e) {
 					e.stopPropagation();
@@ -301,7 +366,9 @@ $filterStatusEnable = false;
 		});
 	</script>
 
+	<?php include __DIR__ . '/app/partials/project_bulk_create.php'; ?>
 	<?php include __DIR__ . '/app/partials/project_bulk_update.php'; ?>
+	<?php include __DIR__ . '/app/partials/project_bulk_delete.php'; ?>
 
 </body>
 

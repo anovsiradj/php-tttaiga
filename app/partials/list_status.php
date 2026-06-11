@@ -4,9 +4,17 @@
  * $totalLabel - e.g. 'Total Isus' (Legacy support)
  * $totalId - e.g. 'totalIssues'
  * $filteredId - e.g. 'filteredIssues'
+ * $filteredLabel - (Optional) e.g. 'Shown'
  * $selectionCountId - (Optional) ID for selection count span
+ * $selectionLabel - (Optional) e.g. 'Selected'
  * $bulkActions - (Optional) HTML for dropdown items
  */
+$totalLabel ??= 'Total';
+$filteredLabel ??= 'Shown';
+$selectionLabel ??= 'Selected';
+$totalId ??= 'totalCount';
+$filteredId ??= 'shownCount';
+$selectionCountId ??= 'selectedCount';
 ?>
 <div class="sticky-bulk-bar" id="bulkActionsBar">
 	<div class="container d-flex justify-content-between align-items-center">
@@ -19,9 +27,9 @@
 			</div>
 			
 			<div class="text-muted small border-start ps-3">
-				<span class="me-3">Total: <strong id="<?php echo $totalId; ?>">0</strong></span>
-				<span class="me-3">Filtered: <strong id="<?php echo $filteredId; ?>">0</strong></span>
-				<span>Selected: <strong id="<?php echo $selectionCountId ?? 'selectedCount'; ?>">0</strong></span>
+				<span class="me-3"><?php echo htmlspecialchars($totalLabel, ENT_QUOTES, 'UTF-8'); ?>: <strong id="<?php echo htmlspecialchars($totalId, ENT_QUOTES, 'UTF-8'); ?>">0</strong></span>
+				<span class="me-3"><?php echo htmlspecialchars($filteredLabel, ENT_QUOTES, 'UTF-8'); ?>: <strong id="<?php echo htmlspecialchars($filteredId, ENT_QUOTES, 'UTF-8'); ?>">0</strong></span>
+				<span><?php echo htmlspecialchars($selectionLabel, ENT_QUOTES, 'UTF-8'); ?>: <strong id="<?php echo htmlspecialchars($selectionCountId, ENT_QUOTES, 'UTF-8'); ?>">0</strong></span>
 			</div>
 		</div>
 
@@ -33,7 +41,7 @@
 			<div id="bulkActionsDropdownContainer">
 				<?php if (isset($bulkActions)): ?>
 					<div class="dropdown">
-						<button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
+						<button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
 							<i class="bi bi-gear-fill me-1"></i> Bulk Actions
 						</button>
 						<ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bulkActionsDropdown">

@@ -36,6 +36,7 @@ require __DIR__ . '/app/init.php';
 			'-type' => 'Type (DESC)',
 		];
 		$bulkActions = '
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#issueBulkCreateModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
 			<li><a class="dropdown-item" href="#" id="bulkUpdateBtn"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
 			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
 		';
@@ -104,6 +105,64 @@ require __DIR__ . '/app/init.php';
 				const filtered = parseInt($('#filteredIssues').text()) || 0;
 				const total = parseInt($('#totalIssues').text()) || 0;
 				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalIssues', 'filteredIssues', 'selectionCount');
+			});
+
+			$('#issueBulkCreateModal').on('show.bs.modal', function () {
+				const projectId = $('#projectSelect').val();
+				taigaPopulateProjectSelect($('#bulkCreateIssueProject'), projectId);
+				if (projectId) {
+					taigaPopulateBulkStatuses('issue', $('#bulkCreateIssueStatus'), projectId, 'Default');
+					taigaPopulateBulkMembers($('#bulkCreateIssueAssignee'), projectId, 'Unassigned');
+				}
+			});
+
+			$('#bulkCreateIssueProject').on('change', function () {
+				const projectId = $(this).val();
+				taigaPopulateBulkStatuses('issue', $('#bulkCreateIssueStatus'), projectId, 'Default');
+				taigaPopulateBulkMembers($('#bulkCreateIssueAssignee'), projectId, 'Unassigned');
+			});
+
+			$('#previewBulkCreateIssues').on('click', function () {
+				const items = taigaParseBulkLines($('#bulkCreateIssueText').val());
+				taigaRenderBulkPreview($('#bulkCreateIssuePreview'), items, 'subject');
+			});
+
+			$('#submitBulkCreateIssues').on('click', function () {
+				const projectId = $('#bulkCreateIssueProject').val();
+				const status = $('#bulkCreateIssueStatus').val();
+				const assignee = $('#bulkCreateIssueAssignee').val();
+				const items = taigaParseBulkLines($('#bulkCreateIssueText').val());
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (items.length === 0) {
+					alert('Please enter at least one isu');
+					return;
+				}
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Creating...');
+				taigaExecuteBulkCreate('/issues', items, item => {
+					const payload = {
+						project: parseInt(projectId),
+						subject: item.subject,
+						description: item.description || ''
+					};
+					if (status) payload.status = parseInt(status);
+					if (assignee) payload.assigned_to = parseInt(assignee);
+					return payload;
+				}, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Create Isus');
+					if (errorCount === 0) {
+						$('#issueBulkCreateModal').modal('hide');
+						$('#bulkCreateIssueText').val('');
+						$('#bulkCreateIssuePreview').addClass('d-none').empty();
+						loadIssues();
+					}
+					alert(errorCount === 0
+						? `Successfully created ${successCount} isus!`
+						: `Created ${successCount} isus, but ${errorCount} failed.`);
+				});
 			});
 
 			// Bulk Delete functionality
@@ -282,7 +341,7 @@ require __DIR__ . '/app/init.php';
 						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (issues, status, xhr) {
-						displayIssues(issues);
+						displayIssues(issues, xhr);
 						taigaRenderPagination(xhr, '#issuesPagination', loadIssues);
 					},
 					error: function (xhr) {
@@ -297,9 +356,8 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-			function displayIssues(issues) {
-				$('#totalIssues').text(issues.length);
-				$('#filteredIssues').text(issues.length);
+			function displayIssues(issues, xhr) {
+				taigaUpdateListCounts(xhr, issues.length, 'totalIssues', 'filteredIssues', 'selectionCount');
 
 				if (issues.length === 0) {
 					$('#issuesContent').html(`
@@ -310,7 +368,7 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
-				let html = '<div class="row">';
+				let html = '<div class="row taiga-list-grid">';
 				issues.forEach(issue => {
 					const statusInfo = taigaGetStatusInfo(issue);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
@@ -318,8 +376,8 @@ require __DIR__ . '/app/init.php';
 					const owner = issue.owner_extra ? issue.owner_extra.full_name_display : 'Unknown';
 
 					html += `
-				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card issue-card h-100" data-issue-id="${issue.id}">
+				<div class="col-md-6 col-lg-4">
+					<div class="card taiga-list-card issue-card h-100" data-issue-id="${issue.id}">
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
@@ -329,7 +387,7 @@ require __DIR__ . '/app/init.php';
 								${statusBadge}
 							</div>
 							
-							<h6 class="card-title mb-2">${issue.subject || 'Untitled Isu'}</h6>
+							<h6 class="card-title text-truncate">${issue.subject || 'Untitled Isu'}</h6>
 							
 							<div class="d-flex flex-wrap gap-1 mb-2">
 								<span class="badge bg-secondary small">${issue.type_extra ? issue.type_extra.name : (issue.type || 'Bug')}</span>
@@ -337,13 +395,11 @@ require __DIR__ . '/app/init.php';
 								<span class="badge bg-info small">${issue.priority_extra ? issue.priority_extra.name : (issue.priority || 'Normal')}</span>
 							</div>
 							
-							${issue.description ? `
-								<p class="card-text text-muted small mb-2 text-truncate">
-									${issue.description}
-								</p>
-							` : ''}
+							<p class="card-text text-muted taiga-card-description small mb-0">
+								${issue.description || ''}
+							</p>
 							
-							<div class="mt-2 pt-2 border-top">
+							<div class="taiga-card-meta">
 								<div class="d-flex justify-content-between align-items-center mb-1">
 									<small class="text-muted">Ref: #${issue.ref}</small>
 									<small class="text-muted">${new Date(issue.created_date).toLocaleDateString()}</small>
@@ -360,12 +416,11 @@ require __DIR__ . '/app/init.php';
 									<small class="text-muted">Upd: ${new Date(issue.modified_date).toLocaleDateString()}</small>
 								</div>
 							</div>
-							
-							<div class="mt-3">
-								<a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary w-100 shadow-sm">
-									View Isu Details
-								</a>
-							</div>
+						</div>
+						<div class="card-footer taiga-card-actions">
+							<a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary shadow-sm">
+								View Details
+							</a>
 						</div>
 					</div>
 				</div>
@@ -386,47 +441,10 @@ require __DIR__ . '/app/init.php';
 				$('#selectionCount').text(selectedCount);
 			}
 
-			// Bulk Delete Logic
-			$('#issueBulkDeleteModal').on('show.bs.modal', function () {
-				const selectedIssues = [];
-				$('.issue-checkbox:checked').each(function () {
-					const title = $(this).closest('.card-body').find('.card-title').text();
-					selectedIssues.push(title);
-				});
-				$('#selectedIssuesList').html(selectedIssues.map(i => `<div>${i}</div>`).join(''));
-			});
-
-			$('#confirmBulkDeleteIssues').on('click', function () {
-				const selectedIssues = [];
-				$('.issue-checkbox:checked').each(function () {
-					selectedIssues.push({
-						id: $(this).val(),
-						version: $(this).data('version')
-					});
-				});
-
-				if (selectedIssues.length === 0) {
-					alert('Please select at least one issue to delete');
-					return;
-				}
-
-				const $btn = $(this);
-				$btn.prop('disabled', true).text('Deleting...');
-
-				taigaExecuteBulk('/issues/', selectedIssues, 'DELETE', null, (successCount, errorCount) => {
-					$btn.prop('disabled', false).text('Delete Isus');
-					if (errorCount === 0) {
-						alert(`Successfully deleted ${successCount} isus!`);
-						$('#issueBulkDeleteModal').modal('hide');
-						loadIssues();
-					} else {
-						alert(`Deleted ${successCount} isus, but ${errorCount} failed.`);
-					}
-				});
-			});
 		});
 	</script>
 
+	<?php include __DIR__ . '/app/partials/isu_bulk_create.php'; ?>
 	<?php include __DIR__ . '/app/partials/isu_bulk_update.php'; ?>
 	<?php include __DIR__ . '/app/partials/isu_bulk_delete.php'; ?>
 

@@ -126,7 +126,7 @@ function taigaGetStatusInfo(item) {
  * @returns {string} HTML string
  */
 function taigaRenderStatusBadge(statusInfo) {
-	const color = statusInfo.color || '#666666';
+	const color = /^#[0-9a-f]{6}$/i.test(statusInfo.color || '') ? statusInfo.color : '#666666';
 	// Simple luminance check for text color
 	const r = parseInt(color.slice(1, 3), 16);
 	const g = parseInt(color.slice(3, 5), 16);
@@ -134,7 +134,7 @@ function taigaRenderStatusBadge(statusInfo) {
 	const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 	const textColor = luminance > 0.5 ? '#000000' : '#ffffff';
 
-	return `<span class="badge status-badge" style="background-color: ${color}; color: ${textColor}; border: 1px solid rgba(0,0,0,0.1);">${statusInfo.name}</span>`;
+	return `<span class="badge status-badge" style="background-color: ${color}; color: ${textColor}; border: 1px solid rgba(0,0,0,0.1);">${taigaEscapeHtml(statusInfo.name)}</span>`;
 }
 
 function taigaBaseUrlFromApi(apiUrl) {
@@ -327,6 +327,27 @@ function taigaRenderPagination(xhr, containerSelector, onPageChange) {
 			$('html, body').animate({ scrollTop: 0 }, 'slow');
 		}
 	});
+}
+
+/**
+ * Reads the total matching rows from Taiga pagination headers.
+ * Falls back to the visible item count for non-paginated or headerless responses.
+ */
+function taigaGetPaginationTotal(xhr, fallbackCount) {
+	const fallback = Number.isFinite(Number(fallbackCount)) ? Number(fallbackCount) : 0;
+	const rawTotal = xhr && typeof xhr.getResponseHeader === 'function'
+		? xhr.getResponseHeader('X-Pagination-Count')
+		: null;
+	const total = parseInt(rawTotal, 10);
+
+	return Number.isFinite(total) ? total : fallback;
+}
+
+function taigaUpdateListCounts(xhr, visibleCount, totalId, filteredId, selectionId) {
+	const shown = Number.isFinite(Number(visibleCount)) ? Number(visibleCount) : 0;
+	const total = taigaGetPaginationTotal(xhr, shown);
+
+	taigaUpdateSelectionUI(total, shown, 0, totalId, filteredId, selectionId);
 }
 
 /**
@@ -788,6 +809,108 @@ function taigaFetchMembers(apiUrl, token, projectId) {
 	});
 }
 
+function taigaParseBulkLines(text) {
+	return String(text || '')
+		.split('\n')
+		.map(line => line.trim())
+		.filter(Boolean)
+		.map(line => {
+			const parts = line.split('|');
+			return {
+				subject: (parts[0] || '').trim(),
+				name: (parts[0] || '').trim(),
+				description: (parts[1] || '').trim()
+			};
+		})
+		.filter(item => item.subject || item.name);
+}
+
+function taigaRenderBulkPreview($target, items, labelKey) {
+	labelKey = labelKey || 'subject';
+	if (!$target || !$target.length) return;
+	if (!items.length) {
+		$target.addClass('d-none').empty();
+		return;
+	}
+
+	const list = $('<ol class="mb-0"></ol>');
+	items.forEach(item => {
+		const text = item[labelKey] || item.subject || item.name || '';
+		const li = $('<li></li>').text(text);
+		if (item.description) {
+			li.append($('<div class="text-muted small"></div>').text(item.description));
+		}
+		list.append(li);
+	});
+	$target.empty().append(list).removeClass('d-none');
+}
+
+function taigaPopulateProjectSelect($select, selectedProjectId) {
+	if (!$select || !$select.length) return $.Deferred().resolve([]).promise();
+	$select.prop('disabled', true).empty().append($('<option>', { value: '', text: 'Loading projects...' }));
+
+	return $.ajax({
+		url: 'api.php/projects',
+		type: 'GET',
+		dataType: 'json',
+		headers: {
+			'Authorization': `Bearer ${window.taigaToken}`,
+			'Content-Type': 'application/json',
+			'X-Taiga-Api-Url': window.apiUrl
+		}
+	}).done(function (projects) {
+		$select.empty().append($('<option>', { value: '', text: 'Select Project' }));
+		if (Array.isArray(projects)) {
+			projects.forEach(project => {
+				$select.append($('<option>', {
+					value: project.id,
+					text: project.name || ('Project ' + project.id)
+				}));
+			});
+		}
+		if (selectedProjectId) {
+			$select.val(String(selectedProjectId));
+		}
+		$select.prop('disabled', false).trigger('change');
+	}).fail(function () {
+		$select.empty().append($('<option>', { value: '', text: 'Error loading projects' })).prop('disabled', true);
+	});
+}
+
+function taigaExecuteBulkCreate(endpoint, items, dataFactory, onComplete) {
+	let doneCount = 0;
+	let successCount = 0;
+	let errorCount = 0;
+
+	if (!items.length) {
+		if (typeof onComplete === 'function') onComplete(0, 0);
+		return;
+	}
+
+	items.forEach(item => {
+		$.ajax({
+			url: 'api.php' + endpoint,
+			type: 'POST',
+			headers: {
+				'Authorization': `Bearer ${window.taigaToken}`,
+				'Content-Type': 'application/json',
+				'X-Taiga-Api-Url': window.apiUrl
+			},
+			data: JSON.stringify(dataFactory(item))
+		}).done(function () {
+			successCount++;
+		}).fail(function (xhr) {
+			console.error(`Bulk create failed for ${endpoint}:`, xhr.responseJSON || xhr.responseText);
+			errorCount++;
+		}).always(function () {
+			doneCount++;
+			if (doneCount === items.length && typeof onComplete === 'function') {
+				onComplete(successCount, errorCount);
+			}
+		});
+	});
+}
+
 /**
  * Logic-View Layer: Populates a member dropdown for bulk operations with Select2.
  * @param {jQuery} $select - Select element to populate
@@ -858,11 +981,58 @@ function taigaUpdateSelectionUI(total, filtered, selected, totalId, filteredId, 
 	}
 
 	$('#clearSelectionBtn').prop('disabled', selected === 0);
-	$('#bulkActionsDropdown').prop('disabled', selected === 0);
+	$('#bulkActionsDropdown').prop('disabled', false);
+	taigaUpdateBulkActionAvailability(selected);
 
 	if (selected === 0) {
 		$('#masterCheckbox').prop('checked', false);
 	}
+}
+
+function taigaBulkActionRequiresSelection($item) {
+	if ($item.data('bulk-requires-selection') !== undefined) {
+		return String($item.data('bulk-requires-selection')) !== 'false';
+	}
+
+	const text = String($item.text() || '').toLowerCase();
+	return !text.includes('bulk create') && !text.includes('create ');
+}
+
+function taigaUpdateBulkActionAvailability(selected) {
+	const hasSelection = selected > 0;
+	$('#bulkActionsDropdownContainer .dropdown-item').each(function () {
+		const $item = $(this);
+		if (!taigaBulkActionRequiresSelection($item)) {
+			$item.removeClass('disabled').attr('aria-disabled', 'false');
+			if ($item.data('bulk-toggle')) {
+				$item.attr('data-bs-toggle', $item.data('bulk-toggle'));
+			}
+			if ($item.data('bulk-target')) {
+				$item.attr('data-bs-target', $item.data('bulk-target'));
+			}
+			return;
+		}
+
+		$item.toggleClass('disabled', !hasSelection);
+		$item.attr('aria-disabled', hasSelection ? 'false' : 'true');
+		if (!$item.data('bulk-toggle') && $item.attr('data-bs-toggle')) {
+			$item.data('bulk-toggle', $item.attr('data-bs-toggle'));
+		}
+		if (!$item.data('bulk-target') && $item.attr('data-bs-target')) {
+			$item.data('bulk-target', $item.attr('data-bs-target'));
+		}
+		if (hasSelection) {
+			if ($item.data('bulk-toggle')) {
+				$item.attr('data-bs-toggle', $item.data('bulk-toggle'));
+			}
+			if ($item.data('bulk-target')) {
+				$item.attr('data-bs-target', $item.data('bulk-target'));
+			}
+		} else {
+			$item.removeAttr('data-bs-toggle');
+			$item.removeAttr('data-bs-target');
+		}
+	});
 }
 
 /**
@@ -871,6 +1041,14 @@ function taigaUpdateSelectionUI(total, filtered, selected, totalId, filteredId, 
  * @param {Function} onSelectionChange - Callback receives (checkedCount)
  */
 function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
+	taigaUpdateBulkActionAvailability(0);
+
+	$(document).off('click.bulkAvailability', '#bulkActionsDropdownContainer .dropdown-item.disabled').on('click.bulkAvailability', '#bulkActionsDropdownContainer .dropdown-item.disabled', function (e) {
+		e.preventDefault();
+		e.stopPropagation();
+		return false;
+	});
+
 	$(document).off('change', '#masterCheckbox').on('change', '#masterCheckbox', function () {
 		var isChecked = $(this).is(':checked');
 		$('#masterCheckbox').prop('checked', isChecked);
@@ -916,6 +1094,10 @@ function taigaReplaceUrlQuery(params) {
 	const query = search.toString();
 	url.search = query ? `?${query}` : '';
 	window.history.replaceState(null, '', url.toString());
+
+	if (typeof window.tttaigaPersistSharedFilters === 'function') {
+		window.tttaigaPersistSharedFilters(search);
+	}
 }
 
 function taigaGetUrlQueryParams() {
@@ -928,6 +1110,10 @@ function taigaGetUrlQueryParams() {
 }
 
 function taigaApplyFiltersFromUrl() {
+	if (typeof window.tttaigaEnsureSharedFiltersInUrl === 'function') {
+		window.tttaigaEnsureSharedFiltersInUrl();
+	}
+
 	const urlParams = new URLSearchParams(window.location.search);
 	const page = parseInt(urlParams.get('page') || '1') || 1;
 	const q = urlParams.get('q');

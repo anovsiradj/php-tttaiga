@@ -32,6 +32,7 @@ require __DIR__ . '/app/init.php';
 			'-estimated_finish' => 'Finish Date (DESC)',
 		];
 		$bulkActions = '
+			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateSprintModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
 			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateSprintModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
 			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
 		';
@@ -104,6 +105,54 @@ require __DIR__ . '/app/init.php';
 				taigaUpdateSelectionUI(total, filtered, checkedCount, 'totalSprints', 'filteredSprints', 'selectedSprintsCount');
 			});
 
+			$('#bulkCreateSprintModal').on('show.bs.modal', function () {
+				const projectId = $('#projectSelect').val();
+				taigaPopulateProjectSelect($('#bulkCreateSprintProject'), projectId);
+			});
+
+			$('#previewBulkCreateSprints').on('click', function () {
+				const items = taigaParseBulkLines($('#bulkCreateSprintText').val());
+				taigaRenderBulkPreview($('#bulkCreateSprintPreview'), items, 'name');
+			});
+
+			$('#submitBulkCreateSprints').on('click', function () {
+				const projectId = $('#bulkCreateSprintProject').val();
+				const start = $('#bulkCreateSprintStart').val();
+				const finish = $('#bulkCreateSprintFinish').val();
+				const items = taigaParseBulkLines($('#bulkCreateSprintText').val());
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (items.length === 0) {
+					alert('Please enter at least one sprint');
+					return;
+				}
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Creating...');
+				taigaExecuteBulkCreate('/milestones', items, item => {
+					const payload = {
+						project: parseInt(projectId),
+						name: item.name,
+						description: item.description || ''
+					};
+					if (start) payload.estimated_start = start;
+					if (finish) payload.estimated_finish = finish;
+					return payload;
+				}, (successCount, errorCount) => {
+					$btn.prop('disabled', false).text('Create Sprints');
+					if (errorCount === 0) {
+						$('#bulkCreateSprintModal').modal('hide');
+						$('#bulkCreateSprintText').val('');
+						$('#bulkCreateSprintPreview').addClass('d-none').empty();
+						loadSprints();
+					}
+					alert(errorCount === 0
+						? `Successfully created ${successCount} sprints!`
+						: `Created ${successCount} sprints, but ${errorCount} failed.`);
+				});
+			});
+
 			// Bulk Update Sprint functionality
 			$('#bulkUpdateSprintModal').on('show.bs.modal', function () {
 				populateBulkUpdateSprintDropdowns();
@@ -151,7 +200,7 @@ require __DIR__ . '/app/init.php';
 						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (sprints, status, xhr) {
-						displaySprints(sprints);
+						displaySprints(sprints, xhr);
 						taigaRenderPagination(xhr, '#sprintsPagination', loadSprints);
 						updateSelectedCount();
 					},
@@ -167,7 +216,9 @@ require __DIR__ . '/app/init.php';
 				});
 			}
 
-			function displaySprints(sprints) {
+			function displaySprints(sprints, xhr) {
+				taigaUpdateListCounts(xhr, sprints.length, 'totalSprints', 'filteredSprints', 'selectedSprintsCount');
+
 				if (sprints.length === 0) {
 					$('#sprintsContent').html(`
 						<div class="text-muted italic p-3 text-center">
@@ -177,7 +228,7 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
-				let html = '<div class="row">';
+				let html = '<div class="row taiga-list-grid">';
 
 				sprints.forEach(sprint => {
 					const isClosed = sprint.closed;
@@ -186,8 +237,8 @@ require __DIR__ . '/app/init.php';
 						'<span class="badge bg-success">Open</span>';
 
 					html += `
-						<div class="col-md-6 col-lg-4 mb-4">
-							<div class="card sprint-card h-100 ${selectedIds.has(sprint.id) ? 'border-primary bg-light' : ''}" data-sprint-id="${sprint.id}">
+						<div class="col-md-6 col-lg-4">
+							<div class="card taiga-list-card sprint-card h-100 ${selectedIds.has(sprint.id) ? 'taiga-selected' : ''}" data-sprint-id="${sprint.id}">
 								<div class="card-body">
 									<div class="d-flex justify-content-between align-items-start mb-2">
 										<div class="form-check">
@@ -195,11 +246,11 @@ require __DIR__ . '/app/init.php';
 										</div>
 										${statusBadge}
 									</div>
-									<h5 class="card-title text-truncate">${sprint.name || 'Untitled Sprint'}</h5>
-									<p class="card-text text-muted small text-truncate-2 mb-2">
+									<h6 class="card-title text-truncate">${sprint.name || 'Untitled Sprint'}</h6>
+									<p class="card-text text-muted taiga-card-description small mb-0">
 										${sprint.description || ''}
 									</p>
-									<div class="mt-2 pt-2 border-top">
+									<div class="taiga-card-meta">
 										<div class="d-flex justify-content-between align-items-center mb-1">
 											<small class="text-muted d-block text-truncate">
 												<i class="bi bi-calendar-event me-1"></i>
@@ -219,9 +270,9 @@ require __DIR__ . '/app/init.php';
 										</div>
 									</div>
 								</div>
-								<div class="card-footer bg-transparent border-top-0 d-flex justify-content-between">
+								<div class="card-footer taiga-card-actions">
 									<a href="sprint.php?id=${sprint.id}" class="btn btn-outline-primary btn-sm">
-										Lihat
+										View Details
 									</a>
 								</div>
 							</div>
@@ -237,10 +288,10 @@ require __DIR__ . '/app/init.php';
 					const id = parseInt($(this).val());
 					if (this.checked) {
 						selectedIds.add(id);
-						$(this).closest('.card').addClass('border-primary bg-light');
+						$(this).closest('.card').addClass('taiga-selected');
 					} else {
 						selectedIds.delete(id);
-						$(this).closest('.card').removeClass('border-primary bg-light');
+						$(this).closest('.card').removeClass('taiga-selected');
 					}
 					updateSelectedCount();
 				});
@@ -253,7 +304,9 @@ require __DIR__ . '/app/init.php';
 
 			function updateSelectedCount() {
 				const count = selectedIds.size;
-				$('#selectedCount').text(count);
+				const filtered = parseInt($('#filteredSprints').text()) || 0;
+				const total = parseInt($('#totalSprints').text()) || 0;
+				taigaUpdateSelectionUI(total, filtered, count, 'totalSprints', 'filteredSprints', 'selectedSprintsCount');
 				if (count > 0) {
 					$('#bulkDeleteBtn').removeClass('d-none');
 				} else {
@@ -369,6 +422,8 @@ require __DIR__ . '/app/init.php';
 			}
 		});
 	</script>
+
+	<?php include __DIR__ . '/app/partials/sprint_bulk_create.php'; ?>
 
 	<!-- Bulk Update Sprint Modal -->
 	<div class="modal fade" id="bulkUpdateSprintModal" tabindex="-1" aria-labelledby="bulkUpdateSprintModalLabel" aria-hidden="true">

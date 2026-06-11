@@ -94,7 +94,8 @@ if ($isCacheable) {
 		$cacheQuery = ['project' => $projectId];
 	}
 
-	$cacheKey = md5($apiUrl . $apiPath . json_encode($cacheQuery));
+	$sessionCacheScope = hash('sha256', (string) ($_SESSION['taiga_token'] ?? session_id()));
+	$cacheKey = md5($sessionCacheScope . $apiUrl . $apiPath . json_encode($cacheQuery));
 	$cacheFile = $cacheDir . '/' . $cacheKey . '.json';
 
 	$cacheTtl = 3600;

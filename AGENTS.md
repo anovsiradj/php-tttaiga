@@ -1,11 +1,27 @@
+## penamaan
+- Bulk = Batch/Multiple
+- copas = Copy+Paste
+- Usor = User Story
+- Epik = Epic
+- Isu = Issue
+
+## Local Server
+- **DILARANG** menjalankan *local server* bawaan (seperti `php -S localhost:8000`).
+- local server selalu menggunakan apache/httpd.
+- local server sudah disediakan, untuk mengetahuinya URL nya, selalu cek `APP_URL` di `.env`.
+
+## Environment & CLI
+- penentuan versi PHP berdasarkan `./composer.json`
+- untuk menjalankan perintah PHP gunakan `php84`
+- untuk menjalankan perintah composer gunakan `php84c`
 
 ## jenis dan modul
 - user
 - member
 - sprint
 - project
-- epic
-- usor (alias for User Story)
+- epik
+- usor
 - task
 - isu
 
@@ -27,7 +43,9 @@ salah satu tujuannya adalah memberi prefix kesemua judul pada suatu kelompok jen
 
 ## development
 - jangan pernah tulis HTML di JS, gunakan `<template>`.
-- gunakan `anovsiradj/wiet` jika butuh custom component
-- custom `anovsiradj/wiet` jika perlu penyesuaian/perbaikan/perubahan.
+- gunakan `anovsiradj/wiet`
+- gunakan `anovsiradj/skit`
+- gunakan `anovsiradj/web-skit`
+- modifikasi langsung library yang masih lokal (wiet,skit,web-skit) jika perlu penyesuaian/perbaikan/perubahan.
 - gunakan session PHP untuk otentikasi dan otorisasi
 - auto logout jika session expired/timeout, cek response dari API.

@@ -10,11 +10,14 @@
 
 $filterProjectEnable ??= true;
 $filterStatusEnable ??= true;
+$pageTitle ??= '';
+$searchPlaceholder ??= 'Pencarian ...';
+$statusType ??= '';
 ?>
 
 <div class="page-title-row">
 	<h1>
-		<?php echo $pageTitle; ?>
+		<?php echo htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8'); ?>
 	</h1>
 	<div class="d-flex align-items-center">
 		<button class="btn btn-outline-secondary btn-sm me-2" id="refreshBtn" title="Refresh">
@@ -24,7 +27,7 @@ $filterStatusEnable ??= true;
 		<?php if (isset($primaryAction)) { ?>
 			<?= $primaryAction ?>
 		<?php } elseif (isset($bulkCreateModalId)) { ?>
-			<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#<?php echo $bulkCreateModalId; ?>">
+			<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#<?php echo htmlspecialchars($bulkCreateModalId, ENT_QUOTES, 'UTF-8'); ?>">
 				<i class="bi bi-plus-lg me-1"></i>
 				Add New
 			</button>
@@ -39,7 +42,7 @@ $filterStatusEnable ??= true;
 				<span class="input-group-text bg-transparent border-end-0 text-muted">
 					<i class="bi bi-search"></i>
 				</span>
-				<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="Pencarian ...">
+				<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="<?php echo htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8'); ?>">
 			</div>
 		</div>
 
@@ -63,7 +66,7 @@ $filterStatusEnable ??= true;
 
 		<?php if ($filterStatusEnable) { ?>
 			<div class="col-md-auto" style="width: 150px;">
-				<select class="form-select" id="statusSelect" data-status-type="<?php echo $statusType ?? ''; ?>"></select>
+				<select class="form-select" id="statusSelect" data-status-type="<?php echo htmlspecialchars($statusType, ENT_QUOTES, 'UTF-8'); ?>"></select>
 			</div>
 		<?php } ?>
 
@@ -77,10 +80,14 @@ $filterStatusEnable ??= true;
 			<div class="col-md-auto" style="width: 180px;">
 				<select class="form-select" id="sortSelect">
 					<?php foreach ($sortOptions as $value => $label) { ?>
-						<option value="<?php echo $value; ?>"><?php echo $label; ?></option>
+						<option value="<?php echo htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
 					<?php } ?>
 				</select>
 			</div>
 		<?php } ?>
+
+		<?php if (isset($additionalControls) && $additionalControls !== '') { ?>
+			<?= $additionalControls ?>
+		<?php } ?>
 	</div>
-</div>
+</div>

@@ -171,7 +171,7 @@ require __DIR__ . '/app/init.php';
 						'X-Taiga-Api-Url': apiUrl
 					},
 					success: function (usors, status, xhr) {
-						displayUsors(usors);
+						displayUsors(usors, xhr);
 						taigaRenderPagination(xhr, '#usorsPagination', loadUsors);
 					},
 					error: function (xhr) {
@@ -189,7 +189,9 @@ require __DIR__ . '/app/init.php';
 
 			// loadEpics function removed as it is now handled by taigaLoadEpics in taiga.js
 
-			function displayUsors(usors) {
+			function displayUsors(usors, xhr) {
+				taigaUpdateListCounts(xhr, usors.length, 'totalUsors', 'filteredUsors', 'selectedUsorsCount');
+
 				if (usors.length === 0) {
 					$('#usorsContent').html(`
 						<div class="text-muted italic p-3 text-center">
@@ -199,7 +201,7 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
-				let html = '<div class="row">';
+				let html = '<div class="row taiga-list-grid">';
 				usors.forEach(usor => {
 					const statusInfo = taigaGetStatusInfo(usor);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
@@ -207,8 +209,8 @@ require __DIR__ . '/app/init.php';
 					const owner = usor.owner_extra ? usor.owner_extra.full_name_display : 'Unknown';
 
 					html += `
-				<div class="col-md-6 col-lg-4 mb-3">
-					<div class="card usor-card h-100" data-us-id="${usor.id}" data-project-id="${usor.project}" data-status="${usor.status}">
+				<div class="col-md-6 col-lg-4">
+					<div class="card taiga-list-card usor-card h-100" data-us-id="${usor.id}" data-project-id="${usor.project}" data-status="${usor.status}">
 					<div class="card-body">
 						<div class="d-flex justify-content-between align-items-start mb-2">
 							<div class="form-check">
@@ -220,9 +222,13 @@ require __DIR__ . '/app/init.php';
 								<small class="text-muted mt-1">#${usor.ref}</small>
 							</div>
 						</div>
-						<h6 class="card-title mb-1 text-truncate pe-2">${usor.subject || 'Untitled Usor'}</h6>
+						<h6 class="card-title text-truncate">${usor.subject || 'Untitled Usor'}</h6>
+
+						<div class="taiga-card-description usor-description text-muted small mb-0">
+							${usor.description || ''}
+						</div>
 						
-						<div class="mt-2 pt-2 border-top">
+						<div class="taiga-card-meta">
 							<div class="d-flex justify-content-between align-items-center mb-1">
 								<small class="text-muted">Ref: #${usor.ref} | Project ID: ${usor.project || 'N/A'}</small>
 								<small class="text-muted">${new Date(usor.created_date).toLocaleDateString()}</small>
@@ -243,16 +249,12 @@ require __DIR__ . '/app/init.php';
 								<small class="text-muted d-block mt-2 text-truncate">Epik: #${usor.epic_extra.ref} ${usor.epic_extra.subject}</small>
 							` : (usor.epic ? `<small class="text-muted d-block mt-2">Epik ID: #${usor.epic}</small>` : '')}
 						</div>
-
-						<div class="usor-description text-muted small mb-3 text-truncate mt-2">
-							${usor.description || ''}
-						</div>
-						<div class="d-flex justify-content-end">
-							<a href="usor.php?id=${usor.id}" class="btn btn-primary btn-sm shadow-sm">
+					</div>
+					<div class="card-footer taiga-card-actions">
+							<a href="usor.php?id=${usor.id}" class="btn btn-outline-primary btn-sm shadow-sm">
 								<i class="bi bi-eye me-1"></i>
 								View Details
 							</a>
-						</div>
 					</div>
 				</div>
 				</div>

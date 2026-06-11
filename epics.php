@@ -241,7 +241,7 @@ require __DIR__ . '/app/init.php';
 							return;
 						}
 						allEpics = epics;
-						displayEpics(epics);
+						displayEpics(epics, xhr);
 						taigaRenderPagination(xhr, '#epicsPagination', loadEpics);
 					},
 					error: function (xhr) {
@@ -267,7 +267,9 @@ require __DIR__ . '/app/init.php';
 				$('#projectSelect').html(html);
 			}
 
-			function displayEpics(epics) {
+			function displayEpics(epics, xhr) {
+				taigaUpdateListCounts(xhr, epics.length, 'totalEpics', 'filteredEpics', 'selectedEpicsCount');
+
 				if (epics.length === 0) {
 					$('#epicsContent').html(`
 						<div class="text-muted italic p-3 text-center">
@@ -277,7 +279,7 @@ require __DIR__ . '/app/init.php';
 					return;
 				}
 
-				let html = '<div class="row">';
+				let html = '<div class="row taiga-list-grid">';
 
 				epics.forEach(epic => {
 					const project = allProjects.find(p => p.id === epic.project) || {};
@@ -287,8 +289,8 @@ require __DIR__ . '/app/init.php';
 					const owner = epic.owner_extra ? epic.owner_extra.full_name_display : 'Unknown';
 
 					html += `
-				<div class="col-md-6 col-lg-4 mb-4">
-					<div class="card epic-card h-100" data-epic-id="${epic.id}" data-project-id="${epic.project}" data-status="${epic.status}">
+				<div class="col-md-6 col-lg-4">
+					<div class="card taiga-list-card epic-card h-100" data-epic-id="${epic.id}" data-project-id="${epic.project}" data-status="${epic.status}">
 						<div class="card-body">
 							<div class="d-flex justify-content-between align-items-start mb-2">
 								<div class="form-check">
@@ -297,11 +299,11 @@ require __DIR__ . '/app/init.php';
 								</div>
 								${statusBadge}
 							</div>
-							<h5 class="card-title text-truncate pe-5">${epic.subject || 'Untitled Epik'}</h5>
-							<p class="card-text text-muted epic-description small">
+							<h6 class="card-title text-truncate">${epic.subject || 'Untitled Epik'}</h6>
+							<p class="card-text text-muted taiga-card-description epic-description small mb-0">
 								${epic.description || ''}
 							</p>
-							<div class="mt-3">
+							<div class="taiga-card-meta">
 								<div class="d-flex justify-content-between align-items-center mb-1">
 									<small class="text-muted">
 										Project: ${project.name || 'Unknown'}
@@ -330,8 +332,8 @@ require __DIR__ . '/app/init.php';
 								</div>
 							</div>
 						</div>
-						<div class="card-footer bg-transparent">
-							<button class="btn btn-primary btn-sm view-epic" data-epic-id="${epic.id}">
+						<div class="card-footer taiga-card-actions">
+							<button class="btn btn-outline-primary btn-sm view-epic" data-epic-id="${epic.id}">
 								View Details
 							</button>
 						</div>
@@ -341,7 +343,6 @@ require __DIR__ . '/app/init.php';
 				});
 				html += '</div>';
 				$('#epicsContent').html(html);
-				taigaUpdateSelectionUI(epics.length, epics.length, 0, 'totalEpics', 'filteredEpics', 'selectedEpicsCount');
 
 				// Add click event for epic cards
 				$('.view-epic').on('click', function (e) {

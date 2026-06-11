@@ -12,7 +12,7 @@
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-				<button type="button" class="btn btn-danger" id="confirmBulkDeleteEpic">Delete Epiks</button>
+				<button type="button" class="btn btn-danger" id="confirmBulkDeleteEpics">Delete Epiks</button>
 			</div>
 		</div>
 	</div>
