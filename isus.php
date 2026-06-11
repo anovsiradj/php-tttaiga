@@ -245,8 +245,21 @@ require __DIR__ . '/app/init.php';
 			function populateBulkUpdateIssueDropdowns() {
 				const filterParams = taigaGetFilterParams();
 				const projectId = filterParams.project;
-				taigaPopulateBulkStatuses('issue', $('#bulkUpdateIssueStatus'), projectId, 'No Change');
-				taigaPopulateBulkMembers($('#bulkUpdateIssueAssignee'), projectId, 'No Change');
+				const refreshIssueUpdateOptions = function (selectedProjectId) {
+					taigaPopulateBulkStatuses('issue', $('#bulkUpdateIssueStatus'), selectedProjectId, 'No Change');
+					taigaPopulateBulkMembers($('#bulkUpdateIssueAssignee'), selectedProjectId, 'No Change');
+				};
+
+				$('#bulkUpdateIssueProject').off('change.bulkIssueOptions').on('change.bulkIssueOptions', function () {
+					refreshIssueUpdateOptions($(this).val());
+				});
+
+				taigaPopulateProjectSelect($('#bulkUpdateIssueProject'), projectId).done(function () {
+					if (projectId) {
+						$('#bulkUpdateIssueProject').val(String(projectId)).trigger('change.select2');
+					}
+					refreshIssueUpdateOptions(projectId);
+				});
 
 				const selectedIssueIds = [];
 				$('#issuesContent input.issue-checkbox:checked').each(function () {

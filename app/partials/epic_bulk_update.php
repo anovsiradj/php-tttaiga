@@ -9,6 +9,13 @@
 			<div class="modal-body">
 				<form id="bulkUpdateEpicForm">
 					<div class="mb-3">
+						<label class="form-label" for="bulkUpdateEpicProject">Project for Options</label>
+						<select class="form-select" id="bulkUpdateEpicProject">
+							<option value="">Select project to load statuses and members</option>
+						</select>
+						<div class="form-text">Autofilled from the active filter when available. You can still change it here.</div>
+					</div>
+					<div class="mb-3">
 						<label class="form-label">Select Epiks to Update</label>
 						<div id="bulkUpdateEpics" class="border p-3" style="max-height: 200px; overflow-y: auto;">
 							<div class="text-center text-muted">
@@ -21,13 +28,19 @@
 						<div class="form-text">Select the epiks you want to update</div>
 					</div>
 					<div class="row">
-						<div class="col-md-6">
+						<div class="col-md-4">
 							<label class="form-label">Status</label>
 							<select class="form-select" id="bulkUpdateEpicStatus">
 								<option value="">No Change</option>
 							</select>
 						</div>
-						<div class="col-md-6">
+						<div class="col-md-4">
+							<label class="form-label">Assigned To</label>
+							<select class="form-select" id="bulkUpdateEpicAssignee">
+								<option value="">No Change</option>
+							</select>
+						</div>
+						<div class="col-md-4">
 							<label class="form-label">Priority</label>
 							<input type="number" class="form-control" id="bulkUpdateEpicPriority" placeholder="Leave empty for no change">
 						</div>

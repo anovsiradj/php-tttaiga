@@ -9,6 +9,13 @@
 			<div class="modal-body">
 				<form id="bulkUpdateForm">
 					<div class="mb-3">
+						<label class="form-label" for="bulkUpdateProjectOptions">Project for Options</label>
+						<select class="form-select" id="bulkUpdateProjectOptions">
+							<option value="">Select project to load statuses and members</option>
+						</select>
+						<div class="form-text">Autofilled from the active filter when available. You can still change it here.</div>
+					</div>
+					<div class="mb-3">
 						<label class="form-label">Select Usors to Update</label>
 						<div id="bulkUpdateUsors" class="border p-3" style="max-height: 200px; overflow-y: auto;">
 							<div class="text-center text-muted">

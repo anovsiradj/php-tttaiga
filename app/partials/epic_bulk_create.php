@@ -28,11 +28,15 @@
 						</div>
 					</div>
 					<div class="row mt-3">
-						<div class="col-md-6">
+						<div class="col-md-4">
+							<label class="form-label">Assigned To</label>
+							<select class="form-select" id="bulkCreateEpicAssignee"></select>
+						</div>
+						<div class="col-md-4">
 							<label class="form-label">Color (optional)</label>
 							<input type="color" class="form-control form-control-color" id="bulkCreateEpicColor" value="#fd7e14">
 						</div>
-						<div class="col-md-6">
+						<div class="col-md-4">
 							<label class="form-label">Priority (optional)</label>
 							<input type="number" class="form-control" id="bulkCreateEpicPriority" min="1" max="100" value="10">
 						</div>

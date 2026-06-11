@@ -385,13 +385,18 @@ require __DIR__ . '/app/init.php';
 						if (currentProjectId) {
 							$('#bulkCreateEpicProject').val(currentProjectId);
 							taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), currentProjectId);
+							taigaPopulateBulkMembers($('#bulkCreateEpicAssignee'), currentProjectId, 'Unassigned');
+						} else {
+							taigaPopulateBulkMembers($('#bulkCreateEpicAssignee'), null, 'Unassigned');
 						}
 					}
 				});
 
 				// Update statuses when project changes
 				$('#bulkCreateEpicProject').off('change').on('change', function () {
-					taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), $(this).val());
+					const projectId = $(this).val();
+					taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), projectId);
+					taigaPopulateBulkMembers($('#bulkCreateEpicAssignee'), projectId, 'Unassigned');
 				});
 			}
 
@@ -432,6 +437,7 @@ require __DIR__ . '/app/init.php';
 				const priority = $('#bulkCreateEpicPriority').val();
 				const color = $('#bulkCreateEpicColor').val();
 				const defaultStatus = $('#bulkCreateEpicStatus').val();
+				const assignee = $('#bulkCreateEpicAssignee').val();
 				const text = $('#bulkCreateEpicText').val().trim();
 
 				if (!projectId) {
@@ -466,6 +472,7 @@ require __DIR__ . '/app/init.php';
 						description: epic.description,
 						project: parseInt(projectId),
 						status: epic.status,
+						assigned_to: assignee ? parseInt(assignee) : undefined,
 						priority: priority ? parseInt(priority) : undefined,
 						color: color
 					};
@@ -512,7 +519,21 @@ require __DIR__ . '/app/init.php';
 			function populateBulkUpdateEpicDropdowns() {
 				const filterParams = taigaGetFilterParams();
 				const projectId = filterParams.project;
-				taigaPopulateBulkStatuses('epic', $('#bulkUpdateEpicStatus'), projectId, 'No Change');
+				const refreshEpicUpdateOptions = function (selectedProjectId) {
+					taigaPopulateBulkStatuses('epic', $('#bulkUpdateEpicStatus'), selectedProjectId, 'No Change');
+					taigaPopulateBulkMembers($('#bulkUpdateEpicAssignee'), selectedProjectId, 'No Change');
+				};
+
+				$('#bulkUpdateEpicProject').off('change.bulkEpicOptions').on('change.bulkEpicOptions', function () {
+					refreshEpicUpdateOptions($(this).val());
+				});
+
+				taigaPopulateProjectSelect($('#bulkUpdateEpicProject'), projectId).done(function () {
+					if (projectId) {
+						$('#bulkUpdateEpicProject').val(String(projectId)).trigger('change.select2');
+					}
+					refreshEpicUpdateOptions(projectId);
+				});
 
 				taigaLoadBulkItems('/epics', $('#bulkUpdateEpics'), item => {
 					return `
@@ -536,6 +557,7 @@ require __DIR__ . '/app/init.php';
 				});
 
 				const status = $('#bulkUpdateEpicStatus').val();
+				const assignee = $('#bulkUpdateEpicAssignee').val();
 				const priority = $('#bulkUpdateEpicPriority').val();
 				const description = $('#bulkUpdateEpicDescription').val().trim();
 				const color = $('#bulkUpdateEpicColor').val();
@@ -547,6 +569,7 @@ require __DIR__ . '/app/init.php';
 
 				const updateData = {};
 				if (status) updateData.status = parseInt(status);
+				if (assignee) updateData.assigned_to = parseInt(assignee);
 				if (priority) updateData.priority = parseInt(priority);
 				if (description) updateData.description = description;
 				if (color) updateData.color = color;

@@ -498,8 +498,21 @@ require __DIR__ . '/app/init.php';
 			function populateBulkUpdateDropdowns() {
 				const filterParams = taigaGetFilterParams();
 				const projectId = filterParams.project;
-				taigaPopulateBulkStatuses('us', $('#bulkUpdateStatus'), projectId, 'No Change');
-				taigaPopulateBulkMembers($('#bulkUpdateAssignee'), projectId, 'No Change');
+				const refreshUsorUpdateOptions = function (selectedProjectId) {
+					taigaPopulateBulkStatuses('us', $('#bulkUpdateStatus'), selectedProjectId, 'No Change');
+					taigaPopulateBulkMembers($('#bulkUpdateAssignee'), selectedProjectId, 'No Change');
+				};
+
+				$('#bulkUpdateProjectOptions').off('change.bulkUsorOptions').on('change.bulkUsorOptions', function () {
+					refreshUsorUpdateOptions($(this).val());
+				});
+
+				taigaPopulateProjectSelect($('#bulkUpdateProjectOptions'), projectId).done(function () {
+					if (projectId) {
+						$('#bulkUpdateProjectOptions').val(String(projectId)).trigger('change.select2');
+					}
+					refreshUsorUpdateOptions(projectId);
+				});
 
 				taigaLoadBulkItems('/userstories', $('#bulkUpdateUsors'), item => {
 					return `

@@ -8,6 +8,13 @@
 			</div>
 			<div class="modal-body">
 				<div class="mb-3">
+					<label class="form-label" for="bulkUpdateIssueProject">Project for Options</label>
+					<select class="form-select" id="bulkUpdateIssueProject">
+						<option value="">Select project to load statuses and members</option>
+					</select>
+					<div class="form-text">Autofilled from the active filter when available. You can still change it here.</div>
+				</div>
+				<div class="mb-3">
 					<label class="form-label">Selected Isus to Update</label>
 					<div id="bulkUpdateIssueList" class="border p-3 rounded bg-light" style="max-height: 150px; overflow-y: auto;">
 						<!-- Selected isus will be listed here -->

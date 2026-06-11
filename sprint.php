@@ -9,7 +9,7 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
-<body>
+<body class="item-page">
 
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
@@ -30,18 +30,18 @@ require __DIR__ . '/app/init.php';
 						<div id="statusIndicator"></div>
 					</div>
 					<div class="card-body">
-						<form id="sprintForm">
-							<div class="mb-3">
+						<form id="sprintForm" class="form-view">
+							<div>
 								<label class="form-label" for="projectSelect">Project</label>
 								<select class="form-select" id="projectSelect" name="project" required>
 									<option value="">Select a project</option>
 								</select>
 							</div>
-							<div class="mb-3">
+							<div>
 								<label class="form-label" for="sprintName">Sprint Name</label>
 								<input type="text" class="form-control" id="sprintName" name="name" placeholder="e.g. Iteration 1" required>
 							</div>
-							<div class="row mb-3">
+							<div class="row">
 								<div class="col-md-6">
 									<label class="form-label" for="startDate">Estimated Start</label>
 									<input type="date" class="form-control" id="startDate" name="estimated_start" required>
@@ -51,15 +51,15 @@ require __DIR__ . '/app/init.php';
 									<input type="date" class="form-control" id="finishDate" name="estimated_finish" required>
 								</div>
 							</div>
-							<div class="mb-3">
+							<div>
 								<label class="form-label" for="sprintDescription">Description</label>
 								<textarea class="form-control" id="sprintDescription" name="description" rows="5" placeholder="Sprint goals and objectives..."></textarea>
 							</div>
-							<div class="mb-3 form-check d-none" id="closedToggle">
+							<div class="form-check d-none" id="closedToggle">
 								<input type="checkbox" class="form-check-input" id="isClosed" name="closed">
 								<label class="form-check-label" for="isClosed">Sprint is closed</label>
 							</div>
-							<div class="d-flex justify-content-end gap-2">
+							<div class="form-actions">
 								<button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
 								<button type="submit" class="btn btn-primary" id="saveBtn">Create Sprint</button>
 							</div>

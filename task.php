@@ -9,7 +9,7 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
 </head>
 
-<body>
+<body class="item-page">
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<?php

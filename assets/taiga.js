@@ -382,6 +382,10 @@ function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
 	const $el = $(selector);
 	if (!$el.length) return;
 
+	if ($el.data('select2')) {
+		$el.select2('destroy');
+	}
+
 	$el.select2({
 		theme: 'bootstrap-5',
 		ajax: {
@@ -440,6 +444,40 @@ function taigaInitStaticSelect2($el, options = {}) {
 		allowClear: true,
 		width: '100%',
 		dropdownParent: options.dropdownParent || ($el.closest('.modal').length ? $el.closest('.modal') : $(document.body))
+	});
+}
+
+function taigaEnhanceFormSelects(context) {
+	if (!window.jQuery || !$.fn.select2) return;
+
+	const $context = context ? $(context) : $(document);
+	$context.find('select.form-select').each(function () {
+		const $select = $(this);
+		if ($select.data('select2')) return;
+		if ($select.closest('.filter-toolbar').length) return;
+		if ($select.is('[data-no-select2]')) return;
+
+		const $modal = $select.closest('.modal');
+		const emptyOptionText = $select.find('option[value=""]').first().text();
+		const placeholder = $select.attr('placeholder') || emptyOptionText || 'Select an option';
+
+		$select.select2({
+			theme: 'bootstrap-5',
+			width: '100%',
+			placeholder: placeholder,
+			allowClear: !$select.prop('required'),
+			dropdownParent: $modal.length ? $modal : $(document.body)
+		});
+	});
+}
+
+if (window.jQuery) {
+	$(function () {
+		taigaEnhanceFormSelects(document);
+	});
+
+	$(document).on('shown.bs.modal', '.modal', function () {
+		taigaEnhanceFormSelects(this);
 	});
 }
 

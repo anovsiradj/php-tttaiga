@@ -7,16 +7,6 @@
 				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
-				<div class="row mb-3 gx-2">
-					<div class="col-md-6">
-						<label class="form-label small mb-1 text-muted">Active Project</label>
-						<input type="text" class="form-control form-control-sm bg-light" id="bulkTaskProjectDisplay" readonly>
-					</div>
-					<div class="col-md-6">
-						<label class="form-label small mb-1 text-muted">Active Usor</label>
-						<input type="text" class="form-control form-control-sm bg-light" id="bulkTaskUserStoryDisplay" readonly>
-					</div>
-				</div>
 				<div id="bulkTaskSearchContext" class="alert alert-info py-1 mb-3 d-none">
 					<i class="bi bi-search me-2"></i>
 					Active Search: <strong id="activeTaskSearchQuery"></strong>

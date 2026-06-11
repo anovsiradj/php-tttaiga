@@ -118,20 +118,7 @@ require __DIR__ . '/app/init.php';
 			});
 
 			// Bulk Task Create functionality (same as in usor.php)
-			$('#bulkCreateTaskModal').on('show.bs.modal', function (e) {
-				const projectId = $('#projectSelect').val();
-				const userStoryId = $('#userStorySelect').val();
-
-				if (!projectId || !userStoryId) {
-					alert('Please select both a Project and a Usor filter first.');
-					e.preventDefault();
-					return false;
-				}
-
-				// Hide project and US selection as they are mandatory from filter
-				$('#bulkTaskProject').closest('.col-md-6').hide();
-				$('#bulkTaskUserStory').closest('.mb-3').hide();
-				
+			$('#bulkCreateTaskModal').on('show.bs.modal', function () {
 				populateBulkCreateTaskDropdowns();
 			});
 
@@ -144,13 +131,7 @@ require __DIR__ . '/app/init.php';
 			});
 
 			// Bulk Task Update functionality (same as in usor.php)
-			$('#bulkUpdateTaskModal').on('show.bs.modal', function (e) {
-				const projectId = $('#projectSelect').val();
-				if (!projectId) {
-					alert('Please select a Project filter first.');
-					e.preventDefault();
-					return false;
-				}
+			$('#bulkUpdateTaskModal').on('show.bs.modal', function () {
 				populateBulkUpdateTaskDropdowns();
 			});
 
@@ -298,19 +279,42 @@ require __DIR__ . '/app/init.php';
 			function populateBulkCreateTaskDropdowns() {
 				const currentProjectId = $('#projectSelect').val();
 				const currentUserStoryId = $('#userStorySelect').val();
-				const projectText = $('#projectSelect option:selected').text();
 				const usText = $('#userStorySelect option:selected').text();
 
-				// Display context in read-only inputs
-				$('#bulkTaskProjectDisplay').val(projectText);
-				$('#bulkTaskUserStoryDisplay').val(usText);
+				$('#bulkTaskProject').closest('.col-md-6').show();
+				$('#bulkTaskUserStory').closest('.mb-3').show();
 
-				// Ensure underlying hidden selects have values for submission logic
-				$('#bulkTaskProject').val(currentProjectId);
-				$('#bulkTaskUserStory').val(currentUserStoryId);
-				
-				taigaPopulateBulkStatuses('task', $('#bulkTaskStatus'), currentProjectId);
-				taigaPopulateBulkMembers($('#bulkTaskAssignee'), currentProjectId);
+				const refreshProjectInputs = function (projectId, selectedUserStoryId, selectedUserStoryText) {
+					taigaPopulateBulkStatuses('task', $('#bulkTaskStatus'), projectId);
+					taigaPopulateBulkMembers($('#bulkTaskAssignee'), projectId);
+
+					const $userStory = $('#bulkTaskUserStory');
+					if ($userStory.data('select2')) {
+						$userStory.select2('destroy');
+					}
+					$userStory.empty().append(new Option(projectId ? 'Select Usor' : 'Select project first', '', false, false));
+					$userStory.prop('disabled', !projectId);
+					taigaInitRemoteSelect2('#bulkTaskUserStory', '/userstories', {
+						placeholder: projectId ? 'Select Usor' : 'Select project first',
+						formatText: (item) => `#${item.ref}: ${item.subject}`,
+						additionalParams: () => projectId ? { project: projectId } : {}
+					});
+					$userStory.prop('disabled', !projectId);
+					if (selectedUserStoryId) {
+						$userStory.append(new Option(selectedUserStoryText || ('Usor ' + selectedUserStoryId), selectedUserStoryId, true, true)).trigger('change');
+					}
+				};
+
+				$('#bulkTaskProject').off('change.bulkTaskShared').on('change.bulkTaskShared', function () {
+					refreshProjectInputs($(this).val(), null, null);
+				});
+
+				taigaPopulateProjectSelect($('#bulkTaskProject'), currentProjectId).done(function () {
+					if (currentProjectId) {
+						$('#bulkTaskProject').val(String(currentProjectId)).trigger('change.select2');
+					}
+					refreshProjectInputs(currentProjectId, currentUserStoryId, usText);
+				});
 
 				// Update search context alert only if search is active
 				const currentSearch = $('#searchInput').val();
@@ -321,43 +325,47 @@ require __DIR__ . '/app/init.php';
 					$('#bulkTaskSearchContext').addClass('d-none');
 				}
 				$('#bulkTaskTitles').attr('placeholder', 'Enter task titles, one per line');
-
-				// Initial user stories load if project is already selected
-				const initialProjectId = $('#projectSelect').val();
-				if (initialProjectId) {
-					$('#bulkTaskProject').trigger('change');
-				} else {
-					// Fallback to all user stories if no project selected? 
-					// Actually, Taiga usually requires a project for US.
-					$('#bulkTaskUserStory').html('<option value="">Select Project first</option>');
-				}
 			}
 
 			function populateBulkUpdateTaskDropdowns() {
 				const filterParams = taigaGetFilterParams();
 				const projectId = filterParams.project;
-				const projectText = $('#projectSelect option:selected').text();
 
-				// Display context in read-only input
-				$('#bulkUpdateTaskProjectDisplay').val(projectText);
-				
-				// Hide project selection in update modal if filtered
-				$('#bulkUpdateTaskProject').closest('.col-md-6').hide();
+				const refreshUpdateInputs = function (selectedProjectId) {
+					taigaPopulateBulkStatuses('task', $('#bulkUpdateTaskStatus'), selectedProjectId, 'No Change');
+					taigaPopulateBulkMembers($('#bulkUpdateTaskAssignee'), selectedProjectId, 'No Change');
 
-				taigaPopulateBulkStatuses('task', $('#bulkUpdateTaskStatus'), projectId, 'No Change');
-				taigaPopulateBulkMembers($('#bulkUpdateTaskAssignee'), projectId, 'No Change');
+					$('#bulkUpdateTaskUsor, #bulkUpdateTaskSprint').each(function () {
+						const $select = $(this);
+						if ($select.data('select2')) {
+							$select.select2('destroy');
+						}
+						$select.empty().append(new Option(selectedProjectId ? 'No Change' : 'Select project first', '', false, false));
+						$select.prop('disabled', !selectedProjectId);
+					});
 
-				// Initialize Usor Select2
-				taigaInitRemoteSelect2('#bulkUpdateTaskUsor', '/userstories', {
-					placeholder: 'No Change',
-					formatText: (item) => `#${item.ref}: ${item.subject}`,
-					additionalParams: () => ({ project: projectId })
+					taigaInitRemoteSelect2('#bulkUpdateTaskUsor', '/userstories', {
+						placeholder: selectedProjectId ? 'No Change' : 'Select project first',
+						formatText: (item) => `#${item.ref}: ${item.subject}`,
+						additionalParams: () => selectedProjectId ? { project: selectedProjectId } : {}
+					});
+
+					taigaInitRemoteSelect2('#bulkUpdateTaskSprint', '/milestones', {
+						placeholder: selectedProjectId ? 'No Change' : 'Select project first',
+						additionalParams: () => selectedProjectId ? { project: selectedProjectId } : {}
+					});
+					$('#bulkUpdateTaskUsor, #bulkUpdateTaskSprint').prop('disabled', !selectedProjectId);
+				};
+
+				$('#bulkUpdateTaskProject').off('change.bulkTaskShared').on('change.bulkTaskShared', function () {
+					refreshUpdateInputs($(this).val());
 				});
 
-				// Initialize Sprint Select2
-				taigaInitRemoteSelect2('#bulkUpdateTaskSprint', '/milestones', {
-					placeholder: 'No Change',
-					additionalParams: () => ({ project: projectId })
+				taigaPopulateProjectSelect($('#bulkUpdateTaskProject'), projectId).done(function () {
+					if (projectId) {
+						$('#bulkUpdateTaskProject').val(String(projectId)).trigger('change.select2');
+					}
+					refreshUpdateInputs(projectId);
 				});
 
 				// Load tasks for selection matching current filters

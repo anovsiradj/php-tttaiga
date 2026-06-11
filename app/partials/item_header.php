@@ -6,19 +6,23 @@
  * $headerId - ID for the dynamic header content (e.g. 'usorHeaderContent')
  * $loadingLabel - text for the loading spinner
  */
+$backUrl ??= '#';
+$backLabel ??= 'Back';
+$headerId ??= 'itemHeaderContent';
+$loadingLabel ??= 'Loading...';
 ?>
 
-<div class="item-header" style="padding: 2rem 0; margin-bottom: 2rem;">
+<div class="item-header">
 	<div class="container">
-		<a href="<?php echo $backUrl; ?>" class="back-btn" style="text-decoration: none; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+		<a href="<?php echo htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8'); ?>" class="back-btn">
 			<i class="bi bi-arrow-left"></i>
-			<?php echo $backLabel; ?>
+			<?php echo htmlspecialchars($backLabel, ENT_QUOTES, 'UTF-8'); ?>
 		</a>
-		<div id="<?php echo $headerId; ?>">
+		<div id="<?php echo htmlspecialchars($headerId, ENT_QUOTES, 'UTF-8'); ?>" class="item-header-content">
 			<div class="loading-spinner">
 				<div class="spinner-border text-light" role="status">
 					<span class="visually-hidden">
-						<?php echo $loadingLabel; ?>
+						<?php echo htmlspecialchars($loadingLabel, ENT_QUOTES, 'UTF-8'); ?>
 					</span>
 				</div>
 			</div>

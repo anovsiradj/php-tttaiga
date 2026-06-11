@@ -8,8 +8,11 @@
 			</div>
 			<div class="modal-body">
 				<div class="mb-3">
-					<label class="form-label small mb-1 text-muted">Active Project</label>
-					<input type="text" class="form-control form-control-sm bg-light" id="bulkUpdateTaskProjectDisplay" readonly style="max-width: 300px;">
+					<label for="bulkUpdateTaskProject" class="form-label">Project for Options</label>
+					<select class="form-select" id="bulkUpdateTaskProject">
+						<option value="">Select project to load statuses, usors, sprints, and members</option>
+					</select>
+					<div class="form-text">Autofilled from the active filter when available. You can still change it here.</div>
 				</div>
 				<div class="mb-3">
 					<label class="form-label">Select Tasks to Update</label>
