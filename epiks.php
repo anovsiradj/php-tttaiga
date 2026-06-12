@@ -347,7 +347,7 @@ require __DIR__ . '/app/init.php';
 				$('.view-epic').on('click', function (e) {
 					e.stopPropagation();
 					const epicId = $(this).data('epic-id');
-					window.location.href = `epic.php?id=${epicId}`;
+					window.location.href = `epik.php?id=${epicId}`;
 				});
 			}
 

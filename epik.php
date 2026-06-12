@@ -13,7 +13,7 @@ require __DIR__ . '/app/init.php';
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<?php
-	$backUrl = 'epics.php';
+	$backUrl = 'epiks.php';
 	$backLabel = 'Back to Epiks';
 	$headerId = 'epicHeaderContent';
 	$loadingLabel = 'Loading epik...';
@@ -133,7 +133,7 @@ require __DIR__ . '/app/init.php';
 			const epicId = urlParams.get('id');
 
 			if (!epicId) {
-				window.location.href = 'epics.php';
+				window.location.href = 'epiks.php';
 				return;
 			}
 
@@ -168,7 +168,7 @@ require __DIR__ . '/app/init.php';
 						$('#epicHeaderContent').html(`
 					<div class="alert alert-danger">
 						Failed to load epik. Please check if you have access to this epik.
-						<a href="epics.php" class="btn btn-sm btn-outline-danger ms-2">Back to Epiks</a>
+						<a href="epiks.php" class="btn btn-sm btn-outline-danger ms-2">Back to Epiks</a>
 					</div>
 				`);
 					}
