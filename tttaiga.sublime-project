@@ -32,5 +32,8 @@
 				"web-skit/*-workspace",
 			],
 		},
+		{
+			"path": "C:\\projects\\anoop\\wiet"
+		},
 	],
 }

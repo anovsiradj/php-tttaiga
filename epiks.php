@@ -10,7 +10,6 @@ require __DIR__ . '/app/init.php';
 </head>
 
 <body>
-
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
 	<div class="container mt-4">

@@ -12,7 +12,6 @@ require __DIR__ . '/app/init.php';
 <body class="item-page">
 	<?php include __DIR__ . '/app/layouts/main_navbar.php' ?>
 
-
 	<?php
 	$backUrl = 'epics.php';
 	$backLabel = 'Back to Epiks';
