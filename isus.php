@@ -35,11 +35,12 @@ require __DIR__ . '/app/init.php';
 			'type' => 'Type (ASC)',
 			'-type' => 'Type (DESC)',
 		];
-		$bulkActions = '
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#issueBulkCreateModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
-			<li><a class="dropdown-item" href="#" id="bulkUpdateBtn"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
-			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
-		';
+		$primaryAction = '<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#singleIsuModal"><i class="bi bi-plus-lg me-1"></i> Add New</button>';
+$bulkActions = '
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#issueBulkCreateModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+	<li><a class="dropdown-item" href="#" id="bulkUpdateBtn"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+	<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Isus';
@@ -434,6 +435,9 @@ require __DIR__ . '/app/init.php';
 							<a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary shadow-sm">
 								View Details
 							</a>
+							<button class="btn btn-outline-secondary btn-sm edit-isu" data-isu-id="${issue.id}" data-bs-toggle="modal" data-bs-target="#singleIsuModal">
+								Edit
+							</button>
 						</div>
 					</div>
 				</div>
@@ -454,12 +458,227 @@ require __DIR__ . '/app/init.php';
 				$('#selectionCount').text(selectedCount);
 			}
 
+			// Single Issue Create/Update
+			$('#singleIsuModal').on('show.bs.modal', function (e) {
+				const isuId = $(e.relatedTarget).data('isu-id');
+				const filterParams = taigaGetFilterParams();
+				const initialProjectId = filterParams.project;
+
+				// Load projects first
+				$.ajax({
+					url: 'api.php/projects',
+					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (projects) {
+						let options = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							options += `<option value="${project.id}">${project.name}</option>`;
+						});
+						$('#singleIsuProject').html(options);
+						if (initialProjectId) {
+							$('#singleIsuProject').val(initialProjectId).trigger('change');
+						}
+					}
+				});
+
+				if (isuId) {
+					// Edit mode: Load issue data
+					$('#singleIsuModalLabel').text('Edit Issue');
+					$.ajax({
+						url: `api.php/issues/${isuId}`,
+						type: 'GET',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (isu) {
+							$('#singleIsuId').val(isu.id);
+							$('#singleIsuVersion').val(isu.version);
+							$('#singleIsuSubject').val(isu.subject);
+							$('#singleIsuDescription').val(isu.description);
+							$('#singleIsuProject').val(isu.project).trigger('change');
+
+							if (isu.status) {
+								taigaPopulateBulkStatuses('issue', $('#singleIsuStatus'), isu.project, 'Select Status');
+								$('#singleIsuStatus').val(isu.status);
+							}
+							if (isu.assigned_to) {
+								taigaPopulateBulkMembers($('#singleIsuAssignee'), isu.project, 'Unassigned');
+								$('#singleIsuAssignee').val(isu.assigned_to);
+							}
+
+							// Load issue types, priorities, severities for this project
+							loadIssueOptions(isu.project).then(() => {
+								if (isu.type) $('#singleIsuType').val(isu.type);
+								if (isu.priority) $('#singleIsuPriority').val(isu.priority);
+								if (isu.severity) $('#singleIsuSeverity').val(isu.severity);
+							});
+						},
+						error: function (xhr) {
+							console.error('Failed to load issue:', xhr);
+							alert('Failed to load issue. Please try again.');
+						}
+					});
+				} else {
+					// Create mode: Reset form
+					$('#singleIsuModalLabel').text('Create Issue');
+					$('#singleIsuForm')[0].reset();
+					$('#singleIsuId').val('');
+					$('#singleIsuVersion').val('');
+				}
+			});
+
+			// Load issue options (types, priorities, severities) when project changes
+			$('#singleIsuProject').off('change').on('change', function () {
+				const projectId = $(this).val();
+				if (projectId) {
+					taigaPopulateBulkStatuses('issue', $('#singleIsuStatus'), projectId, 'Select Status');
+					taigaPopulateBulkMembers($('#singleIsuAssignee'), projectId, 'Unassigned');
+					loadIssueOptions(projectId);
+				} else {
+					$('#singleIsuStatus').html('<option value="">Select Project First</option>');
+					$('#singleIsuAssignee').html('<option value="">Select Project First</option>');
+					$('#singleIsuType').html('<option value="">Select Project First</option>');
+					$('#singleIsuPriority').html('<option value="">Select Project First</option>');
+					$('#singleIsuSeverity').html('<option value="">Select Project First</option>');
+				}
+			});
+
+			function loadIssueOptions(projectId) {
+				const promises = [];
+
+				// Load issue types
+				promises.push($.ajax({
+					url: 'api.php/issue-types',
+					type: 'GET',
+					data: { project: projectId },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (types) {
+						let options = '<option value="">Select Type</option>';
+						types.forEach(type => {
+							options += `<option value="${type.id}">${type.name}</option>`;
+						});
+						$('#singleIsuType').html(options);
+					}
+				}));
+
+				// Load issue priorities
+				promises.push($.ajax({
+					url: 'api.php/priorities',
+					type: 'GET',
+					data: { project: projectId },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (priorities) {
+						let options = '<option value="">Select Priority</option>';
+						priorities.forEach(priority => {
+							options += `<option value="${priority.id}">${priority.name}</option>`;
+						});
+						$('#singleIsuPriority').html(options);
+					}
+				}));
+
+				// Load issue severities
+				promises.push($.ajax({
+					url: 'api.php/severities',
+					type: 'GET',
+					data: { project: projectId },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (severities) {
+						let options = '<option value="">Select Severity</option>';
+						severities.forEach(severity => {
+							options += `<option value="${severity.id}">${severity.name}</option>`;
+						});
+						$('#singleIsuSeverity').html(options);
+					}
+				}));
+
+				return Promise.all(promises);
+			}
+
+			$('#submitSingleIsu').on('click', function () {
+				const isuId = $('#singleIsuId').val();
+				const isuVersion = $('#singleIsuVersion').val();
+				const projectId = $('#singleIsuProject').val();
+				const subject = $('#singleIsuSubject').val().trim();
+				const description = $('#singleIsuDescription').val().trim();
+				const status = $('#singleIsuStatus').val();
+				const assignee = $('#singleIsuAssignee').val();
+				const type = $('#singleIsuType').val();
+				const priority = $('#singleIsuPriority').val();
+				const severity = $('#singleIsuSeverity').val();
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (!subject) {
+					alert('Please enter a subject');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Saving...');
+
+				const data = {
+					subject: subject,
+					description: description,
+					project: parseInt(projectId)
+				};
+				if (status) data.status = parseInt(status);
+				if (assignee) data.assigned_to = parseInt(assignee);
+				if (type) data.type = parseInt(type);
+				if (priority) data.priority = parseInt(priority);
+				if (severity) data.severity = parseInt(severity);
+				if (isuId) {
+					data.version = parseInt(isuVersion);
+				}
+
+				$.ajax({
+					url: isuId ? `api.php/issues/${isuId}` : 'api.php/issues',
+					type: isuId ? 'PATCH' : 'POST',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					data: JSON.stringify(data),
+					success: function () {
+						$btn.prop('disabled', false).text('Save');
+						$('#singleIsuModal').modal('hide');
+						alert(isuId ? 'Issue updated successfully!' : 'Issue created successfully!');
+						loadIssues();
+					},
+					error: function (xhr) {
+						$btn.prop('disabled', false).text('Save');
+						console.error('Failed to save issue:', xhr);
+						alert('Failed to save issue. Please try again.');
+					}
+				});
+			});
 		});
 	</script>
 
-	<?php include __DIR__ . '/app/partials/isu_bulk_create.php'; ?>
-	<?php include __DIR__ . '/app/partials/isu_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/isu_bulk_delete.php'; ?>
+	<?php include __DIR__ . '/app/partials/isu_multiple_form.php'; ?>
+<?php include __DIR__ . '/app/partials/isu_multiple_delete.php'; ?>
+<?php include __DIR__ . '/app/partials/isu_single_form.php'; ?>
 
 </body>
 

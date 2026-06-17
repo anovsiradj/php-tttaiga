@@ -34,3 +34,42 @@
 		</div>
 	</div>
 </div>
+
+<!-- Bulk Update Sprint Modal -->
+<div class="modal fade" id="bulkUpdateSprintModal" tabindex="-1" aria-labelledby="bulkUpdateSprintModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="bulkUpdateSprintModalLabel">Bulk Update Sprints</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<form id="bulkUpdateSprintForm">
+					<div class="mb-3">
+						<label class="form-label">Select Sprints to Update</label>
+						<select class="form-select" id="bulkUpdateSprints" multiple size="8">
+							<option value="">Loading sprints...</option>
+						</select>
+						<small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sprints</small>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Status</label>
+						<select class="form-select" id="bulkUpdateClosed">
+							<option value="">No Change</option>
+							<option value="false">Open</option>
+							<option value="true">Closed</option>
+						</select>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Description (optional)</label>
+						<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change"></textarea>
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-primary" id="submitBulkUpdateSprint">Update Sprints</button>
+			</div>
+		</div>
+	</div>
+</div>

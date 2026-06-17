@@ -66,7 +66,10 @@ $cacheablePaths = [
 	'/task-statuses',
 	'/issue-statuses',
 	'/memberships',
-	'/users'
+	'/users',
+	'/issue-types',
+	'/priorities',
+	'/severities'
 ];
 
 $isCacheable = ($method === 'GET' && in_array($apiPath, $cacheablePaths, true));
@@ -89,7 +92,7 @@ if ($isCacheable) {
 		ksort($cacheQuery);
 	}
 
-	if (in_array($apiPath, ['/memberships', '/epic-statuses', '/userstory-statuses', '/task-statuses', '/issue-statuses'])) {
+	if (in_array($apiPath, ['/memberships', '/epic-statuses', '/userstory-statuses', '/task-statuses', '/issue-statuses', '/issue-types', '/priorities', '/severities'])) {
 		$projectId = $cacheQuery['project'] ?? null;
 		$cacheQuery = ['project' => $projectId];
 	}

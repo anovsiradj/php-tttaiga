@@ -32,11 +32,12 @@ require __DIR__ . '/app/init.php';
 			'epic_order' => 'Custom Order (ASC)',
 			'-epic_order' => 'Custom Order (DESC)',
 		];
-		$bulkActions = '
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateEpicModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateEpicModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
-			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteEpicModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
-		';
+		$primaryAction = '<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#singleEpicModal"><i class="bi bi-plus-lg me-1"></i> Add New</button>';
+$bulkActions = '
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateEpicModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateEpicModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+	<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteEpicModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalId = 'totalEpics';
@@ -332,10 +333,13 @@ require __DIR__ . '/app/init.php';
 							</div>
 						</div>
 						<div class="card-footer taiga-card-actions">
-							<button class="btn btn-outline-primary btn-sm view-epic" data-epic-id="${epic.id}">
-								View Details
-							</button>
-						</div>
+						<button class="btn btn-outline-primary btn-sm view-epic" data-epic-id="${epic.id}">
+							View Details
+						</button>
+						<button class="btn btn-outline-secondary btn-sm edit-epic" data-epic-id="${epic.id}" data-bs-toggle="modal" data-bs-target="#singleEpicModal">
+							Edit
+						</button>
+					</div>
 					</div>
 				</div>
 			`;
@@ -382,9 +386,7 @@ require __DIR__ . '/app/init.php';
 						// Initial status population if a project is already selected (e.g. from filter)
 						const currentProjectId = $('#projectSelect').val();
 						if (currentProjectId) {
-							$('#bulkCreateEpicProject').val(currentProjectId);
-							taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), currentProjectId);
-							taigaPopulateBulkMembers($('#bulkCreateEpicAssignee'), currentProjectId, 'Unassigned');
+							$('#bulkCreateEpicProject').val(currentProjectId).trigger('change');
 						} else {
 							taigaPopulateBulkMembers($('#bulkCreateEpicAssignee'), null, 'Unassigned');
 						}
@@ -592,12 +594,153 @@ require __DIR__ . '/app/init.php';
 					}
 				});
 			}
+			// Single Epic Create/Update
+			$('#singleEpicModal').on('show.bs.modal', function (e) {
+				const epicId = $(e.relatedTarget).data('epic-id');
+				const filterParams = taigaGetFilterParams();
+				const initialProjectId = filterParams.project;
+
+				// Load projects first
+				$.ajax({
+					url: 'api.php/projects',
+					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (projects) {
+						let options = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							options += `<option value="${project.id}">${project.name}</option>`;
+						});
+						$('#singleEpicProject').html(options);
+						if (initialProjectId) {
+							$('#singleEpicProject').val(initialProjectId).trigger('change');
+						}
+					}
+				});
+
+				if (epicId) {
+					// Edit mode: Load epic data
+					$('#singleEpicModalLabel').text('Edit Epic');
+					$.ajax({
+						url: `api.php/epics/${epicId}`,
+						type: 'GET',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (epic) {
+							$('#singleEpicId').val(epic.id);
+							$('#singleEpicVersion').val(epic.version);
+							$('#singleEpicSubject').val(epic.subject);
+							$('#singleEpicDescription').val(epic.description);
+							$('#singleEpicColor').val(epic.color || '#fd7e14');
+							$('#singleEpicPriority').val(epic.priority || '');
+							$('#singleEpicProject').val(epic.project).trigger('change');
+							if (epic.status) {
+								taigaPopulateBulkStatuses('epic', $('#singleEpicStatus'), epic.project, 'Select Status');
+								$('#singleEpicStatus').val(epic.status);
+							}
+							if (epic.assigned_to) {
+								taigaPopulateBulkMembers($('#singleEpicAssignee'), epic.project, 'Unassigned');
+								$('#singleEpicAssignee').val(epic.assigned_to);
+							}
+						},
+						error: function (xhr) {
+							console.error('Failed to load epic:', xhr);
+							alert('Failed to load epic. Please try again.');
+						}
+					});
+				} else {
+					// Create mode: Reset form
+					$('#singleEpicModalLabel').text('Create Epic');
+					$('#singleEpicForm')[0].reset();
+					$('#singleEpicId').val('');
+					$('#singleEpicVersion').val('');
+					$('#singleEpicColor').val('#fd7e14');
+				}
+			});
+
+			// Update statuses and members when project changes
+			$('#singleEpicProject').off('change').on('change', function () {
+				const projectId = $(this).val();
+				if (projectId) {
+					taigaPopulateBulkStatuses('epic', $('#singleEpicStatus'), projectId, 'Select Status');
+					taigaPopulateBulkMembers($('#singleEpicAssignee'), projectId, 'Unassigned');
+				} else {
+					$('#singleEpicStatus').html('<option value="">Select Project First</option>');
+					$('#singleEpicAssignee').html('<option value="">Select Project First</option>');
+				}
+			});
+
+			$('#submitSingleEpic').on('click', function () {
+				const epicId = $('#singleEpicId').val();
+				const epicVersion = $('#singleEpicVersion').val();
+				const projectId = $('#singleEpicProject').val();
+				const subject = $('#singleEpicSubject').val().trim();
+				const description = $('#singleEpicDescription').val().trim();
+				const status = $('#singleEpicStatus').val();
+				const assignee = $('#singleEpicAssignee').val();
+				const priority = $('#singleEpicPriority').val();
+				const color = $('#singleEpicColor').val();
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (!subject) {
+					alert('Please enter a subject');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Saving...');
+
+				const data = {
+					subject: subject,
+					description: description,
+					project: parseInt(projectId)
+				};
+				if (status) data.status = parseInt(status);
+				if (assignee) data.assigned_to = parseInt(assignee);
+				if (priority) data.priority = parseInt(priority);
+				if (color) data.color = color;
+				if (epicId) {
+					data.version = parseInt(epicVersion);
+				}
+
+				$.ajax({
+					url: epicId ? `api.php/epics/${epicId}` : 'api.php/epics',
+					type: epicId ? 'PATCH' : 'POST',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					data: JSON.stringify(data),
+					success: function () {
+						$btn.prop('disabled', false).text('Save');
+						$('#singleEpicModal').modal('hide');
+						alert(epicId ? 'Epic updated successfully!' : 'Epic created successfully!');
+						loadEpics();
+					},
+					error: function (xhr) {
+						$btn.prop('disabled', false).text('Save');
+						console.error('Failed to save epic:', xhr);
+						alert('Failed to save epic. Please try again.');
+					}
+				});
+			});
 		});
 	</script>
 
-	<?php include __DIR__ . '/app/partials/epic_bulk_create.php'; ?>
-	<?php include __DIR__ . '/app/partials/epic_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/epic_bulk_delete.php'; ?>
+	<?php include __DIR__ . '/app/partials/epic_multiple_form.php'; ?>
+<?php include __DIR__ . '/app/partials/epic_multiple_delete.php'; ?>
+<?php include __DIR__ . '/app/partials/epic_single_form.php'; ?>
 
 </body>
 

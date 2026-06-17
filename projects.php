@@ -4,6 +4,7 @@ require __DIR__ . '/app/init.php';
 
 $pageTitle = 'Projek';
 $searchPlaceholder = 'Search projects...';
+$primaryAction = '<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#singleProjectModal"><i class="bi bi-plus-lg me-1"></i> Add New</button>';
 $bulkActions = '
 	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateProjectModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
 	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateProjectModal"><i class="bi bi-pencil-square me-2"></i> Bulk Prefix</a></li>
@@ -294,10 +295,13 @@ $filterStatusEnable = false;
 							</div>
 						</div>
 						<div class="card-footer taiga-card-actions">
-							<button class="btn btn-outline-primary btn-sm view-project" data-project-id="${project.id}">
-								View Details
-							</button>
-						</div>
+						<button class="btn btn-outline-primary btn-sm view-project" data-project-id="${project.id}">
+							View Details
+						</button>
+						<button class="btn btn-outline-secondary btn-sm edit-project" data-project-id="${project.id}" data-bs-toggle="modal" data-bs-target="#singleProjectModal">
+							Edit
+						</button>
+					</div>
 					</div>
 				</div>
 			`;
@@ -362,13 +366,95 @@ $filterStatusEnable = false;
 				});
 			}
 
+			// Single Project Create/Update
+			$('#singleProjectModal').on('show.bs.modal', function (e) {
+				const projectId = $(e.relatedTarget).data('project-id');
+				if (projectId) {
+					// Edit mode: Load project data
+					$('#singleProjectModalLabel').text('Edit Project');
+					$.ajax({
+						url: `api.php/projects/${projectId}`,
+						type: 'GET',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (project) {
+							$('#singleProjectId').val(project.id);
+							$('#singleProjectVersion').val(project.version);
+							$('#singleProjectName').val(project.name);
+							$('#singleProjectDescription').val(project.description);
+							$('#singleProjectPrivate').prop('checked', project.is_private);
+						},
+						error: function (xhr) {
+							console.error('Failed to load project:', xhr);
+							alert('Failed to load project. Please try again.');
+						}
+					});
+				} else {
+					// Create mode: Reset form
+					$('#singleProjectModalLabel').text('Create Project');
+					$('#singleProjectForm')[0].reset();
+					$('#singleProjectId').val('');
+					$('#singleProjectVersion').val('');
+				}
+			});
+
+			$('#submitSingleProject').on('click', function () {
+				const projectId = $('#singleProjectId').val();
+				const projectVersion = $('#singleProjectVersion').val();
+				const name = $('#singleProjectName').val().trim();
+				const description = $('#singleProjectDescription').val().trim();
+				const isPrivate = $('#singleProjectPrivate').prop('checked');
+
+				if (!name) {
+					alert('Please enter a project name');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Saving...');
+
+				const data = {
+					name: name,
+					description: description,
+					is_private: isPrivate
+				};
+				if (projectId) {
+					data.version = parseInt(projectVersion);
+				}
+
+				$.ajax({
+					url: projectId ? `api.php/projects/${projectId}` : 'api.php/projects',
+					type: projectId ? 'PATCH' : 'POST',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					data: JSON.stringify(data),
+					success: function () {
+						$btn.prop('disabled', false).text('Save');
+						$('#singleProjectModal').modal('hide');
+						alert(projectId ? 'Project updated successfully!' : 'Project created successfully!');
+						loadProjects();
+					},
+					error: function (xhr) {
+						$btn.prop('disabled', false).text('Save');
+						console.error('Failed to save project:', xhr);
+						alert('Failed to save project. Please try again.');
+					}
+				});
+			});
+
 			// Sort and filter handled by taigaBindFilters and taigaGetFilterParams
 		});
 	</script>
 
-	<?php include __DIR__ . '/app/partials/project_bulk_create.php'; ?>
-	<?php include __DIR__ . '/app/partials/project_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/project_bulk_delete.php'; ?>
+	<?php include __DIR__ . '/app/partials/project_multiple_form.php'; ?>
+<?php include __DIR__ . '/app/partials/project_multiple_delete.php'; ?>
+<?php include __DIR__ . '/app/partials/project_single_form.php'; ?>
 
 </body>
 

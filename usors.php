@@ -38,11 +38,12 @@ require __DIR__ . '/app/init.php';
 			'sprint_order' => 'Sprint Order (ASC)',
 			'-sprint_order' => 'Sprint Order (DESC)',
 		];
-		$bulkActions = '
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
-			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
-		';
+		$primaryAction = '<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#singleUsorModal"><i class="bi bi-plus-lg me-1"></i> Add New</button>';
+$bulkActions = '
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+	<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Usors';
@@ -251,11 +252,14 @@ require __DIR__ . '/app/init.php';
 						</div>
 					</div>
 					<div class="card-footer taiga-card-actions">
-							<a href="usor.php?id=${usor.id}" class="btn btn-outline-primary btn-sm shadow-sm">
-								<i class="bi bi-eye me-1"></i>
-								View Details
-							</a>
-					</div>
+					<a href="usor.php?id=${usor.id}" class="btn btn-outline-primary btn-sm shadow-sm">
+						<i class="bi bi-eye me-1"></i>
+						View Details
+					</a>
+					<button class="btn btn-outline-secondary btn-sm edit-usor" data-usor-id="${usor.id}" data-bs-toggle="modal" data-bs-target="#singleUsorModal">
+						Edit
+					</button>
+				</div>
 				</div>
 				</div>
 			`;
@@ -609,12 +613,182 @@ require __DIR__ . '/app/init.php';
 					}
 				});
 			});
+			// Single User Story Create/Update
+			$('#singleUsorModal').on('show.bs.modal', function (e) {
+				const usorId = $(e.relatedTarget).data('usor-id');
+				const filterParams = taigaGetFilterParams();
+				const initialProjectId = filterParams.project;
+				const initialEpicId = filterParams.epic;
+
+				// Load projects first
+				$.ajax({
+					url: 'api.php/projects',
+					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (projects) {
+						let options = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							options += `<option value="${project.id}">${project.name}</option>`;
+						});
+						$('#singleUsorProject').html(options);
+						if (initialProjectId) {
+							$('#singleUsorProject').val(initialProjectId).trigger('change');
+							if (initialEpicId) {
+								setTimeout(() => {
+									$('#singleUsorEpic').val(initialEpicId);
+								}, 300);
+							}
+						}
+					}
+				});
+
+				if (usorId) {
+					// Edit mode: Load user story data
+					$('#singleUsorModalLabel').text('Edit User Story');
+					$.ajax({
+						url: `api.php/userstories/${usorId}`,
+						type: 'GET',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (usor) {
+							$('#singleUsorId').val(usor.id);
+							$('#singleUsorVersion').val(usor.version);
+							$('#singleUsorSubject').val(usor.subject);
+							$('#singleUsorDescription').val(usor.description);
+							$('#singleUsorPriority').val(usor.priority || '');
+							$('#singleUsorProject').val(usor.project).trigger('change');
+							if (usor.status) {
+								taigaPopulateBulkStatuses('us', $('#singleUsorStatus'), usor.project, 'Select Status');
+								$('#singleUsorStatus').val(usor.status);
+							}
+							if (usor.assigned_to) {
+								taigaPopulateBulkMembers($('#singleUsorAssignee'), usor.project, 'Unassigned');
+								$('#singleUsorAssignee').val(usor.assigned_to);
+							}
+							if (usor.epic) {
+								setTimeout(() => {
+									$('#singleUsorEpic').val(usor.epic);
+								}, 300);
+							}
+						},
+						error: function (xhr) {
+							console.error('Failed to load user story:', xhr);
+							alert('Failed to load user story. Please try again.');
+						}
+					});
+				} else {
+					// Create mode: Reset form
+					$('#singleUsorModalLabel').text('Create User Story');
+					$('#singleUsorForm')[0].reset();
+					$('#singleUsorId').val('');
+					$('#singleUsorVersion').val('');
+				}
+			});
+
+			// Update statuses, members, and epics when project changes
+			$('#singleUsorProject').off('change').on('change', function () {
+				const projectId = $(this).val();
+				if (projectId) {
+					taigaPopulateBulkStatuses('us', $('#singleUsorStatus'), projectId, 'Select Status');
+					taigaPopulateBulkMembers($('#singleUsorAssignee'), projectId, 'Unassigned');
+
+					// Load epics for this project
+					$.ajax({
+						url: 'api.php/epics',
+						type: 'GET',
+						data: { project: projectId },
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (epics) {
+							let options = '<option value="">Select Epic</option>';
+							epics.forEach(epic => {
+								options += `<option value="${epic.id}">${epic.subject || 'Untitled Epic'}</option>`;
+							});
+							$('#singleUsorEpic').html(options);
+						}
+					});
+				} else {
+					$('#singleUsorStatus').html('<option value="">Select Project First</option>');
+					$('#singleUsorAssignee').html('<option value="">Select Project First</option>');
+					$('#singleUsorEpic').html('<option value="">Select Project First</option>');
+				}
+			});
+
+			$('#submitSingleUsor').on('click', function () {
+				const usorId = $('#singleUsorId').val();
+				const usorVersion = $('#singleUsorVersion').val();
+				const projectId = $('#singleUsorProject').val();
+				const subject = $('#singleUsorSubject').val().trim();
+				const description = $('#singleUsorDescription').val().trim();
+				const status = $('#singleUsorStatus').val();
+				const assignee = $('#singleUsorAssignee').val();
+				const priority = $('#singleUsorPriority').val();
+				const epicId = $('#singleUsorEpic').val();
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (!subject) {
+					alert('Please enter a subject');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Saving...');
+
+				const data = {
+					subject: subject,
+					description: description,
+					project: parseInt(projectId)
+				};
+				if (status) data.status = parseInt(status);
+				if (assignee) data.assigned_to = parseInt(assignee);
+				if (priority) data.priority = parseInt(priority);
+				if (epicId) data.epic = parseInt(epicId);
+				if (usorId) {
+					data.version = parseInt(usorVersion);
+				}
+
+				$.ajax({
+					url: usorId ? `api.php/userstories/${usorId}` : 'api.php/userstories',
+					type: usorId ? 'PATCH' : 'POST',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					data: JSON.stringify(data),
+					success: function () {
+						$btn.prop('disabled', false).text('Save');
+						$('#singleUsorModal').modal('hide');
+						alert(usorId ? 'User story updated successfully!' : 'User story created successfully!');
+						loadUsors();
+					},
+					error: function (xhr) {
+						$btn.prop('disabled', false).text('Save');
+						console.error('Failed to save user story:', xhr);
+						alert('Failed to save user story. Please try again.');
+					}
+				});
+			});
 		});
 	</script>
 
-	<?php include __DIR__ . '/app/partials/usor_bulk_create.php'; ?>
-	<?php include __DIR__ . '/app/partials/usor_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/usor_bulk_delete.php'; ?>
+	<?php include __DIR__ . '/app/partials/usor_multiple_form.php'; ?>
+<?php include __DIR__ . '/app/partials/usor_multiple_delete.php'; ?>
+<?php include __DIR__ . '/app/partials/usor_single_form.php'; ?>
 
 </body>
 

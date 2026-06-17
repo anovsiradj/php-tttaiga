@@ -31,7 +31,8 @@ require __DIR__ . '/app/init.php';
 			'estimated_finish' => 'Finish Date (ASC)',
 			'-estimated_finish' => 'Finish Date (DESC)',
 		];
-		$bulkActions = '
+		$primaryAction = '<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#singleSprintModal"><i class="bi bi-plus-lg me-1"></i> Add New</button>';
+$bulkActions = '
 			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateSprintModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
 			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateSprintModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
 			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
@@ -274,6 +275,9 @@ require __DIR__ . '/app/init.php';
 									<a href="sprint.php?id=${sprint.id}" class="btn btn-outline-primary btn-sm">
 										View Details
 									</a>
+									<button class="btn btn-outline-secondary btn-sm edit-sprint" data-sprint-id="${sprint.id}" data-bs-toggle="modal" data-bs-target="#singleSprintModal">
+										Edit
+									</button>
 								</div>
 							</div>
 						</div>
@@ -420,49 +424,128 @@ require __DIR__ . '/app/init.php';
 						$btn.prop('disabled', false).text('Update Sprints');
 					});
 			}
+			// Single Sprint Create/Update
+			$('#singleSprintModal').on('show.bs.modal', function (e) {
+				const sprintId = $(e.relatedTarget).data('sprint-id');
+				const filterParams = taigaGetFilterParams();
+				const initialProjectId = filterParams.project;
+
+				// Load projects first
+				$.ajax({
+					url: 'api.php/projects',
+					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (projects) {
+						let options = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							options += `<option value="${project.id}">${project.name}</option>`;
+						});
+						$('#singleSprintProject').html(options);
+						if (initialProjectId) {
+							$('#singleSprintProject').val(initialProjectId);
+						}
+					}
+				});
+
+				if (sprintId) {
+					// Edit mode: Load sprint data
+					$('#singleSprintModalLabel').text('Edit Sprint');
+					$.ajax({
+						url: `api.php/milestones/${sprintId}`,
+						type: 'GET',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (sprint) {
+							$('#singleSprintId').val(sprint.id);
+							$('#singleSprintVersion').val(sprint.version);
+							$('#singleSprintName').val(sprint.name);
+							$('#singleSprintProject').val(sprint.project);
+							if (sprint.estimated_start) {
+								$('#singleSprintStart').val(sprint.estimated_start.split('T')[0]);
+							}
+							if (sprint.estimated_finish) {
+								$('#singleSprintEnd').val(sprint.estimated_finish.split('T')[0]);
+							}
+						},
+						error: function (xhr) {
+							console.error('Failed to load sprint:', xhr);
+							alert('Failed to load sprint. Please try again.');
+						}
+					});
+				} else {
+					// Create mode: Reset form
+					$('#singleSprintModalLabel').text('Create Sprint');
+					$('#singleSprintForm')[0].reset();
+					$('#singleSprintId').val('');
+					$('#singleSprintVersion').val('');
+				}
+			});
+
+			$('#submitSingleSprint').on('click', function () {
+				const sprintId = $('#singleSprintId').val();
+				const sprintVersion = $('#singleSprintVersion').val();
+				const projectId = $('#singleSprintProject').val();
+				const name = $('#singleSprintName').val().trim();
+				const start = $('#singleSprintStart').val();
+				const end = $('#singleSprintEnd').val();
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (!name) {
+					alert('Please enter a name');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Saving...');
+
+				const data = {
+					name: name,
+					project: parseInt(projectId)
+				};
+				if (start) data.estimated_start = start;
+				if (end) data.estimated_finish = end;
+				if (sprintId) {
+					data.version = parseInt(sprintVersion);
+				}
+
+				$.ajax({
+					url: sprintId ? `api.php/milestones/${sprintId}` : 'api.php/milestones',
+					type: sprintId ? 'PATCH' : 'POST',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					data: JSON.stringify(data),
+					success: function () {
+						$btn.prop('disabled', false).text('Save');
+						$('#singleSprintModal').modal('hide');
+						alert(sprintId ? 'Sprint updated successfully!' : 'Sprint created successfully!');
+						loadSprints();
+					},
+					error: function (xhr) {
+						$btn.prop('disabled', false).text('Save');
+						console.error('Failed to save sprint:', xhr);
+						alert('Failed to save sprint. Please try again.');
+					}
+				});
+			});
 		});
 	</script>
 
-	<?php include __DIR__ . '/app/partials/sprint_bulk_create.php'; ?>
-
-	<!-- Bulk Update Sprint Modal -->
-	<div class="modal fade" id="bulkUpdateSprintModal" tabindex="-1" aria-labelledby="bulkUpdateSprintModalLabel" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="bulkUpdateSprintModalLabel">Bulk Update Sprints</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<form id="bulkUpdateSprintForm">
-						<div class="mb-3">
-							<label class="form-label">Select Sprints to Update</label>
-							<select class="form-select" id="bulkUpdateSprints" multiple size="8">
-								<option value="">Loading sprints...</option>
-							</select>
-							<small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sprints</small>
-						</div>
-						<div class="mb-3">
-							<label class="form-label">Status</label>
-							<select class="form-select" id="bulkUpdateClosed">
-								<option value="">No Change</option>
-								<option value="false">Open</option>
-								<option value="true">Closed</option>
-							</select>
-						</div>
-						<div class="mb-3">
-							<label class="form-label">Description (optional)</label>
-							<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change"></textarea>
-						</div>
-					</form>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="submitBulkUpdateSprint">Update Sprints</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<?php include __DIR__ . '/app/partials/sprint_multiple_form.php'; ?>
+<?php include __DIR__ . '/app/partials/sprint_single_form.php'; ?>
 
 </body>
 

@@ -33,11 +33,12 @@ require __DIR__ . '/app/init.php';
 			'task_order' => 'Task Order (ASC)',
 			'-task_order' => 'Task Order (DESC)',
 		];
-		$bulkActions = '
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
-			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
-			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteTaskModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
-		';
+		$primaryAction = '<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#singleTaskModal"><i class="bi bi-plus-lg me-1"></i> Add New</button>';
+$bulkActions = '
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateTaskModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
+	<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateTaskModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
+	<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteTaskModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+';
 		include __DIR__ . '/app/partials/list_header.php';
 
 		$totalLabel = 'Total Tasks';
@@ -62,9 +63,9 @@ require __DIR__ . '/app/init.php';
 		</nav>
 	</div>
 
-	<?php include __DIR__ . '/app/partials/task_bulk_create.php'; ?>
-	<?php include __DIR__ . '/app/partials/task_bulk_update.php'; ?>
-	<?php include __DIR__ . '/app/partials/task_bulk_delete.php'; ?>
+	<?php include __DIR__ . '/app/partials/task_multiple_form.php'; ?>
+<?php include __DIR__ . '/app/partials/task_multiple_delete.php'; ?>
+<?php include __DIR__ . '/app/partials/task_single_form.php'; ?>
 
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -246,15 +247,18 @@ require __DIR__ . '/app/init.php';
 							</div>
 						</div>
 						<div class="card-footer taiga-card-actions">
-								<a href="task.php?id=${task.id}" class="btn btn-sm btn-outline-secondary shadow-sm">
-									View Task
-								</a>
-								${task.user_story ? `
-									<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-primary shadow-sm">
-										View Usor
-									</a>
-								` : ''}
-						</div>
+					<a href="task.php?id=${task.id}" class="btn btn-sm btn-outline-secondary shadow-sm">
+						View Task
+					</a>
+					<button class="btn btn-outline-primary btn-sm edit-task" data-task-id="${task.id}" data-bs-toggle="modal" data-bs-target="#singleTaskModal">
+						Edit
+					</button>
+					${task.user_story ? `
+						<a href="usor.php?id=${task.user_story}" class="btn btn-sm btn-outline-secondary shadow-sm">
+							View Usor
+						</a>
+					` : ''}
+				</div>
 					</div>
 				</div>
 			`;
@@ -556,6 +560,200 @@ require __DIR__ . '/app/init.php';
 						loadTasks();
 					} else {
 						alert(`Deleted ${successCount} tasks, but ${errorCount} failed.`);
+					}
+				});
+			});
+			// Single Task Create/Update
+			$('#singleTaskModal').on('show.bs.modal', function (e) {
+				const taskId = $(e.relatedTarget).data('task-id');
+				const filterParams = taigaGetFilterParams();
+				const initialProjectId = filterParams.project;
+				const initialUsorId = filterParams.user_story;
+
+				// Load projects first
+				$.ajax({
+					url: 'api.php/projects',
+					type: 'GET',
+					data: { member: taigaModel?.id ?? null },
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					success: function (projects) {
+						let options = '<option value="">Select Project</option>';
+						projects.forEach(project => {
+							options += `<option value="${project.id}">${project.name}</option>`;
+						});
+						$('#singleTaskProject').html(options);
+						if (initialProjectId) {
+							$('#singleTaskProject').val(initialProjectId).trigger('change');
+							if (initialUsorId) {
+								setTimeout(() => {
+									$('#singleTaskUsor').val(initialUsorId);
+								}, 300);
+							}
+						}
+					}
+				});
+
+				if (taskId) {
+					// Edit mode: Load task data
+					$('#singleTaskModalLabel').text('Edit Task');
+					$.ajax({
+						url: `api.php/tasks/${taskId}`,
+						type: 'GET',
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (task) {
+							$('#singleTaskId').val(task.id);
+							$('#singleTaskVersion').val(task.version);
+							$('#singleTaskSubject').val(task.subject);
+							$('#singleTaskDescription').val(task.description);
+							$('#singleTaskProject').val(task.project).trigger('change');
+							if (task.status) {
+								taigaPopulateBulkStatuses('task', $('#singleTaskStatus'), task.project, 'Select Status');
+								$('#singleTaskStatus').val(task.status);
+							}
+							if (task.assigned_to) {
+								taigaPopulateBulkMembers($('#singleTaskAssignee'), task.project, 'Unassigned');
+								$('#singleTaskAssignee').val(task.assigned_to);
+							}
+							if (task.user_story) {
+								setTimeout(() => {
+									$('#singleTaskUsor').val(task.user_story);
+								}, 300);
+							}
+							if (task.milestone) {
+								setTimeout(() => {
+									$('#singleTaskSprint').val(task.milestone);
+								}, 300);
+							}
+						},
+						error: function (xhr) {
+							console.error('Failed to load task:', xhr);
+							alert('Failed to load task. Please try again.');
+						}
+					});
+				} else {
+					// Create mode: Reset form
+					$('#singleTaskModalLabel').text('Create Task');
+					$('#singleTaskForm')[0].reset();
+					$('#singleTaskId').val('');
+					$('#singleTaskVersion').val('');
+				}
+			});
+
+			// Update statuses, members, user stories, and sprints when project changes
+			$('#singleTaskProject').off('change').on('change', function () {
+				const projectId = $(this).val();
+				if (projectId) {
+					taigaPopulateBulkStatuses('task', $('#singleTaskStatus'), projectId, 'Select Status');
+					taigaPopulateBulkMembers($('#singleTaskAssignee'), projectId, 'Unassigned');
+
+					// Load user stories for this project
+					$.ajax({
+						url: 'api.php/userstories',
+						type: 'GET',
+						data: { project: projectId },
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (usors) {
+							let options = '<option value="">Select User Story</option>';
+							usors.forEach(usor => {
+								options += `<option value="${usor.id}">#${usor.ref} ${usor.subject || 'Untitled User Story'}</option>`;
+							});
+							$('#singleTaskUsor').html(options);
+						}
+					});
+
+					// Load sprints for this project
+					$.ajax({
+						url: 'api.php/milestones',
+						type: 'GET',
+						data: { project: projectId },
+						headers: {
+							'Authorization': 'Bearer ' + token,
+							'Content-Type': 'application/json',
+							'X-Taiga-Api-Url': apiUrl
+						},
+						success: function (sprints) {
+							let options = '<option value="">Select Sprint</option>';
+							sprints.forEach(sprint => {
+								options += `<option value="${sprint.id}">${sprint.name}</option>`;
+							});
+							$('#singleTaskSprint').html(options);
+						}
+					});
+				} else {
+					$('#singleTaskStatus').html('<option value="">Select Project First</option>');
+					$('#singleTaskAssignee').html('<option value="">Select Project First</option>');
+					$('#singleTaskUsor').html('<option value="">Select Project First</option>');
+					$('#singleTaskSprint').html('<option value="">Select Project First</option>');
+				}
+			});
+
+			$('#submitSingleTask').on('click', function () {
+				const taskId = $('#singleTaskId').val();
+				const taskVersion = $('#singleTaskVersion').val();
+				const projectId = $('#singleTaskProject').val();
+				const subject = $('#singleTaskSubject').val().trim();
+				const description = $('#singleTaskDescription').val().trim();
+				const status = $('#singleTaskStatus').val();
+				const assignee = $('#singleTaskAssignee').val();
+				const usorId = $('#singleTaskUsor').val();
+				const sprintId = $('#singleTaskSprint').val();
+
+				if (!projectId) {
+					alert('Please select a project');
+					return;
+				}
+				if (!subject) {
+					alert('Please enter a subject');
+					return;
+				}
+
+				const $btn = $(this);
+				$btn.prop('disabled', true).text('Saving...');
+
+				const data = {
+					subject: subject,
+					description: description,
+					project: parseInt(projectId)
+				};
+				if (status) data.status = parseInt(status);
+				if (assignee) data.assigned_to = parseInt(assignee);
+				if (usorId) data.user_story = parseInt(usorId);
+				if (sprintId) data.milestone = parseInt(sprintId);
+				if (taskId) {
+					data.version = parseInt(taskVersion);
+				}
+
+				$.ajax({
+					url: taskId ? `api.php/tasks/${taskId}` : 'api.php/tasks',
+					type: taskId ? 'PATCH' : 'POST',
+					headers: {
+						'Authorization': 'Bearer ' + token,
+						'Content-Type': 'application/json',
+						'X-Taiga-Api-Url': apiUrl
+					},
+					data: JSON.stringify(data),
+					success: function () {
+						$btn.prop('disabled', false).text('Save');
+						$('#singleTaskModal').modal('hide');
+						alert(taskId ? 'Task updated successfully!' : 'Task created successfully!');
+						loadTasks();
+					},
+					error: function (xhr) {
+						$btn.prop('disabled', false).text('Save');
+						console.error('Failed to save task:', xhr);
+						alert('Failed to save task. Please try again.');
 					}
 				});
 			});
