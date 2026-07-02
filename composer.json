@@ -47,5 +47,13 @@
         "symfony/var-dumper": "@stable",
         "yiisoft/arrays": "@dev",
         "yiisoft/strings": "@dev"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.2"
+    },
+    "scripts": {
+        "test": "phpunit --colors=always",
+        "test:unit": "phpunit --testsuite unit --colors=always",
+        "test:integration": "phpunit --testsuite integration --colors=always"
     }
 }
