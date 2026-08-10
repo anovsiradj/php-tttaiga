@@ -62,7 +62,7 @@ $(document).ready(function () {
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" id="task-${task.id}">
+                                    <input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" data-version="${task.version}" id="task-${task.id}">
                                 </div>
                                 ${statusBadge}
                             </div>
@@ -138,7 +138,7 @@ $(document).ready(function () {
         submitBulkCreate: function() {
             const titles = $('#bulkTaskTitles').val().trim().split('\n').filter(t => t.trim());
             if (titles.length === 0) {
-                alert('Please enter at least one task title');
+                TTTaiga.UI.notify('Please enter at least one task title', 'warning');
                 return;
             }
 
@@ -149,12 +149,13 @@ $(document).ready(function () {
             const commonDescription = $('#bulkTaskDescription').val().trim();
 
             if (!projectId) {
-                alert('Please select a project');
+                TTTaiga.UI.notify('Please select a project', 'warning');
                 return;
             }
 
             const $btn = $('#submitBulkTaskCreate');
             $btn.prop('disabled', true).text('Creating...');
+            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
             let createdCount = 0;
             let errorCount = 0;
@@ -191,7 +192,8 @@ $(document).ready(function () {
                         createdCount++;
                         if (createdCount + errorCount === titles.length) {
                             $btn.prop('disabled', false).text('Create Tasks');
-                            alert(`Successfully created ${createdCount} tasks!`);
+                            $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+                            TTTaiga.UI.notify(`Successfully created ${createdCount} tasks!`, 'success');
                             $('#bulkCreateTaskModal').modal('hide');
                             TTTaiga.Tasks.load();
                         }
@@ -201,7 +203,8 @@ $(document).ready(function () {
                         errorCount++;
                         if (createdCount + errorCount === titles.length) {
                             $btn.prop('disabled', false).text('Create Tasks');
-                            alert(`Created ${createdCount} tasks, but ${errorCount} failed.`);
+                            $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+                            TTTaiga.UI.notify(`Created ${createdCount} tasks, but ${errorCount} failed.`, 'danger');
                         }
                     }
                 });
@@ -262,74 +265,70 @@ $(document).ready(function () {
         submitBulkUpdate: function() {
             const selectedTasks = [];
             $('#bulkUpdateTaskList input:checked').each(function () {
-                selectedTasks.push({
-                    id: $(this).val(),
-                    version: $(this).data('version')
-                });
+                selectedTasks.push({ id: $(this).val(), version: $(this).data('version') });
             });
 
             if (selectedTasks.length === 0) {
-                alert('Please select at least one task to update');
+                TTTaiga.UI.notify('Please select at least one task to update', 'warning');
                 return;
             }
 
             const updateData = {};
             const status = $('#bulkUpdateTaskStatus').val();
-
             if (status) updateData.status = parseInt(status);
             const assignee = $('#bulkUpdateTaskAssignee').val();
             if (assignee) updateData.assigned_to = parseInt(assignee);
-
             const usor = $('#bulkUpdateTaskUsor').val();
             if (usor) updateData.user_story = usor === 'null' ? null : parseInt(usor);
-
             const sprint = $('#bulkUpdateTaskSprint').val();
             if (sprint) updateData.milestone = sprint === 'null' ? null : parseInt(sprint);
 
             if (Object.keys(updateData).length === 0) {
-                alert('Please select at least one field to update');
+                TTTaiga.UI.notify('Please select at least one field to update', 'warning');
                 return;
             }
 
             const $btn = $('#submitBulkTaskUpdate');
             $btn.prop('disabled', true).text('Updating...');
+            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
             taigaExecuteBulk('/tasks/', selectedTasks, 'PATCH', updateData, (successCount, errorCount) => {
                 $btn.prop('disabled', false).text('Update Tasks');
+                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+                
                 if (errorCount === 0) {
-                    alert(`Successfully updated ${successCount} tasks!`);
+                    TTTaiga.UI.notify(`Successfully updated ${successCount} tasks!`, 'success');
                     $('#bulkUpdateTaskModal').modal('hide');
                     TTTaiga.Tasks.load();
                 } else {
-                    alert(`Updated ${successCount} tasks, but ${errorCount} failed.`);
+                    TTTaiga.UI.notify(`Updated ${successCount} tasks, but ${errorCount} failed.`, 'danger');
                 }
             });
         },
         deleteBulk: function() {
             const selectedTasks = [];
             $('.task-checkbox:checked').each(function () {
-                selectedTasks.push({
-                    id: $(this).val(),
-                    version: $(this).data('version')
-                });
+                selectedTasks.push({ id: $(this).val(), version: $(this).data('version') });
             });
 
             if (selectedTasks.length === 0) {
-                alert('Please select at least one task to delete');
+                TTTaiga.UI.notify('Please select at least one task to delete', 'warning');
                 return;
             }
 
             const $btn = $('#confirmBulkDeleteTasks');
             $btn.prop('disabled', true).text('Deleting...');
+            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
             taigaExecuteBulk('/tasks/', selectedTasks, 'DELETE', null, (successCount, errorCount) => {
                 $btn.prop('disabled', false).text('Delete Tasks');
+                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
                 if (errorCount === 0) {
-                    alert(`Successfully deleted ${successCount} tasks!`);
+                    TTTaiga.UI.notify(`Successfully deleted ${successCount} tasks!`, 'success');
                     $('#bulkDeleteTaskModal').modal('hide');
                     TTTaiga.Tasks.load();
                 } else {
-                    alert(`Deleted ${successCount} tasks, but ${errorCount} failed.`);
+                    TTTaiga.UI.notify(`Deleted ${successCount} tasks, but ${errorCount} failed.`, 'danger');
                 }
             });
         }
@@ -338,13 +337,10 @@ $(document).ready(function () {
     // Bind event handlers
     $('#bulkCreateTaskModal').on('show.bs.modal', function() { 
         TTTaiga.Tasks.populateBulkCreateDropdowns(); 
-        
-        // Autofill from shared state
         const state = TTTaiga.State.getState();
         if(state.projectSelect) $('#bulkTaskProject').val(state.projectSelect).trigger('change.select2');
     });
     $('#submitBulkTaskCreate').on('click', function() { TTTaiga.Tasks.submitBulkCreate(); });
-
     $('#bulkUpdateTaskModal').on('show.bs.modal', function() { TTTaiga.Tasks.populateBulkUpdateDropdowns(); });
     $('#submitBulkTaskUpdate').on('click', function() { TTTaiga.Tasks.submitBulkUpdate(); });
     $('#confirmBulkDeleteTasks').on('click', function() { TTTaiga.Tasks.deleteBulk(); });
