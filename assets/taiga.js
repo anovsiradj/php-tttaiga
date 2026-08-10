@@ -660,12 +660,20 @@ function taigaBindFilters(onFilterChange) {
 	// Dropdown and Select2 changes
 	const $selectors = $('#projectSelect, #statusSelect, #epicSelect, #userStorySelect, #assignedToSelect, #sortSelect');
 	$selectors.on('change', function () {
+        if (window.TTTaiga && window.TTTaiga.isInitializing) return;
+        
 		// When project changes, clear dependent Select2 dropdowns
 		if ($(this).attr('id') === 'projectSelect') {
 			$('#epicSelect, #userStorySelect').val(null).trigger('change.select2');
 			$('#statusSelect').val(null).trigger('change.select2');
 			$('#assignedToSelect').val(null).trigger('change.select2');
 		}
+
+        // Update Global State
+        const state = {};
+        state[$(this).attr('id')] = $(this).val();
+        TTTaiga.State.setState(state);
+        
 		onFilterChange(1);
 	});
 
@@ -1148,171 +1156,176 @@ function taigaGetUrlQueryParams() {
 }
 
 function taigaApplyFiltersFromUrl() {
-	if (typeof window.tttaigaEnsureSharedFiltersInUrl === 'function') {
-		window.tttaigaEnsureSharedFiltersInUrl();
-	}
+    window.TTTaiga = window.TTTaiga || {};
+    window.TTTaiga.isInitializing = true;
+    
+    if (typeof window.tttaigaEnsureSharedFiltersInUrl === 'function') {
+        window.tttaigaEnsureSharedFiltersInUrl();
+    }
 
-	const urlParams = new URLSearchParams(window.location.search);
-	const page = parseInt(urlParams.get('page') || '1') || 1;
-	const q = urlParams.get('q');
-	const orderBy = urlParams.get('order_by');
-	const projectIdParam = urlParams.get('project');
-	const epicIdParam = urlParams.get('epic');
-	const userStoryIdParam = urlParams.get('user_story');
-	const statusIdParam = urlParams.get('status');
-	const assignedToParam = urlParams.get('assigned_to');
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = parseInt(urlParams.get('page') || '1') || 1;
+    const q = urlParams.get('q');
+    const orderBy = urlParams.get('order_by');
+    const projectIdParam = urlParams.get('project');
+    const epicIdParam = urlParams.get('epic');
+    const userStoryIdParam = urlParams.get('user_story');
+    const statusIdParam = urlParams.get('status');
+    const assignedToParam = urlParams.get('assigned_to');
 
-	const apiGet = function (url, data) {
-		return $.ajax({
-			url: url,
-			type: 'GET',
-			data: data,
-			headers: {
-				'Authorization': 'Bearer ' + window.taigaToken,
-				'Content-Type': 'application/json',
-				'X-Taiga-Api-Url': window.apiUrl
-			}
-		});
-	};
+    const apiGet = function (url, data) {
+        return $.ajax({
+            url: url,
+            type: 'GET',
+            data: data,
+            headers: {
+                'Authorization': 'Bearer ' + window.taigaToken,
+                'Content-Type': 'application/json',
+                'X-Taiga-Api-Url': window.apiUrl
+            }
+        });
+    };
 
-	const setSelectValue = function (selector, id, label) {
-		if (!id) return;
-		const $select = $(selector);
-		if (!$select.length) return;
-		const option = new Option(label || id, id, true, true);
-		$select.append(option).trigger('change');
-	};
+    const setSelectValue = function (selector, id, label) {
+        if (!id) return;
+        const $select = $(selector);
+        if (!$select.length) return;
+        const option = new Option(label || id, id, true, true);
+        $select.append(option).trigger('change');
+    };
 
-	const applyProject = function (projectId) {
-		if (!projectId) return $.Deferred().resolve().promise();
-		if (!$('#projectSelect').length) return $.Deferred().resolve().promise();
-		return apiGet('api.php/projects/' + encodeURIComponent(projectId)).then(function (project) {
-			setSelectValue('#projectSelect', String(project.id), project.name || ('Project ' + project.id));
-		}, function () {
-			setSelectValue('#projectSelect', String(projectId), 'Project ' + projectId);
-		});
-	};
+    const applyProject = function (projectId) {
+        if (!projectId) return $.Deferred().resolve().promise();
+        if (!$('#projectSelect').length) return $.Deferred().resolve().promise();
+        return apiGet('api.php/projects/' + encodeURIComponent(projectId)).then(function (project) {
+            setSelectValue('#projectSelect', String(project.id), project.name || ('Project ' + project.id));
+        }, function () {
+            setSelectValue('#projectSelect', String(projectId), 'Project ' + projectId);
+        });
+    };
 
-	const applyEpic = function (epicId) {
-		if (!epicId) return $.Deferred().resolve(null).promise();
-		if (!$('#epicSelect').length) return $.Deferred().resolve(null).promise();
-		return apiGet('api.php/epics/' + encodeURIComponent(epicId)).then(function (epic) {
-			setSelectValue('#epicSelect', String(epic.id), `#${epic.ref}: ${epic.subject || 'Untitled Epik'}`);
-			return epic;
-		}, function () {
-			setSelectValue('#epicSelect', String(epicId), 'Epik ' + epicId);
-			return null;
-		});
-	};
+    const applyEpic = function (epicId) {
+        if (!epicId) return $.Deferred().resolve(null).promise();
+        if (!$('#epicSelect').length) return $.Deferred().resolve(null).promise();
+        return apiGet('api.php/epics/' + encodeURIComponent(epicId)).then(function (epic) {
+            setSelectValue('#epicSelect', String(epic.id), `#${epic.ref}: ${epic.subject || 'Untitled Epik'}`);
+            return epic;
+        }, function () {
+            setSelectValue('#epicSelect', String(epicId), 'Epik ' + epicId);
+            return null;
+        });
+    };
 
-	const applyUserStory = function (usorId) {
-		if (!usorId) return $.Deferred().resolve(null).promise();
-		if (!$('#userStorySelect').length) return $.Deferred().resolve(null).promise();
-		return apiGet('api.php/userstories/' + encodeURIComponent(usorId)).then(function (usor) {
-			setSelectValue('#userStorySelect', String(usor.id), `#${usor.ref}: ${usor.subject || 'Untitled Usor'}`);
-			return usor;
-		}, function () {
-			setSelectValue('#userStorySelect', String(usorId), 'Usor ' + usorId);
-			return null;
-		});
-	};
+    const applyUserStory = function (usorId) {
+        if (!usorId) return $.Deferred().resolve(null).promise();
+        if (!$('#userStorySelect').length) return $.Deferred().resolve(null).promise();
+        return apiGet('api.php/userstories/' + encodeURIComponent(usorId)).then(function (usor) {
+            setSelectValue('#userStorySelect', String(usor.id), `#${usor.ref}: ${usor.subject || 'Untitled Usor'}`);
+            return usor;
+        }, function () {
+            setSelectValue('#userStorySelect', String(usorId), 'Usor ' + usorId);
+            return null;
+        });
+    };
 
-	const applyStatusAndAssigned = function (projectId) {
-		const jobs = [];
+    const applyStatusAndAssigned = function (projectId) {
+        const jobs = [];
 
-		if (statusIdParam && $('#statusSelect').length && projectId && $('#statusSelect').data('status-type')) {
-			jobs.push(
-				taigaFetchStatuses(window.apiUrl, window.taigaToken, projectId, $('#statusSelect').data('status-type'))
-					.then(function (statuses) {
-						const $status = $('#statusSelect');
-						taigaPopulateStatusDropdown($status, statuses);
-						$status.val(String(statusIdParam)).trigger('change');
-					})
-			);
-		}
+        if (statusIdParam && $('#statusSelect').length && projectId && $('#statusSelect').data('status-type')) {
+            jobs.push(
+                taigaFetchStatuses(window.apiUrl, window.taigaToken, projectId, $('#statusSelect').data('status-type'))
+                    .then(function (statuses) {
+                        const $status = $('#statusSelect');
+                        taigaPopulateStatusDropdown($status, statuses);
+                        $status.val(String(statusIdParam)).trigger('change');
+                    })
+            );
+        }
 
-		if (assignedToParam && $('#assignedToSelect').length && projectId) {
-			jobs.push(
-				taigaFetchMembers(window.apiUrl, window.taigaToken, projectId)
-					.then(function (memberships) {
-						const $assigned = $('#assignedToSelect');
-						let html = '<option value="">(Semua User)</option>';
-						if (Array.isArray(memberships)) {
-							memberships.forEach(m => {
-								const name = m.full_name || m.user_email || 'Unknown';
-								html += `<option value="${m.user}">${name}</option>`;
-							});
-						}
-						$assigned.html(html);
-						$assigned.val(String(assignedToParam)).trigger('change');
-					})
-			);
-		}
+        if (assignedToParam && $('#assignedToSelect').length && projectId) {
+            jobs.push(
+                taigaFetchMembers(window.apiUrl, window.taigaToken, projectId)
+                    .then(function (memberships) {
+                        const $assigned = $('#assignedToSelect');
+                        let html = '<option value="">(Semua User)</option>';
+                        if (Array.isArray(memberships)) {
+                            memberships.forEach(m => {
+                                const name = m.full_name || m.user_email || 'Unknown';
+                                html += `<option value="${m.user}">${name}</option>`;
+                            });
+                        }
+                        $assigned.html(html);
+                        $assigned.val(String(assignedToParam)).trigger('change');
+                    })
+            );
+        }
 
-		if (!jobs.length) return $.Deferred().resolve().promise();
-		return $.when.apply($, jobs);
-	};
+        if (!jobs.length) return $.Deferred().resolve().promise();
+        return $.when.apply($, jobs);
+    };
 
-	if (q && $('#searchInput').length) {
-		$('#searchInput').val(q);
-	}
-	if (orderBy && $('#sortSelect').length) {
-		$('#sortSelect').val(orderBy).trigger('change');
-	}
+    if (q && $('#searchInput').length) {
+        $('#searchInput').val(q);
+    }
+    if (orderBy && $('#sortSelect').length) {
+        $('#sortSelect').val(orderBy).trigger('change');
+    }
 
-	let chain = $.Deferred().resolve().promise();
-	let resolvedProjectId = projectIdParam ? String(projectIdParam) : null;
+    let chain = $.Deferred().resolve().promise();
+    let resolvedProjectId = projectIdParam ? String(projectIdParam) : null;
 
-	if (!resolvedProjectId && userStoryIdParam) {
-		chain = chain
-			.then(function () {
-				return applyUserStory(userStoryIdParam);
-			})
-			.then(function (usor) {
-				if (usor && usor.project && !resolvedProjectId) {
-					resolvedProjectId = String(usor.project);
-					return applyProject(resolvedProjectId);
-				}
-			});
-	} else {
-		if (resolvedProjectId) {
-			chain = chain.then(function () {
-				return applyProject(resolvedProjectId);
-			});
-		}
-		if (userStoryIdParam) {
-			chain = chain.then(function () {
-				return applyUserStory(userStoryIdParam);
-			});
-		}
-	}
+    if (!resolvedProjectId && userStoryIdParam) {
+        chain = chain
+            .then(function () {
+                return applyUserStory(userStoryIdParam);
+            })
+            .then(function (usor) {
+                if (usor && usor.project && !resolvedProjectId) {
+                    resolvedProjectId = String(usor.project);
+                    return applyProject(resolvedProjectId);
+                }
+            });
+    } else {
+        if (resolvedProjectId) {
+            chain = chain.then(function () {
+                return applyProject(resolvedProjectId);
+            });
+        }
+        if (userStoryIdParam) {
+            chain = chain.then(function () {
+                return applyUserStory(userStoryIdParam);
+            });
+        }
+    }
 
-	if (!resolvedProjectId && epicIdParam) {
-		chain = chain
-			.then(function () {
-				return applyEpic(epicIdParam);
-			})
-			.then(function (epic) {
-				if (epic && epic.project && !resolvedProjectId) {
-					resolvedProjectId = String(epic.project);
-					return applyProject(resolvedProjectId);
-				}
-			});
-	} else if (epicIdParam) {
-		chain = chain.then(function () {
-			return applyEpic(epicIdParam);
-		});
-	}
+    if (!resolvedProjectId && epicIdParam) {
+        chain = chain
+            .then(function () {
+                return applyEpic(epicIdParam);
+            })
+            .then(function (epic) {
+                if (epic && epic.project && !resolvedProjectId) {
+                    resolvedProjectId = String(epic.project);
+                    return applyProject(resolvedProjectId);
+                }
+            });
+    } else if (epicIdParam) {
+        chain = chain.then(function () {
+            return applyEpic(epicIdParam);
+        });
+    }
 
-	if (resolvedProjectId) {
-		chain = chain.then(function () {
-			return applyStatusAndAssigned(resolvedProjectId);
-		});
-	}
+    if (resolvedProjectId) {
+        chain = chain.then(function () {
+            return applyStatusAndAssigned(resolvedProjectId);
+        });
+    }
 
-	return chain.then(function () {
-		return page;
-	});
+    return chain.then(function () {
+        return page;
+    }).always(function () {
+        window.TTTaiga.isInitializing = false;
+    });
 }
 
 function taigaCacheGet(key, ttlMs) {
