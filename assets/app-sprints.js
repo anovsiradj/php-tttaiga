@@ -1,0 +1,222 @@
+$(document).ready(function () {
+    const token = localStorage.getItem('taiga_token');
+    const userData = localStorage.getItem('taiga_user');
+
+    if (!token || !userData) {
+        window.location.href = 'login.php';
+        return;
+    }
+
+    const config = window.taigaConfig || {};
+    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
+
+    window.apiUrl = apiUrl;
+    window.taigaToken = token;
+
+    TTTaiga.Sprints = {
+        load: function (page = 1) {
+            taigaReplaceUrlQuery({ ...taigaGetFilterParams(), page: page });
+            const params = { ...taigaGetFilterParams(), page: page };
+
+            $('#sprintsContent').html(`<div class="loading-spinner text-center p-3"><div class="spinner-border text-primary" role="status"></div></div>`);
+
+            $.ajax({
+                url: 'api.php/milestones',
+                type: 'GET',
+                data: params,
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': apiUrl },
+                success: function (sprints, status, xhr) {
+                    this.render(sprints, xhr);
+                    taigaRenderPagination(xhr, '#sprintsPagination', (page) => this.load(page));
+                }.bind(this),
+                error: function (xhr) {
+                    $('#sprintsContent').html(`<div class="alert alert-danger">Failed to load sprints.</div>`);
+                }
+            });
+        },
+        render: function (sprints, xhr) {
+            taigaUpdateListCounts(xhr, sprints.length, 'totalSprints', 'filteredSprints', 'selectedSprintsCount');
+            if (sprints.length === 0) {
+                $('#sprintsContent').html(`<div class="text-muted italic p-3 text-center"><em>(kosong)</em></div>`);
+                return;
+            }
+            let html = '<div class="row taiga-list-grid">';
+            sprints.forEach(sprint => {
+                const statusBadge = sprint.closed ? '<span class="badge bg-secondary">Closed</span>' : '<span class="badge bg-success">Open</span>';
+                html += `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card taiga-list-card sprint-card h-100" data-sprint-id="${sprint.id}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="form-check"><input class="form-check-input sprint-checkbox" type="checkbox" value="${sprint.id}" data-version="${sprint.version}"></div>
+                                ${statusBadge}
+                            </div>
+                            <h6 class="card-title text-truncate">${sprint.name || 'Untitled Sprint'}</h6>
+                            <p class="card-text text-muted small mb-0">${sprint.description || ''}</p>
+                        </div>
+                        <div class="card-footer taiga-card-actions">
+                            <button class="btn btn-sm btn-outline-primary view-sprint" data-sprint-id="${sprint.id}">View</button>
+                            <button class="btn btn-sm btn-outline-secondary edit-sprint" data-sprint-id="${sprint.id}" data-bs-toggle="modal" data-bs-target="#singleSprintModal">Edit</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            $('#sprintsContent').html(html);
+            $('.sprint-checkbox').off('change').on('change', this.updateSelectionCount);
+            $('.view-sprint').off('click').on('click', function() { window.location.href = `sprint.php?id=${$(this).data('sprint-id')}`; });
+        },
+        updateSelectionCount: function() {
+            $('#selectedSprintsCount').text($('#sprintsContent input.sprint-checkbox:checked').length);
+            $('#bulkDeleteBtn').toggleClass('d-none', $('#sprintsContent input.sprint-checkbox:checked').length === 0);
+        },
+        populateBulkCreateDropdowns: function() {
+            const projectId = $('#projectSelect').val();
+            taigaPopulateProjectSelect($('#bulkCreateSprintProject'), projectId);
+        },
+        populateBulkUpdateDropdowns: function() {
+            const filterParams = taigaGetFilterParams();
+            const projectId = filterParams.project;
+            taigaPopulateProjectSelect($('#bulkUpdateSprintProject'), projectId).done(function() {
+                const select = $('#bulkUpdateSprints');
+                select.empty().append(new Option('Loading sprints...', ''));
+                $.ajax({
+                    url: 'api.php/milestones',
+                    type: 'GET',
+                    data: projectId ? { project: projectId } : {},
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': apiUrl },
+                    success: function(sprints) {
+                        select.empty();
+                        sprints.forEach(s => {
+                            const $opt = $('<option>').val(s.id).text(s.name + ' (#' + s.id + ')').data('version', s.version);
+                            select.append($opt);
+                        });
+                    }
+                });
+            });
+        },
+        submitBulkCreate: function() {
+            const text = $('#bulkCreateSprintText').val().trim();
+            if (!text) { TTTaiga.UI.notify('Please enter some sprints', 'warning'); return; }
+
+            const projectId = $('#bulkCreateSprintProject').val();
+            if (!projectId) { TTTaiga.UI.notify('Please select a project', 'warning'); return; }
+
+            const $btn = $('#submitBulkCreateSprints');
+            $btn.prop('disabled', true).text('Creating...');
+            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
+
+            const sprints = taigaParseBulkLines(text);
+            const defaultStart = $('#bulkCreateSprintStart').val();
+            const defaultFinish = $('#bulkCreateSprintFinish').val();
+
+            let createdCount = 0; let errorCount = 0;
+
+            sprints.forEach(s => {
+                const data = {
+                    project: parseInt(projectId),
+                    name: s.name,
+                    description: s.description || ''
+                };
+                if (defaultStart) data.estimated_start = defaultStart;
+                if (defaultFinish) data.estimated_finish = defaultFinish;
+
+                $.ajax({
+                    url: 'api.php/milestones',
+                    type: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + window.taigaToken, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': window.apiUrl },
+                    data: JSON.stringify(data),
+                    success: () => { createdCount++; checkFinished(); },
+                    error: () => { errorCount++; checkFinished(); }
+                });
+            });
+
+            function checkFinished() {
+                if (createdCount + errorCount === sprints.length) {
+                    $btn.prop('disabled', false).text('Create Sprints');
+                    $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+                    TTTaiga.UI.notify(`Created ${createdCount} sprints, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
+                    if (errorCount === 0) { $('#bulkCreateSprintModal').modal('hide'); TTTaiga.Sprints.load(); }
+                }
+            }
+        },
+        submitBulkUpdate: function() {
+            const selectedSprints = [];
+            $('#bulkUpdateSprints option:selected').each(function () {
+                selectedSprints.push({ id: $(this).val(), version: $(this).data('version') });
+            });
+
+            if (selectedSprints.length === 0) { TTTaiga.UI.notify('Please select at least one sprint', 'warning'); return; }
+
+            const updateData = {};
+            const closed = $('#bulkUpdateClosed').val();
+            if (closed !== '') updateData.closed = closed === 'true';
+            const description = $('#bulkUpdateDescription').val().trim();
+            if (description) updateData.description = description;
+
+            if (Object.keys(updateData).length === 0) { TTTaiga.UI.notify('No fields to update', 'warning'); return; }
+
+            const $btn = $('#submitBulkUpdateSprint');
+            $btn.prop('disabled', true).text('Updating...');
+            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
+
+            taigaExecuteBulk('/milestones/', selectedSprints, 'PATCH', updateData, (successCount, errorCount) => {
+                $btn.prop('disabled', false).text('Update Sprints');
+                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+                TTTaiga.UI.notify(`Updated ${successCount} sprints, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
+                if (errorCount === 0) { $('#bulkUpdateSprintModal').modal('hide'); TTTaiga.Sprints.load(); }
+            });
+        },
+        deleteBulk: function() {
+            const selectedSprints = [];
+            $('#sprintsContent input.sprint-checkbox:checked').each(function () {
+                selectedSprints.push({ id: $(this).val(), version: $(this).data('version') });
+            });
+
+            if (selectedSprints.length === 0) { TTTaiga.UI.notify('Please select at least one sprint', 'warning'); return; }
+
+            const list = selectedSprints.map(s => '<li class="list-group-item list-group-item-danger">Sprint #' + s.id + '</li>').join('');
+            $('#selectedSprintsDeleteList').html('<ul class="list-group list-group-flush">' + list + '</ul>');
+            $('#bulkDeleteSprintModal').modal('show');
+        },
+        confirmDeleteBulk: function() {
+            const selectedSprints = [];
+            $('#sprintsContent input.sprint-checkbox:checked').each(function () {
+                selectedSprints.push({ id: $(this).val(), version: $(this).data('version') });
+            });
+
+            if (selectedSprints.length === 0) { TTTaiga.UI.notify('Please select at least one sprint', 'warning'); return; }
+
+            const $btn = $('#confirmBulkDeleteSprints');
+            $btn.prop('disabled', true).text('Deleting...');
+            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
+
+            taigaExecuteBulk('/milestones/', selectedSprints, 'DELETE', null, (successCount, errorCount) => {
+                $btn.prop('disabled', false).text('Delete Sprints');
+                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+                TTTaiga.UI.notify(`Deleted ${successCount} sprints, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
+                if (errorCount === 0) { $('#bulkDeleteSprintModal').modal('hide'); TTTaiga.Sprints.load(); }
+            });
+        }
+    };
+
+    // Bind event handlers
+    $('#bulkCreateSprintModal').on('show.bs.modal', () => TTTaiga.Sprints.populateBulkCreateDropdowns());
+    $('#submitBulkCreateSprints').on('click', () => TTTaiga.Sprints.submitBulkCreate());
+    $('#previewBulkCreateSprints').on('click', function() {
+        const text = $('#bulkCreateSprintText').val().trim();
+        const $preview = $('#bulkCreateSprintPreview');
+        if (!text) { $preview.addClass('d-none'); return; }
+        const items = taigaParseBulkLines(text);
+        $preview.html('<strong>Preview (' + items.length + ' sprints):</strong><ul class="mb-0 mt-1">' + items.map(i => '<li>' + i.name + (i.description ? ' | ' + i.description : '') + '</li>').join('') + '</ul>').removeClass('d-none');
+    });
+    $('#bulkUpdateSprintModal').on('show.bs.modal', () => TTTaiga.Sprints.populateBulkUpdateDropdowns());
+    $('#submitBulkUpdateSprint').on('click', () => TTTaiga.Sprints.submitBulkUpdate());
+    $('#bulkDeleteBtn').on('click', (e) => { e.preventDefault(); TTTaiga.Sprints.deleteBulk(); });
+    $('#confirmBulkDeleteSprints').on('click', () => TTTaiga.Sprints.confirmDeleteBulk());
+
+    taigaBindFilters((page) => TTTaiga.Sprints.load(page));
+    taigaApplyFiltersFromUrl()
+        .then(page => TTTaiga.Sprints.load(page))
+        .catch(() => TTTaiga.Sprints.load(1));
+});
