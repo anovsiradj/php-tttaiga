@@ -10,9 +10,7 @@
 			<a class="nav-link" href="tasks.php">Task</a>
 			<a class="nav-link" href="isus.php">Isu</a>
 
-			<button class="btn btn-outline-secondary btn-sm me-2" id="themeToggle" title="Toggle Dark Mode" data-bs-toggle="tooltip">
-				<i class="bi bi-sun-fill"></i>
-			</button>
+			<?php include __DIR__ . '/../../vendor/anovsiradj/web-skit/widgets/twbs/v5-dark-mode-toggle.html'; ?>
 			<button class="btn btn-outline-danger btn-sm" id="logoutBtn" title="Logout" data-bs-toggle="tooltip">
 				<i class="bi bi-box-arrow-right"></i>
 			</button>

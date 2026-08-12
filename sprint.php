@@ -3,7 +3,7 @@ require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 
 <head>
 	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
@@ -78,8 +78,6 @@ require __DIR__ . '/app/init.php';
 	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 	<script src="assets/taiga.js"></script>
-	<script src="assets/theme.js"></script>
-	<script src="assets/app.js"></script>
 
 	<script>
 		$(document).ready(function () {

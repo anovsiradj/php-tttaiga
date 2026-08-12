@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $pageTitle = 'Login';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 
 <head>
 	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
@@ -144,9 +144,7 @@ $pageTitle = 'Login';
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 	<script src="assets/app.js"></script>
-	<script src="assets/theme.js"></script>
-
-	<script>
+		<script>
 		$(document).ready(function () {
 			const config = <?php echo json_encode(include 'app/configs/taiga.php'); ?>;
 

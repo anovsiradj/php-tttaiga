@@ -3,7 +3,7 @@ require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 
 <head>
 	<?php include __DIR__ . '/app/layouts/main_head.php'; ?>
@@ -112,8 +112,6 @@ require __DIR__ . '/app/init.php';
 
 	<!-- Theme Script -->
 	<script src="assets/taiga.js"></script>
-	<script src="assets/theme.js"></script>
-	<script src="assets/app.js"></script>
 
 	<script>
 		$(document).ready(function () {

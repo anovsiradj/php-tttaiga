@@ -8,9 +8,8 @@ $(document).ready(function () {
     }
 
     const config = window.taigaConfig || {};
-    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
 
-    window.apiUrl = apiUrl;
+    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
     window.taigaToken = token;
 
     TTTaiga.Usors = {
@@ -24,20 +23,12 @@ $(document).ready(function () {
                 </div>
             `);
 
-            $.ajax({
-                url: 'api.php/userstories',
-                type: 'GET',
-                data: params,
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'X-Taiga-Api-Url': apiUrl
-                },
+            TTTaiga.API.get('api.php/userstories', params, {
                 success: function (usors, status, xhr) {
                     this.render(usors, xhr);
                     taigaRenderPagination(xhr, '#usorsPagination', (page) => this.load(page));
                 }.bind(this),
-                error: function (xhr) {
+                onError: function (xhr) {
                     $('#usorsContent').html(`<div class="alert alert-danger">Unable to load usors. Please try again.</div>`);
                     $('#usorsPagination').empty();
                 }
@@ -132,18 +123,14 @@ $(document).ready(function () {
             let errorCount = 0;
 
             stories.forEach(story => {
-                $.ajax({
-                    url: 'api.php/userstories',
-                    type: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + window.taigaToken, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': window.apiUrl },
-                    data: JSON.stringify({
-                        subject: story.subject,
-                        description: story.description,
-                        project: parseInt(projectId),
-                        status: story.status
-                    }),
+                TTTaiga.API.post('api.php/userstories', {
+                    subject: story.subject,
+                    description: story.description,
+                    project: parseInt(projectId),
+                    status: story.status
+                }, {
                     success: () => { createdCount++; checkFinished(); },
-                    error: () => { errorCount++; checkFinished(); }
+                    onError: () => { errorCount++; checkFinished(); }
                 });
             });
 
@@ -240,6 +227,47 @@ $(document).ready(function () {
     $('#bulkUpdateModal').on('show.bs.modal', function() { TTTaiga.Usors.populateBulkUpdateDropdowns(); });
     $('#submitBulkUpdate').on('click', function() { TTTaiga.Usors.submitBulkUpdate(); });
     $('#confirmBulkDelete').on('click', function() { TTTaiga.Usors.deleteBulk(); });
+    $('#submitSingleUsor').on('click', function () {
+        TTTaiga.Form.saveModal({
+            endpoint: 'api.php/userstories',
+            formId: 'singleUsorForm',
+            modalId: 'singleUsorModal',
+            listFn: () => TTTaiga.Usors.load(),
+            data: {
+                project: parseInt($('#singleUsorProject').val()),
+                subject: $('#singleUsorSubject').val(),
+                description: $('#singleUsorDescription').val(),
+                status: $('#singleUsorStatus').val() ? parseInt($('#singleUsorStatus').val()) : undefined,
+                assigned_to: $('#singleUsorAssignee').val() ? parseInt($('#singleUsorAssignee').val()) : undefined,
+                epic: $('#singleUsorEpic').val() ? parseInt($('#singleUsorEpic').val()) : undefined
+            }
+        });
+    });
+    $('#singleUsorModal').on('show.bs.modal', function (e) {
+        const id = $(e.relatedTarget).data('usor-id');
+        if (!id) {
+            $('#singleUsorModalLabel').text('Create User Story');
+            $('#singleUsorId').val('');
+            $('#singleUsorVersion').val('');
+            $('#singleUsorForm')[0].reset();
+            return;
+        }
+        $('#singleUsorModalLabel').text('Edit User Story');
+        TTTaiga.API.get('api.php/userstories/' + id, {}, {
+            success: function (usor) {
+                $('#singleUsorId').val(usor.id);
+                $('#singleUsorVersion').val(usor.version);
+                $('#singleUsorSubject').val(usor.subject);
+                $('#singleUsorDescription').val(usor.description);
+                $('#singleUsorProject').val(usor.project).trigger('change');
+                setTimeout(function () {
+                    if (usor.status) $('#singleUsorStatus').val(usor.status);
+                    if (usor.assigned_to) $('#singleUsorAssignee').val(usor.assigned_to);
+                    if (usor.epic) $('#singleUsorEpic').val(usor.epic).trigger('change');
+                }, 300);
+            }
+        });
+    });
 
     taigaBindFilters((page) => TTTaiga.Usors.load(page));
 

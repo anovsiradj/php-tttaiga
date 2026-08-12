@@ -732,7 +732,7 @@ function taigaLoadBulkItems(endpoint, $container, formatItemCallback) {
  * @param {Object} data - Data to send for PATCH (optional)
  * @param {Function} onComplete - Callback when all requests finished (successCount, errorCount)
  */
-function taigaExecuteBulk(endpoint, items, method, data, onComplete) {
+function taigaExecuteBulk(endpoint, items, method, data, onComplete, opts = {}) {
 	let doneCount = 0;
 	let successCount = 0;
 	let errorCount = 0;
@@ -742,20 +742,31 @@ function taigaExecuteBulk(endpoint, items, method, data, onComplete) {
 		return;
 	}
 
+	if (opts.showProgress) {
+		const $progress = $(opts.progressContainer || '#bulkProgressContainer');
+		if ($progress.length) {
+			const total = items.length;
+			$progress.html(`
+				<div class="progress mt-2" style="height: 20px;">
+					<div class="progress-bar progress-bar-striped progress-bar-animated" id="bulkProgressBar" role="progressbar" style="width: 0%">0/${total}</div>
+				</div>
+			`);
+		}
+	}
+
 	items.forEach(item => {
 		const id = typeof item === 'object' ? item.id : item;
 		const version = typeof item === 'object' ? item.version : null;
 
-		// Clone data and add version if PATCHing an object with version
-		// SUPPORT: data can be a function (item) => requestData
 		let requestData = typeof data === 'function' ? data(item) : data;
-
 		if (method === 'PATCH' && version !== null) {
 			requestData = { ...requestData, version: version };
 		}
 
+		const endpointUrl = method === 'POST' ? 'api.php' + endpoint.replace(/\/$/, '') : 'api.php' + endpoint + id;
+
 		$.ajax({
-			url: 'api.php' + endpoint + id,
+			url: endpointUrl,
 			type: method,
 			headers: {
 				'Authorization': `Bearer ${window.taigaToken}`,
@@ -763,15 +774,14 @@ function taigaExecuteBulk(endpoint, items, method, data, onComplete) {
 				'X-Taiga-Api-Url': window.apiUrl
 			},
 			data: requestData ? JSON.stringify(requestData) : undefined,
-			success: function () {
-				successCount++;
-			},
-			error: function (xhr) {
-				console.error(`Bulk operation failed for ${endpoint}${id}:`, xhr.responseJSON);
-				errorCount++;
-			},
+			success: function () { successCount++; },
+			error: function (xhr) { console.error(`Bulk operation failed for ${endpoint}${id}:`, xhr.responseJSON); errorCount++; },
 			complete: function () {
 				doneCount++;
+				if (opts.showProgress) {
+					const pct = Math.round((doneCount / items.length) * 100);
+					$('#bulkProgressBar').css('width', pct + '%').text(`${doneCount}/${items.length}`);
+				}
 				if (doneCount === items.length) {
 					if (typeof onComplete === 'function') onComplete(successCount, errorCount);
 				}

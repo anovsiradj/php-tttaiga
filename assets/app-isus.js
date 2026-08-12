@@ -8,9 +8,7 @@ $(document).ready(function () {
     }
 
     const config = window.taigaConfig || {};
-    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
-
-    window.apiUrl = apiUrl;
+    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
     window.taigaToken = token;
 
     TTTaiga.Issues = {
@@ -24,20 +22,12 @@ $(document).ready(function () {
                 </div>
             `);
 
-            $.ajax({
-                url: 'api.php/issues',
-                type: 'GET',
-                data: params,
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'X-Taiga-Api-Url': apiUrl
-                },
+            TTTaiga.API.get('api.php/issues', params, {
                 success: function (issues, status, xhr) {
                     this.render(issues, xhr);
                     taigaRenderPagination(xhr, '#issuesPagination', (page) => this.load(page));
                 }.bind(this),
-                error: function (xhr) {
+                onError: function (xhr) {
                     $('#issuesContent').html(`<div class="alert alert-danger">Unable to load issues. Please try again.</div>`);
                     $('#issuesPagination').empty();
                 }
@@ -112,19 +102,15 @@ $(document).ready(function () {
             let createdCount = 0; let errorCount = 0;
 
             items.forEach(item => {
-                $.ajax({
-                    url: 'api.php/issues',
-                    type: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + window.taigaToken, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': window.apiUrl },
-                    data: JSON.stringify({
-                        project: parseInt(projectId),
-                        subject: item.subject,
-                        description: item.description || '',
-                        status: $('#bulkCreateIssueStatus').val() ? parseInt($('#bulkCreateIssueStatus').val()) : undefined,
-                        assigned_to: $('#bulkCreateIssueAssignee').val() ? parseInt($('#bulkCreateIssueAssignee').val()) : undefined
-                    }),
+                TTTaiga.API.post('api.php/issues', {
+                    project: parseInt(projectId),
+                    subject: item.subject,
+                    description: item.description || '',
+                    status: $('#bulkCreateIssueStatus').val() ? parseInt($('#bulkCreateIssueStatus').val()) : undefined,
+                    assigned_to: $('#bulkCreateIssueAssignee').val() ? parseInt($('#bulkCreateIssueAssignee').val()) : undefined
+                }, {
                     success: () => { createdCount++; checkFinished(); },
-                    error: () => { errorCount++; checkFinished(); }
+                    onError: () => { errorCount++; checkFinished(); }
                 });
             });
 
@@ -205,6 +191,51 @@ $(document).ready(function () {
     $('#submitBulkIssueUpdate').on('click', () => TTTaiga.Issues.submitBulkUpdate());
     $('#bulkDeleteBtn').on('click', function(e) { e.preventDefault(); $('#issueBulkDeleteModal').modal('show'); });
     $('#confirmBulkDeleteIssues').on('click', () => TTTaiga.Issues.deleteBulk());
+    $('#submitSingleIsu').on('click', function () {
+        TTTaiga.Form.saveModal({
+            endpoint: 'api.php/issues',
+            formId: 'singleIsuForm',
+            modalId: 'singleIsuModal',
+            listFn: () => TTTaiga.Issues.load(),
+            data: {
+                project: parseInt($('#singleIsuProject').val()),
+                subject: $('#singleIsuSubject').val(),
+                description: $('#singleIsuDescription').val(),
+                status: $('#singleIsuStatus').val() ? parseInt($('#singleIsuStatus').val()) : undefined,
+                assigned_to: $('#singleIsuAssignee').val() ? parseInt($('#singleIsuAssignee').val()) : undefined,
+                issue_type: $('#singleIsuType').val() ? parseInt($('#singleIsuType').val()) : undefined,
+                priority: $('#singleIsuPriority').val() ? parseInt($('#singleIsuPriority').val()) : undefined,
+                severity: $('#singleIsuSeverity').val() ? parseInt($('#singleIsuSeverity').val()) : undefined
+            }
+        });
+    });
+    $('#singleIsuModal').on('show.bs.modal', function (e) {
+        const id = $(e.relatedTarget).data('isu-id');
+        if (!id) {
+            $('#singleIsuModalLabel').text('Create Issue');
+            $('#singleIsuId').val('');
+            $('#singleIsuVersion').val('');
+            $('#singleIsuForm')[0].reset();
+            return;
+        }
+        $('#singleIsuModalLabel').text('Edit Issue');
+        TTTaiga.API.get('api.php/issues/' + id, {}, {
+            success: function (issue) {
+                $('#singleIsuId').val(issue.id);
+                $('#singleIsuVersion').val(issue.version);
+                $('#singleIsuSubject').val(issue.subject);
+                $('#singleIsuDescription').val(issue.description);
+                $('#singleIsuProject').val(issue.project).trigger('change');
+                setTimeout(function () {
+                    if (issue.status) $('#singleIsuStatus').val(issue.status);
+                    if (issue.assigned_to) $('#singleIsuAssignee').val(issue.assigned_to);
+                    if (issue.issue_type) $('#singleIsuType').val(issue.issue_type);
+                    if (issue.priority) $('#singleIsuPriority').val(issue.priority);
+                    if (issue.severity) $('#singleIsuSeverity').val(issue.severity);
+                }, 300);
+            }
+        });
+    });
 
     taigaBindFilters((page) => TTTaiga.Issues.load(page));
 

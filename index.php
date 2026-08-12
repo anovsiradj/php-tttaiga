@@ -3,7 +3,7 @@ require __DIR__ . '/app/init.php';
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 
 <head>
 	<?php
@@ -36,8 +36,6 @@ require __DIR__ . '/app/init.php';
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 	<!-- Theme Script -->
-	<script src="assets/app.js"></script>
-	<script src="assets/theme.js"></script>
 
 	<script>
 		$(document).ready(function() {

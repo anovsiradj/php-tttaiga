@@ -8,9 +8,8 @@ $(document).ready(function () {
     }
 
     const config = window.taigaConfig || {};
-    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
 
-    window.apiUrl = apiUrl;
+    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
     window.taigaToken = token;
 
     let allProjects = [];
@@ -26,20 +25,12 @@ $(document).ready(function () {
                 </div>
             `);
 
-            $.ajax({
-                url: 'api.php/epics',
-                type: 'GET',
-                data: params,
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'X-Taiga-Api-Url': apiUrl
-                },
+            TTTaiga.API.get('api.php/epics', params, {
                 success: function (epics, status, xhr) {
                     this.render(epics, xhr);
                     taigaRenderPagination(xhr, '#epicsPagination', (page) => this.load(page));
                 }.bind(this),
-                error: function (xhr) {
+                onError: function (xhr) {
                     $('#epicsContent').html(`<div class="alert alert-danger">Unable to load epiks. Please try again.</div>`);
                     $('#epicsPagination').empty();
                 }
@@ -115,19 +106,15 @@ $(document).ready(function () {
             let createdCount = 0; let errorCount = 0;
 
             epics.forEach(epic => {
-                $.ajax({
-                    url: 'api.php/epics',
-                    type: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + window.taigaToken, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': window.apiUrl },
-                    data: JSON.stringify({
-                        project: parseInt(projectId),
-                        subject: epic.subject,
-                        description: epic.description || '',
-                        status: $('#bulkCreateEpicStatus').val() ? parseInt($('#bulkCreateEpicStatus').val()) : undefined,
-                        assigned_to: $('#bulkCreateEpicAssignee').val() ? parseInt($('#bulkCreateEpicAssignee').val()) : undefined
-                    }),
+                TTTaiga.API.post('api.php/epics', {
+                    project: parseInt(projectId),
+                    subject: epic.subject,
+                    description: epic.description || '',
+                    status: $('#bulkCreateEpicStatus').val() ? parseInt($('#bulkCreateEpicStatus').val()) : undefined,
+                    assigned_to: $('#bulkCreateEpicAssignee').val() ? parseInt($('#bulkCreateEpicAssignee').val()) : undefined
+                }, {
                     success: () => { createdCount++; checkFinished(); },
-                    error: () => { errorCount++; checkFinished(); }
+                    onError: () => { errorCount++; checkFinished(); }
                 });
             });
 
@@ -203,14 +190,7 @@ $(document).ready(function () {
     };
 
     // Load projects first
-    $.ajax({
-        url: 'api.php/projects',
-        type: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-            'X-Taiga-Api-Url': apiUrl
-        },
+    TTTaiga.API.get('api.php/projects', {}, {
         success: function (projects) {
             allProjects = projects;
             
@@ -223,6 +203,45 @@ $(document).ready(function () {
             $('#bulkUpdateEpicModal').on('show.bs.modal', () => TTTaiga.Epiks.populateBulkUpdateDropdowns());
             $('#submitBulkUpdateEpic').on('click', () => TTTaiga.Epiks.submitBulkUpdate());
             $('#confirmBulkDeleteEpics').on('click', () => TTTaiga.Epiks.deleteBulk());
+            $('#submitSingleEpic').on('click', function () {
+                TTTaiga.Form.saveModal({
+                    endpoint: 'api.php/epics',
+                    formId: 'singleEpicForm',
+                    modalId: 'singleEpicModal',
+                    listFn: () => TTTaiga.Epiks.load(),
+                    data: {
+                        project: parseInt($('#singleEpicProject').val()),
+                        subject: $('#singleEpicSubject').val(),
+                        description: $('#singleEpicDescription').val(),
+                        status: $('#singleEpicStatus').val() ? parseInt($('#singleEpicStatus').val()) : undefined,
+                        assigned_to: $('#singleEpicAssignee').val() ? parseInt($('#singleEpicAssignee').val()) : undefined
+                    }
+                });
+            });
+            $('#singleEpicModal').on('show.bs.modal', function (e) {
+                const id = $(e.relatedTarget).data('epic-id');
+                if (!id) {
+                    $('#singleEpicModalLabel').text('Create Epic');
+                    $('#singleEpicId').val('');
+                    $('#singleEpicVersion').val('');
+                    $('#singleEpicForm')[0].reset();
+                    return;
+                }
+                $('#singleEpicModalLabel').text('Edit Epic');
+                TTTaiga.API.get('api.php/epics/' + id, {}, {
+                    success: function (epic) {
+                        $('#singleEpicId').val(epic.id);
+                        $('#singleEpicVersion').val(epic.version);
+                        $('#singleEpicSubject').val(epic.subject);
+                        $('#singleEpicDescription').val(epic.description);
+                        $('#singleEpicProject').val(epic.project).trigger('change');
+                        setTimeout(function () {
+                            if (epic.status) $('#singleEpicStatus').val(epic.status);
+                            if (epic.assigned_to) $('#singleEpicAssignee').val(epic.assigned_to);
+                        }, 300);
+                    }
+                });
+            });
 
             taigaBindFilters((page) => TTTaiga.Epiks.load(page));
 

@@ -25,6 +25,9 @@ if (!empty($_SESSION['taiga_user'])) {
 <!-- Custom CSS -->
 <link href="assets/app.css" rel="stylesheet">
 
+<!-- Web-skit: Dark Mode Toggle -->
+<link href="vendor/anovsiradj/web-skit/widgets/twbs/v5-dark-mode-toggle.css" rel="stylesheet">
+
 <script>
 	(function() {
 		const sessionUser = <?php echo json_encode($sessionUser); ?>;
@@ -49,3 +52,6 @@ if (!empty($_SESSION['taiga_user'])) {
 	})();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/commonmark@0.30.0/dist/commonmark.min.js"></script>
+
+<!-- Web-skit: Dark Mode Toggle -->
+<script src="vendor/anovsiradj/web-skit/widgets/twbs/v5-dark-mode-toggle.js"></script>

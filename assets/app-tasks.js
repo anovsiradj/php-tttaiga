@@ -8,9 +8,7 @@ $(document).ready(function () {
     }
 
     const config = window.taigaConfig || {};
-    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
-
-    window.apiUrl = apiUrl;
+    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
     window.taigaToken = token;
 
     TTTaiga.Tasks = {
@@ -24,20 +22,12 @@ $(document).ready(function () {
                 </div>
             `);
 
-            $.ajax({
-                url: 'api.php/tasks',
-                type: 'GET',
-                data: params,
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'X-Taiga-Api-Url': apiUrl
-                },
+            TTTaiga.API.get('api.php/tasks', params, {
                 success: function (tasks, status, xhr) {
                     this.render(tasks, xhr);
                     taigaRenderPagination(xhr, '#tasksPagination', (page) => this.load(page));
                 }.bind(this),
-                error: function (xhr) {
+                onError: function (xhr) {
                     $('#tasksContent').html(`<div class="alert alert-danger">Unable to load tasks. Please try again.</div>`);
                     $('#tasksPagination').empty();
                 }
@@ -179,15 +169,7 @@ $(document).ready(function () {
                 if (statusId) taskData.status = parseInt(statusId);
                 if (assigneeId) taskData.assigned_to = parseInt(assigneeId);
 
-                $.ajax({
-                    url: 'api.php/tasks',
-                    type: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + window.taigaToken,
-                        'Content-Type': 'application/json',
-                        'X-Taiga-Api-Url': window.apiUrl
-                    },
-                    data: JSON.stringify(taskData),
+                TTTaiga.API.post('api.php/tasks', taskData, {
                     success: function () {
                         createdCount++;
                         if (createdCount + errorCount === titles.length) {
@@ -198,7 +180,7 @@ $(document).ready(function () {
                             TTTaiga.Tasks.load();
                         }
                     },
-                    error: function (xhr) {
+                    onError: function (xhr) {
                         console.error('Failed to create task:', title, xhr);
                         errorCount++;
                         if (createdCount + errorCount === titles.length) {
@@ -335,6 +317,49 @@ $(document).ready(function () {
     };
 
     // Bind event handlers
+    $('#submitSingleTask').on('click', function () {
+        TTTaiga.Form.saveModal({
+            endpoint: 'api.php/tasks',
+            formId: 'singleTaskForm',
+            modalId: 'singleTaskModal',
+            listFn: () => TTTaiga.Tasks.load(),
+            data: {
+                project: parseInt($('#singleTaskProject').val()),
+                subject: $('#singleTaskSubject').val(),
+                description: $('#singleTaskDescription').val(),
+                user_story: $('#singleTaskUsor').val() ? parseInt($('#singleTaskUsor').val()) : undefined,
+                milestone: $('#singleTaskSprint').val() ? parseInt($('#singleTaskSprint').val()) : undefined,
+                status: $('#singleTaskStatus').val() ? parseInt($('#singleTaskStatus').val()) : undefined,
+                assigned_to: $('#singleTaskAssignee').val() ? parseInt($('#singleTaskAssignee').val()) : undefined
+            }
+        });
+    });
+    $('#singleTaskModal').on('show.bs.modal', function (e) {
+        const id = $(e.relatedTarget).data('task-id');
+        if (!id) {
+            $('#singleTaskModalLabel').text('Create Task');
+            $('#singleTaskId').val('');
+            $('#singleTaskVersion').val('');
+            $('#singleTaskForm')[0].reset();
+            return;
+        }
+        $('#singleTaskModalLabel').text('Edit Task');
+        TTTaiga.API.get('api.php/tasks/' + id, {}, {
+            success: function (task) {
+                $('#singleTaskId').val(task.id);
+                $('#singleTaskVersion').val(task.version);
+                $('#singleTaskSubject').val(task.subject);
+                $('#singleTaskDescription').val(task.description);
+                $('#singleTaskProject').val(task.project).trigger('change');
+                setTimeout(function () {
+                    if (task.status) $('#singleTaskStatus').val(task.status);
+                    if (task.assigned_to) $('#singleTaskAssignee').val(task.assigned_to);
+                    if (task.user_story) $('#singleTaskUsor').val(task.user_story).trigger('change');
+                    if (task.milestone) $('#singleTaskSprint').val(task.milestone).trigger('change');
+                }, 300);
+            }
+        });
+    });
     $('#bulkCreateTaskModal').on('show.bs.modal', function() { 
         TTTaiga.Tasks.populateBulkCreateDropdowns(); 
         const state = TTTaiga.State.getState();

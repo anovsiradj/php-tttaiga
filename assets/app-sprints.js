@@ -8,9 +8,7 @@ $(document).ready(function () {
     }
 
     const config = window.taigaConfig || {};
-    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
-
-    window.apiUrl = apiUrl;
+    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
     window.taigaToken = token;
 
     TTTaiga.Sprints = {
@@ -20,16 +18,12 @@ $(document).ready(function () {
 
             $('#sprintsContent').html(`<div class="loading-spinner text-center p-3"><div class="spinner-border text-primary" role="status"></div></div>`);
 
-            $.ajax({
-                url: 'api.php/milestones',
-                type: 'GET',
-                data: params,
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': apiUrl },
+            TTTaiga.API.get('api.php/milestones', params, {
                 success: function (sprints, status, xhr) {
                     this.render(sprints, xhr);
                     taigaRenderPagination(xhr, '#sprintsPagination', (page) => this.load(page));
                 }.bind(this),
-                error: function (xhr) {
+                onError: function (xhr) {
                     $('#sprintsContent').html(`<div class="alert alert-danger">Failed to load sprints.</div>`);
                 }
             });
@@ -80,11 +74,7 @@ $(document).ready(function () {
             taigaPopulateProjectSelect($('#bulkUpdateSprintProject'), projectId).done(function() {
                 const select = $('#bulkUpdateSprints');
                 select.empty().append(new Option('Loading sprints...', ''));
-                $.ajax({
-                    url: 'api.php/milestones',
-                    type: 'GET',
-                    data: projectId ? { project: projectId } : {},
-                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': apiUrl },
+                TTTaiga.API.get('api.php/milestones', projectId ? { project: projectId } : {}, {
                     success: function(sprints) {
                         select.empty();
                         sprints.forEach(s => {
@@ -121,13 +111,9 @@ $(document).ready(function () {
                 if (defaultStart) data.estimated_start = defaultStart;
                 if (defaultFinish) data.estimated_finish = defaultFinish;
 
-                $.ajax({
-                    url: 'api.php/milestones',
-                    type: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + window.taigaToken, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': window.apiUrl },
-                    data: JSON.stringify(data),
+                TTTaiga.API.post('api.php/milestones', data, {
                     success: () => { createdCount++; checkFinished(); },
-                    error: () => { errorCount++; checkFinished(); }
+                    onError: () => { errorCount++; checkFinished(); }
                 });
             });
 
@@ -201,6 +187,41 @@ $(document).ready(function () {
     };
 
     // Bind event handlers
+    $('#submitSingleSprint').on('click', function () {
+        TTTaiga.Form.saveModal({
+            endpoint: 'api.php/milestones',
+            formId: 'singleSprintForm',
+            modalId: 'singleSprintModal',
+            listFn: () => TTTaiga.Sprints.load(),
+            data: {
+                project: parseInt($('#singleSprintProject').val()),
+                name: $('#singleSprintName').val(),
+                estimated_start: $('#singleSprintStart').val() || undefined,
+                estimated_finish: $('#singleSprintEnd').val() || undefined
+            }
+        });
+    });
+    $('#singleSprintModal').on('show.bs.modal', function (e) {
+        const id = $(e.relatedTarget).data('sprint-id');
+        if (!id) {
+            $('#singleSprintModalLabel').text('Create Sprint');
+            $('#singleSprintId').val('');
+            $('#singleSprintVersion').val('');
+            $('#singleSprintForm')[0].reset();
+            return;
+        }
+        $('#singleSprintModalLabel').text('Edit Sprint');
+        TTTaiga.API.get('api.php/milestones/' + id, {}, {
+            success: function (sprint) {
+                $('#singleSprintId').val(sprint.id);
+                $('#singleSprintVersion').val(sprint.version);
+                $('#singleSprintName').val(sprint.name);
+                $('#singleSprintStart').val(sprint.estimated_start || '');
+                $('#singleSprintEnd').val(sprint.estimated_finish || '');
+                $('#singleSprintProject').val(sprint.project).trigger('change');
+            }
+        });
+    });
     $('#bulkCreateSprintModal').on('show.bs.modal', () => TTTaiga.Sprints.populateBulkCreateDropdowns());
     $('#submitBulkCreateSprints').on('click', () => TTTaiga.Sprints.submitBulkCreate());
     $('#previewBulkCreateSprints').on('click', function() {

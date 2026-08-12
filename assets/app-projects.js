@@ -4,8 +4,8 @@ $(document).ready(function () {
     if (!token || !userData) { window.location.href = 'login.php'; return; }
 
     const config = window.taigaConfig || {};
-    const apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
-    window.apiUrl = apiUrl; window.taigaToken = token;
+    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
+    window.taigaToken = token;
 
     TTTaiga.Projects = {
         load: function (page = 1) {
@@ -15,16 +15,12 @@ $(document).ready(function () {
 
             $('#projectsContent').html(`<div class="loading-spinner text-center p-3"><div class="spinner-border text-primary" role="status"></div></div>`);
 
-            $.ajax({
-                url: 'api.php/projects',
-                type: 'GET',
-                data: params,
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': apiUrl },
+            TTTaiga.API.get('api.php/projects', params, {
                 success: function (projects, status, xhr) {
                     this.render(projects, xhr);
                     taigaRenderPagination(xhr, '#projectsPagination', (page) => this.load(page));
                 }.bind(this),
-                error: function (xhr) {
+                onError: function (xhr) {
                     $('#projectsContent').html(`<div class="alert alert-danger">Failed to load projects.</div>`);
                 }
             });
@@ -78,16 +74,9 @@ $(document).ready(function () {
             let createdCount = 0; let errorCount = 0;
 
             projects.forEach(p => {
-                $.ajax({
-                    url: 'api.php/projects',
-                    type: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + window.taigaToken, 'Content-Type': 'application/json', 'X-Taiga-Api-Url': window.apiUrl },
-                    data: JSON.stringify({
-                        name: p.name,
-                        description: p.description || '',
-                    }),
+                TTTaiga.API.post('api.php/projects', { name: p.name, description: p.description || '' }, {
                     success: () => { createdCount++; checkFinished(); },
-                    error: () => { errorCount++; checkFinished(); }
+                    onError: () => { errorCount++; checkFinished(); }
                 });
             });
 
@@ -152,6 +141,39 @@ $(document).ready(function () {
         }
     };
 
+    $('#submitSingleProject').on('click', function () {
+        TTTaiga.Form.saveModal({
+            endpoint: 'api.php/projects',
+            formId: 'singleProjectForm',
+            modalId: 'singleProjectModal',
+            listFn: () => TTTaiga.Projects.load(),
+            data: {
+                name: $('#singleProjectName').val(),
+                description: $('#singleProjectDescription').val(),
+                is_private: $('#singleProjectPrivate').is(':checked')
+            }
+        });
+    });
+    $('#singleProjectModal').on('show.bs.modal', function (e) {
+        const id = $(e.relatedTarget).data('project-id');
+        if (!id) {
+            $('#singleProjectModalLabel').text('Create Project');
+            $('#singleProjectId').val('');
+            $('#singleProjectVersion').val('');
+            $('#singleProjectForm')[0].reset();
+            return;
+        }
+        $('#singleProjectModalLabel').text('Edit Project');
+        TTTaiga.API.get('api.php/projects/' + id, {}, {
+            success: function (project) {
+                $('#singleProjectId').val(project.id);
+                $('#singleProjectVersion').val(project.version);
+                $('#singleProjectName').val(project.name);
+                $('#singleProjectDescription').val(project.description);
+                $('#singleProjectPrivate').prop('checked', project.is_private);
+            }
+        });
+    });
     $('#submitBulkProjectUpdate').on('click', () => TTTaiga.Projects.submitBulkUpdate());
     $('#confirmBulkDeleteProjects').on('click', () => TTTaiga.Projects.deleteBulk());
     $('#submitBulkCreateProjects').on('click', () => TTTaiga.Projects.submitBulkCreate());
