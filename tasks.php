@@ -20,6 +20,7 @@ require __DIR__ . '/app/init.php';
 
 		$searchPlaceholder = 'Search tasks...';
 		$userStorySelect = true;
+		$epicSelect = true;
 		$filterAssignedEnable = true;
 		$sortOptions = [
 			'subject' => 'Subject (A-Z)',
