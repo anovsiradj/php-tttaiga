@@ -626,6 +626,27 @@ textarea.form-control::placeholder {
 	border-color: var(--bs-border-color);
 }
 
+/* List Toolbar (search + sort) */
+.list-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	background-color: var(--bs-tertiary-bg);
+	border-radius: 8px;
+	padding: 0.5rem 0.75rem;
+	margin-bottom: 1.5rem;
+	border: 1px solid var(--bs-border-color);
+}
+
+.list-toolbar .input-group {
+	flex: 1 1 260px;
+}
+
+.list-toolbar .sort-select-wrap {
+	flex: 0 0 220px;
+}
+
 /* Master Checkbox Styling */
 .master-checkbox-container {
 	display: flex;

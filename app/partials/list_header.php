@@ -13,6 +13,13 @@ $filterStatusEnable ??= true;
 $pageTitle ??= '';
 $searchPlaceholder ??= 'Pencarian ...';
 $statusType ??= '';
+
+$hasFilters = $filterProjectEnable
+	|| (isset($epicSelect) && $epicSelect)
+	|| (isset($userStorySelect) && $userStorySelect)
+	|| $filterStatusEnable
+	|| ($filterAssignedEnable ?? false)
+	|| (isset($additionalControls) && $additionalControls !== '');
 ?>
 
 <div class="page-title-row">
@@ -35,17 +42,28 @@ $statusType ??= '';
 	</div>
 </div>
 
+<div class="list-toolbar">
+	<div class="input-group">
+		<span class="input-group-text bg-transparent border-end-0 text-muted">
+			<i class="bi bi-search"></i>
+		</span>
+		<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="<?php echo htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8'); ?>">
+	</div>
+
+	<?php if (isset($sortOptions) && !empty($sortOptions)) { ?>
+		<div class="sort-select-wrap">
+			<select class="form-select" id="sortSelect">
+				<?php foreach ($sortOptions as $value => $label) { ?>
+					<option value="<?php echo htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
+				<?php } ?>
+			</select>
+		</div>
+	<?php } ?>
+</div>
+
+<?php if ($hasFilters) { ?>
 <div class="filter-toolbar">
 	<div class="row g-2">
-		<div class="col-md">
-			<div class="input-group">
-				<span class="input-group-text bg-transparent border-end-0 text-muted">
-					<i class="bi bi-search"></i>
-				</span>
-				<input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="<?php echo htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8'); ?>">
-			</div>
-		</div>
-
 		<?php if ($filterProjectEnable) { ?>
 			<div class="col-md-auto" style="width: 200px;">
 				<select class="form-select" id="projectSelect"></select>
@@ -76,18 +94,9 @@ $statusType ??= '';
 			</div>
 		<?php } ?>
 
-		<?php if (isset($sortOptions) && !empty($sortOptions)) { ?>
-			<div class="col-md-auto" style="width: 180px;">
-				<select class="form-select" id="sortSelect">
-					<?php foreach ($sortOptions as $value => $label) { ?>
-						<option value="<?php echo htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
-					<?php } ?>
-				</select>
-			</div>
-		<?php } ?>
-
 		<?php if (isset($additionalControls) && $additionalControls !== '') { ?>
 			<?= $additionalControls ?>
 		<?php } ?>
 	</div>
 </div>
+<?php } ?>
