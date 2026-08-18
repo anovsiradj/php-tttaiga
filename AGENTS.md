@@ -5,9 +5,9 @@ Welcome to the project. Your core operating instructions, behavioral boundaries,
 Before executing ANY task, analyzing the workspace, or answering the user, you MUST thoroughly read and assimilate the instructions located at:
 👉 `./.agents/BRAINS.md`
 
-*Note: Do NOT blindly load all files inside `./.agents/brains/` upfront. Read `BRAINS.md` first to apply the required lazy-loading and lookup procedures.*
+*Note: Do NOT blindly load all files inside `./.agents/brains/` upfront. Read `./.agents/BRAINS.md` first to apply the required lazy-loading and lookup procedures.*
 
-# Agent Development Guidelines
+# AI Assistant Development Guidelines
 
 ## Terminologi
 - copas = Copy+Paste
