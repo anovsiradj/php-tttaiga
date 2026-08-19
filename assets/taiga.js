@@ -669,10 +669,10 @@ function taigaBindFilters(onFilterChange) {
 			$('#assignedToSelect').val(null).trigger('change.select2');
 		}
 
-        // Update Global State
-        const state = {};
-        state[$(this).attr('id')] = $(this).val();
-        TTTaiga.State.setState(state);
+        // Update Global State with normalized filter keys
+        if (window.TTTaiga && window.TTTaiga.Filter) {
+            TTTaiga.Filter.syncState();
+        }
         
 		onFilterChange(1);
 	});
@@ -799,7 +799,7 @@ function taigaExecuteBulk(endpoint, items, method, data, onComplete, opts = {}) 
  * @param {number} projectId - ID of the project to fetch statuses for
  * @param {string} defaultText - Text for the default option (e.g. 'Select Status' or 'No Change')
  */
-function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Select Status') {
+function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Select Status', selectedValue = null) {
 	if (!projectId) {
 		$select.html(`<option value="">${defaultText} (Select Project first)</option>`);
 		return;
@@ -815,7 +815,14 @@ function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Sele
 			} else {
 				console.warn('taigaPopulateBulkStatuses: statuses is not an array', statuses);
 			}
+			if ($select.data('select2')) {
+				$select.select2('destroy');
+			}
 			$select.html(html);
+
+			if (selectedValue) {
+				$select.val(String(selectedValue));
+			}
 
 			// Initialize Select2
 			$select.select2({
@@ -901,8 +908,11 @@ function taigaRenderBulkPreview($target, items, labelKey) {
 	$target.empty().append(list).removeClass('d-none');
 }
 
-function taigaPopulateProjectSelect($select, selectedProjectId) {
+function taigaPopulateProjectSelect($select, selectedProjectId, selectedLabel) {
 	if (!$select || !$select.length) return $.Deferred().resolve([]).promise();
+	if ($select.data('select2')) {
+		$select.select2('destroy');
+	}
 	$select.prop('disabled', true).empty().append($('<option>', { value: '', text: 'Loading projects...' }));
 
 	return $.ajax({
@@ -925,7 +935,12 @@ function taigaPopulateProjectSelect($select, selectedProjectId) {
 			});
 		}
 		if (selectedProjectId) {
-			$select.val(String(selectedProjectId));
+			const val = String(selectedProjectId);
+			if ($select.find('option[value="' + val + '"]').length) {
+				$select.val(val);
+			} else {
+				$select.append(new Option(selectedLabel || val, val, true, true));
+			}
 		}
 		$select.prop('disabled', false).trigger('change');
 	}).fail(function () {
@@ -973,7 +988,7 @@ function taigaExecuteBulkCreate(endpoint, items, dataFactory, onComplete) {
  * @param {number} projectId - ID of the project to fetch members for
  * @param {string} defaultText - Text for the default option
  */
-function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to...') {
+function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to...', selectedValue = null) {
 	if (!projectId) {
 		$select.html(`<option value="">${defaultText} (Select Project first)</option>`);
 		return;
@@ -990,7 +1005,14 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 			} else {
 				console.warn('taigaPopulateBulkMembers: memberships is not an array', memberships);
 			}
+			if ($select.data('select2')) {
+				$select.select2('destroy');
+			}
 			$select.html(html);
+
+			if (selectedValue) {
+				$select.val(String(selectedValue));
+			}
 
 			// Initialize Select2
 			$select.select2({
@@ -1332,6 +1354,9 @@ function taigaApplyFiltersFromUrl() {
     }
 
     return chain.then(function () {
+        if (window.TTTaiga && window.TTTaiga.Filter) {
+            window.TTTaiga.Filter.syncState();
+        }
         return page;
     }).always(function () {
         window.TTTaiga.isInitializing = false;

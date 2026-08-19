@@ -152,9 +152,101 @@ window.TTTaiga = {
                     $el.val(data[key]);
                 }
             });
+        },
+        _populateList: function (selector, endpoint, pid, selectedValue, formatFn, placeholder, selectedLabel) {
+            const $sel = $(selector);
+            if (!$sel.length) return;
+            if (!pid) {
+                if ($sel.data('select2')) $sel.select2('destroy');
+                $sel.empty().append(new Option(placeholder + ' (select project first)', '', false, false)).prop('disabled', true);
+                return;
+            }
+            TTTaiga.API.get('api.php' + endpoint, { project: pid }, {
+                success: function (items) {
+                    if ($sel.data('select2')) $sel.select2('destroy');
+                    $sel.empty().append(new Option(placeholder, '', false, false));
+                    (items || []).forEach(function (item) {
+                        $sel.append(new Option(formatFn(item), item.id, false, false));
+                    });
+                    if (selectedValue) {
+                        const val = String(selectedValue);
+                        if ($sel.find('option[value="' + val + '"]').length) {
+                            $sel.val(val);
+                        } else {
+                            $sel.append(new Option(selectedLabel || val, val, true, true));
+                        }
+                    }
+                    $sel.prop('disabled', false);
+                    $sel.select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        placeholder: placeholder,
+                        allowClear: true,
+                        dropdownParent: $sel.closest('.modal')
+                    });
+                }
+            });
+        },
+        populateDropdowns: function (config, values) {
+            values = values || TTTaiga.Filter.read();
+            const $project = $(config.projectSel);
+            if (!$project.length) return;
+
+            if (values.project && !values.project_label) {
+                const $fo = $('#projectSelect option:selected');
+                values.project_label = $fo.length && $fo.val() ? $fo.text() : values.project;
+            }
+            if (values.user_story && !values.user_story_label) {
+                const $fo = $('#userStorySelect option:selected');
+                values.user_story_label = $fo.length && $fo.val() ? $fo.text() : values.user_story;
+            }
+            if (values.epic && !values.epic_label) {
+                const $fo = $('#epicSelect option:selected');
+                values.epic_label = $fo.length && $fo.val() ? $fo.text() : values.epic;
+            }
+
+            const refreshDependents = function (pid) {
+                if (config.statusSel && config.statusType) {
+                    taigaPopulateBulkStatuses(config.statusType, $(config.statusSel), pid,
+                        config.statusDefault || 'Select Status', values.status || null);
+                }
+                if (config.assigneeSel) {
+                    taigaPopulateBulkMembers($(config.assigneeSel), pid,
+                        config.assigneeDefault || 'Assign to...', values.assigned_to || null);
+                }
+                if (config.usorSel) {
+                    this._populateList(config.usorSel, '/userstories', pid, values.user_story,
+                        (item) => `#${item.ref}: ${item.subject}`, 'Select Usor', values.user_story_label);
+                }
+                if (config.sprintSel) {
+                    this._populateList(config.sprintSel, '/milestones', pid, values.milestone,
+                        (item) => item.name, 'Select Sprint', values.milestone_label);
+                }
+                if (config.epicSel) {
+                    this._populateList(config.epicSel, '/epics', pid, values.epic,
+                        (item) => `#${item.ref}: ${item.subject}`, 'Select Epik', values.epic_label);
+                }
+                if (typeof config.onDependentsReady === 'function') config.onDependentsReady(pid);
+            }.bind(this);
+
+            $project.off('change.taigaForm').on('change.taigaForm', function () {
+                refreshDependents($(this).val());
+            });
+
+            return taigaPopulateProjectSelect($project, values.project, values.project_label);
         }
     },
-    Filter: {},
+    Filter: {
+        read: function () {
+            return taigaGetFilterParams();
+        },
+        syncState: function () {
+            if (typeof taigaGetFilterParams !== 'function') return {};
+            const params = taigaGetFilterParams();
+            TTTaiga.State.setState(params);
+            return params;
+        }
+    },
     State: {
         subscribers: [],
         data: JSON.parse(localStorage.getItem('taiga_state')) || {},

@@ -81,16 +81,11 @@ $(document).ready(function () {
             $('#selectedUsorsCount').text($('#usorsContent input:checked').length);
         },
         populateBulkCreateDropdowns: function() {
-            const currentProjectId = $('#projectSelect').val();
-            
-            taigaPopulateProjectSelect($('#bulkCreateProject'), currentProjectId).done(function() {
-                if(currentProjectId) $('#bulkCreateProject').val(currentProjectId).trigger('change.select2');
-            });
-            
-            $('#bulkCreateProject').off('change').on('change', function() {
-                const projectId = $(this).val();
-                taigaPopulateBulkStatuses('us', $('#bulkCreateStatus'), projectId);
-                taigaPopulateBulkMembers($('#bulkCreateAssignee'), projectId);
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#bulkCreateProject',
+                statusSel: '#bulkCreateStatus',
+                statusType: 'us',
+                assigneeSel: '#bulkCreateAssignee'
             });
         },
         submitBulkCreate: function() {
@@ -220,8 +215,6 @@ $(document).ready(function () {
 
     $('#bulkCreateModal').on('show.bs.modal', function() { 
         TTTaiga.Usors.populateBulkCreateDropdowns(); 
-        const state = TTTaiga.State.getState();
-        if(state.projectSelect) $('#bulkCreateProject').val(state.projectSelect).trigger('change.select2');
     });
     $('#submitBulkCreate').on('click', function() { TTTaiga.Usors.submitBulkCreate(); });
     $('#bulkUpdateModal').on('show.bs.modal', function() { TTTaiga.Usors.populateBulkUpdateDropdowns(); });
@@ -250,6 +243,13 @@ $(document).ready(function () {
             $('#singleUsorId').val('');
             $('#singleUsorVersion').val('');
             $('#singleUsorForm')[0].reset();
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#singleUsorProject',
+                statusSel: '#singleUsorStatus',
+                statusType: 'us',
+                assigneeSel: '#singleUsorAssignee',
+                epicSel: '#singleUsorEpic'
+            });
             return;
         }
         $('#singleUsorModalLabel').text('Edit User Story');
@@ -259,12 +259,19 @@ $(document).ready(function () {
                 $('#singleUsorVersion').val(usor.version);
                 $('#singleUsorSubject').val(usor.subject);
                 $('#singleUsorDescription').val(usor.description);
-                $('#singleUsorProject').val(usor.project).trigger('change');
-                setTimeout(function () {
-                    if (usor.status) $('#singleUsorStatus').val(usor.status);
-                    if (usor.assigned_to) $('#singleUsorAssignee').val(usor.assigned_to);
-                    if (usor.epic) $('#singleUsorEpic').val(usor.epic).trigger('change');
-                }, 300);
+                TTTaiga.Form.populateDropdowns({
+                    projectSel: '#singleUsorProject',
+                    statusSel: '#singleUsorStatus',
+                    statusType: 'us',
+                    assigneeSel: '#singleUsorAssignee',
+                    epicSel: '#singleUsorEpic'
+                }, {
+                    project: usor.project,
+                    status: usor.status,
+                    assigned_to: usor.assigned_to,
+                    epic: usor.epic,
+                    project_label: usor.project_extra_info ? usor.project_extra_info.name : null
+                });
             }
         });
     });

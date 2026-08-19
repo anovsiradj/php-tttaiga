@@ -77,43 +77,15 @@ $(document).ready(function () {
             $('#selectedTasksCount').text($('#tasksContent input:checked').length);
         },
         populateBulkCreateDropdowns: function() {
-            const currentProjectId = $('#projectSelect').val();
-            const currentUserStoryId = $('#userStorySelect').val();
-            const usText = $('#userStorySelect option:selected').text();
-
             $('#bulkTaskProject').closest('.col-md-6').show();
             $('#bulkTaskUserStory').closest('.mb-3').show();
 
-            const refreshProjectInputs = function (projectId, selectedUserStoryId, selectedUserStoryText) {
-                taigaPopulateBulkStatuses('task', $('#bulkTaskStatus'), projectId);
-                taigaPopulateBulkMembers($('#bulkTaskAssignee'), projectId);
-
-                const $userStory = $('#bulkTaskUserStory');
-                if ($userStory.data('select2')) {
-                    $userStory.select2('destroy');
-                }
-                $userStory.empty().append(new Option(projectId ? 'Select Usor' : 'Select project first', '', false, false));
-                $userStory.prop('disabled', !projectId);
-                taigaInitRemoteSelect2('#bulkTaskUserStory', '/userstories', {
-                    placeholder: projectId ? 'Select Usor' : 'Select project first',
-                    formatText: (item) => `#${item.ref}: ${item.subject}`,
-                    additionalParams: () => projectId ? { project: projectId } : {}
-                });
-                $userStory.prop('disabled', !projectId);
-                if (selectedUserStoryId) {
-                    $userStory.append(new Option(selectedUserStoryText || ('Usor ' + selectedUserStoryId), selectedUserStoryId, true, true)).trigger('change');
-                }
-            };
-
-            $('#bulkTaskProject').off('change.bulkTaskShared').on('change.bulkTaskShared', function () {
-                refreshProjectInputs($(this).val(), null, null);
-            });
-
-            taigaPopulateProjectSelect($('#bulkTaskProject'), currentProjectId).done(function () {
-                if (currentProjectId) {
-                    $('#bulkTaskProject').val(String(currentProjectId)).trigger('change.select2');
-                }
-                refreshProjectInputs(currentProjectId, currentUserStoryId, usText);
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#bulkTaskProject',
+                statusSel: '#bulkTaskStatus',
+                statusType: 'task',
+                assigneeSel: '#bulkTaskAssignee',
+                usorSel: '#bulkTaskUserStory'
             });
 
             const currentSearch = $('#searchInput').val();
@@ -341,6 +313,14 @@ $(document).ready(function () {
             $('#singleTaskId').val('');
             $('#singleTaskVersion').val('');
             $('#singleTaskForm')[0].reset();
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#singleTaskProject',
+                statusSel: '#singleTaskStatus',
+                statusType: 'task',
+                assigneeSel: '#singleTaskAssignee',
+                usorSel: '#singleTaskUsor',
+                sprintSel: '#singleTaskSprint'
+            });
             return;
         }
         $('#singleTaskModalLabel').text('Edit Task');
@@ -350,20 +330,28 @@ $(document).ready(function () {
                 $('#singleTaskVersion').val(task.version);
                 $('#singleTaskSubject').val(task.subject);
                 $('#singleTaskDescription').val(task.description);
-                $('#singleTaskProject').val(task.project).trigger('change');
-                setTimeout(function () {
-                    if (task.status) $('#singleTaskStatus').val(task.status);
-                    if (task.assigned_to) $('#singleTaskAssignee').val(task.assigned_to);
-                    if (task.user_story) $('#singleTaskUsor').val(task.user_story).trigger('change');
-                    if (task.milestone) $('#singleTaskSprint').val(task.milestone).trigger('change');
-                }, 300);
+                TTTaiga.Form.populateDropdowns({
+                    projectSel: '#singleTaskProject',
+                    statusSel: '#singleTaskStatus',
+                    statusType: 'task',
+                    assigneeSel: '#singleTaskAssignee',
+                    usorSel: '#singleTaskUsor',
+                    sprintSel: '#singleTaskSprint'
+                }, {
+                    project: task.project,
+                    status: task.status,
+                    assigned_to: task.assigned_to,
+                    user_story: task.user_story,
+                    milestone: task.milestone,
+                    project_label: task.project_extra_info ? task.project_extra_info.name : null,
+                    user_story_label: task.user_story_extra_info ? '#' + task.user_story_extra_info.ref + ': ' + task.user_story_extra_info.subject : null,
+                    milestone_label: task.milestone_extra_info ? task.milestone_extra_info.name : null
+                });
             }
         });
     });
     $('#bulkCreateTaskModal').on('show.bs.modal', function() { 
         TTTaiga.Tasks.populateBulkCreateDropdowns(); 
-        const state = TTTaiga.State.getState();
-        if(state.projectSelect) $('#bulkTaskProject').val(state.projectSelect).trigger('change.select2');
     });
     $('#submitBulkTaskCreate').on('click', function() { TTTaiga.Tasks.submitBulkCreate(); });
     $('#bulkUpdateTaskModal').on('show.bs.modal', function() { TTTaiga.Tasks.populateBulkUpdateDropdowns(); });

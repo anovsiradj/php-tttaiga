@@ -82,14 +82,12 @@ $(document).ready(function () {
             $('#selectedEpicsCount').text($('#epicsContent input.epic-checkbox:checked').length);
         },
         populateBulkCreateDropdowns: function() {
-            const projectId = $('#projectSelect').val();
-            taigaPopulateProjectSelect($('#bulkCreateEpicProject'), projectId);
-            $('#bulkCreateEpicProject').off('change').on('change', function() {
-                const pid = $(this).val();
-                taigaPopulateBulkStatuses('epic', $('#bulkCreateEpicStatus'), pid);
-                taigaPopulateBulkMembers($('#bulkCreateEpicAssignee'), pid);
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#bulkCreateEpicProject',
+                statusSel: '#bulkCreateEpicStatus',
+                statusType: 'epic',
+                assigneeSel: '#bulkCreateEpicAssignee'
             });
-            if(projectId) $('#bulkCreateEpicProject').trigger('change');
         },
         submitBulkCreate: function() {
             const text = $('#bulkCreateEpicText').val().trim();
@@ -196,8 +194,6 @@ $(document).ready(function () {
             
             $('#bulkCreateEpicModal').on('show.bs.modal', function() { 
                 TTTaiga.Epiks.populateBulkCreateDropdowns(); 
-                const state = TTTaiga.State.getState();
-                if(state.projectSelect) $('#bulkCreateEpicProject').val(state.projectSelect).trigger('change.select2');
             });
             $('#submitBulkCreateEpic').on('click', () => TTTaiga.Epiks.submitBulkCreate());
             $('#bulkUpdateEpicModal').on('show.bs.modal', () => TTTaiga.Epiks.populateBulkUpdateDropdowns());
@@ -225,6 +221,12 @@ $(document).ready(function () {
                     $('#singleEpicId').val('');
                     $('#singleEpicVersion').val('');
                     $('#singleEpicForm')[0].reset();
+                    TTTaiga.Form.populateDropdowns({
+                        projectSel: '#singleEpicProject',
+                        statusSel: '#singleEpicStatus',
+                        statusType: 'epic',
+                        assigneeSel: '#singleEpicAssignee'
+                    });
                     return;
                 }
                 $('#singleEpicModalLabel').text('Edit Epic');
@@ -234,11 +236,17 @@ $(document).ready(function () {
                         $('#singleEpicVersion').val(epic.version);
                         $('#singleEpicSubject').val(epic.subject);
                         $('#singleEpicDescription').val(epic.description);
-                        $('#singleEpicProject').val(epic.project).trigger('change');
-                        setTimeout(function () {
-                            if (epic.status) $('#singleEpicStatus').val(epic.status);
-                            if (epic.assigned_to) $('#singleEpicAssignee').val(epic.assigned_to);
-                        }, 300);
+                        TTTaiga.Form.populateDropdowns({
+                            projectSel: '#singleEpicProject',
+                            statusSel: '#singleEpicStatus',
+                            statusType: 'epic',
+                            assigneeSel: '#singleEpicAssignee'
+                        }, {
+                            project: epic.project,
+                            status: epic.status,
+                            assigned_to: epic.assigned_to,
+                            project_label: epic.project_extra_info ? epic.project_extra_info.name : null
+                        });
                     }
                 });
             });

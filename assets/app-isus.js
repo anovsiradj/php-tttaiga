@@ -77,15 +77,12 @@ $(document).ready(function () {
             $('#selectionCount').text($('#issuesContent input.issue-checkbox:checked').length);
         },
         populateBulkCreateDropdowns: function() {
-            const projectId = $('#projectSelect').val();
-            taigaPopulateProjectSelect($('#bulkCreateIssueProject'), projectId);
-            
-            $('#bulkCreateIssueProject').off('change').on('change', function() {
-                const pid = $(this).val();
-                taigaPopulateBulkStatuses('issue', $('#bulkCreateIssueStatus'), pid);
-                taigaPopulateBulkMembers($('#bulkCreateIssueAssignee'), pid);
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#bulkCreateIssueProject',
+                statusSel: '#bulkCreateIssueStatus',
+                statusType: 'issue',
+                assigneeSel: '#bulkCreateIssueAssignee'
             });
-            if(projectId) $('#bulkCreateIssueProject').val(projectId).trigger('change.select2');
         },
         submitBulkCreate: function() {
             const text = $('#bulkCreateIssueText').val().trim();
@@ -216,6 +213,12 @@ $(document).ready(function () {
             $('#singleIsuId').val('');
             $('#singleIsuVersion').val('');
             $('#singleIsuForm')[0].reset();
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#singleIsuProject',
+                statusSel: '#singleIsuStatus',
+                statusType: 'issue',
+                assigneeSel: '#singleIsuAssignee'
+            });
             return;
         }
         $('#singleIsuModalLabel').text('Edit Issue');
@@ -225,14 +228,20 @@ $(document).ready(function () {
                 $('#singleIsuVersion').val(issue.version);
                 $('#singleIsuSubject').val(issue.subject);
                 $('#singleIsuDescription').val(issue.description);
-                $('#singleIsuProject').val(issue.project).trigger('change');
-                setTimeout(function () {
-                    if (issue.status) $('#singleIsuStatus').val(issue.status);
-                    if (issue.assigned_to) $('#singleIsuAssignee').val(issue.assigned_to);
-                    if (issue.issue_type) $('#singleIsuType').val(issue.issue_type);
-                    if (issue.priority) $('#singleIsuPriority').val(issue.priority);
-                    if (issue.severity) $('#singleIsuSeverity').val(issue.severity);
-                }, 300);
+                TTTaiga.Form.populateDropdowns({
+                    projectSel: '#singleIsuProject',
+                    statusSel: '#singleIsuStatus',
+                    statusType: 'issue',
+                    assigneeSel: '#singleIsuAssignee'
+                }, {
+                    project: issue.project,
+                    status: issue.status,
+                    assigned_to: issue.assigned_to,
+                    project_label: issue.project_extra_info ? issue.project_extra_info.name : null
+                });
+                if (issue.issue_type) $('#singleIsuType').val(issue.issue_type);
+                if (issue.priority) $('#singleIsuPriority').val(issue.priority);
+                if (issue.severity) $('#singleIsuSeverity').val(issue.severity);
             }
         });
     });

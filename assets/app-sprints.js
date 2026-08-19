@@ -65,8 +65,9 @@ $(document).ready(function () {
             $('#bulkDeleteBtn').toggleClass('d-none', $('#sprintsContent input.sprint-checkbox:checked').length === 0);
         },
         populateBulkCreateDropdowns: function() {
-            const projectId = $('#projectSelect').val();
-            taigaPopulateProjectSelect($('#bulkCreateSprintProject'), projectId);
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#bulkCreateSprintProject'
+            });
         },
         populateBulkUpdateDropdowns: function() {
             const filterParams = taigaGetFilterParams();
@@ -208,6 +209,9 @@ $(document).ready(function () {
             $('#singleSprintId').val('');
             $('#singleSprintVersion').val('');
             $('#singleSprintForm')[0].reset();
+            TTTaiga.Form.populateDropdowns({
+                projectSel: '#singleSprintProject'
+            });
             return;
         }
         $('#singleSprintModalLabel').text('Edit Sprint');
@@ -218,7 +222,12 @@ $(document).ready(function () {
                 $('#singleSprintName').val(sprint.name);
                 $('#singleSprintStart').val(sprint.estimated_start || '');
                 $('#singleSprintEnd').val(sprint.estimated_finish || '');
-                $('#singleSprintProject').val(sprint.project).trigger('change');
+                TTTaiga.Form.populateDropdowns({
+                    projectSel: '#singleSprintProject'
+                }, {
+                    project: sprint.project,
+                    project_label: sprint.project_extra_info ? sprint.project_extra_info.name : null
+                });
             }
         });
     });
