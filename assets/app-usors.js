@@ -15,7 +15,7 @@ $(document).ready(function () {
     TTTaiga.Usors = {
         load: function (page = 1) {
             taigaReplaceUrlQuery({ ...taigaGetFilterParams(), page: page });
-            const params = { ...taigaGetFilterParams(), page: page };
+            const params = { ...taigaGetFilterParams(), page: page, include: 'epics' };
 
             $('#usorsContent').html(`
                 <div class="loading-spinner text-center p-3">
@@ -44,12 +44,15 @@ $(document).ready(function () {
             usors.forEach(usor => {
                 const statusInfo = taigaGetStatusInfo(usor);
                 const statusBadge = taigaRenderStatusBadge(statusInfo);
-                const assignedTo = usor.assigned_to_extra ? usor.assigned_to_extra.full_name_display : (usor.assigned_to ? 'User ID: ' + usor.assigned_to : 'Unassigned');
-                const owner = usor.owner_extra ? usor.owner_extra.full_name_display : 'Unknown';
+                const assignedTo = usor.assigned_to_extra_info ? usor.assigned_to_extra_info.full_name_display : (usor.assigned_to ? 'User ID: ' + usor.assigned_to : 'Unassigned');
+                const owner = usor.owner_extra_info ? usor.owner_extra_info.full_name_display : 'Unknown';
+
+                const epicInfo = usor.epic_extra_info ? usor.epic_extra_info.subject : (usor.epic ? `Epik #${usor.epic}` : null);
+                const epicHtml = epicInfo ? `<small class="text-muted d-block text-truncate">In Epik: <strong>${epicInfo}</strong></small>` : '';
 
                 html += `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card taiga-list-card usor-card h-100" data-us-id="${usor.id}">
+                    <div class="card taiga-list-card usor-card h-100" data-us-id="${usor.id}" data-us-ref="${usor.ref}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
@@ -64,6 +67,7 @@ $(document).ready(function () {
                             <p class="card-text taiga-card-description text-muted small mb-0">${usor.description || ''}</p>
                             <div class="taiga-card-meta">
                                 <small class="text-muted d-block text-truncate">Assigned: <strong>${assignedTo}</strong></small>
+                                ${epicHtml}
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">

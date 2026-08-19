@@ -106,6 +106,13 @@ function taigaFetchStatuses(apiUrl, token, projectId, type) {
  * @returns {object} { name, color }
  */
 function taigaGetStatusInfo(item) {
+	if (item.status_extra_info) {
+		return {
+			name: item.status_extra_info.name || 'Unknown',
+			color: item.status_extra_info.color || '#666666'
+		};
+	}
+
 	if (item.status_extra) {
 		return {
 			name: item.status_extra.name || 'Unknown',

@@ -43,23 +43,32 @@ $(document).ready(function () {
             tasks.forEach(task => {
                 const statusInfo = taigaGetStatusInfo(task);
                 const statusBadge = taigaRenderStatusBadge(statusInfo);
-                const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
-                const owner = task.owner_extra ? task.owner_extra.full_name_display : 'Unknown';
+                const assignedTo = task.assigned_to_extra_info ? task.assigned_to_extra_info.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+                const owner = task.owner_extra_info ? task.owner_extra_info.full_name_display : 'Unknown';
+
+                const usorInfo = task.user_story_extra_info ? task.user_story_extra_info.subject : (task.user_story ? `Usor #${task.user_story}` : '');
+                const usorHtml = usorInfo ? `<small class="text-muted d-block text-truncate">In Usor: <strong>${usorInfo}</strong></small>` : '';
+
+                const refHtml = task.ref ? `<small class="text-muted mt-1">#${task.ref}</small>` : '';
 
                 html += `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card taiga-list-card task-card h-100" data-task-id="${task.id}">
+                    <div class="card taiga-list-card task-card h-100" data-task-id="${task.id}" data-task-ref="${task.ref}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
                                     <input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" data-version="${task.version}" id="task-${task.id}">
                                 </div>
-                                ${statusBadge}
+                                <div class="d-flex flex-column align-items-end">
+                                    ${statusBadge}
+                                    ${refHtml}
+                                </div>
                             </div>
                             <h6 class="card-title text-truncate">${task.subject || 'Untitled Task'}</h6>
                             <p class="card-text taiga-card-description task-description text-muted small mb-0">${task.description || ''}</p>
                             <div class="taiga-card-meta">
                                 <small class="text-muted d-block text-truncate">Assigned: <strong>${assignedTo}</strong></small>
+                                ${usorHtml}
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">

@@ -47,18 +47,23 @@ $(document).ready(function () {
                 const project = allProjects.find(p => p.id === epic.project) || {};
                 const statusInfo = taigaGetStatusInfo(epic);
                 const statusBadge = taigaRenderStatusBadge(statusInfo);
-                const assignedTo = epic.assigned_to_extra ? epic.assigned_to_extra.full_name_display : (epic.assigned_to ? 'User ID: ' + epic.assigned_to : 'Unassigned');
-                const owner = epic.owner_extra ? epic.owner_extra.full_name_display : 'Unknown';
+                const assignedTo = epic.assigned_to_extra_info ? epic.assigned_to_extra_info.full_name_display : (epic.assigned_to ? 'User ID: ' + epic.assigned_to : 'Unassigned');
+                const owner = epic.owner_extra_info ? epic.owner_extra_info.full_name_display : 'Unknown';
+
+                const refHtml = epic.ref ? `<small class="text-muted mt-1">#${epic.ref}</small>` : '';
 
                 html += `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card taiga-list-card epic-card h-100" data-epic-id="${epic.id}">
+                    <div class="card taiga-list-card epic-card h-100" data-epic-id="${epic.id}" data-epic-ref="${epic.ref}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
                                     <input class="form-check-input epic-checkbox" type="checkbox" value="${epic.id}" data-version="${epic.version}" id="epic-${epic.id}">
                                 </div>
-                                ${statusBadge}
+                                <div class="d-flex flex-column align-items-end">
+                                    ${statusBadge}
+                                    ${refHtml}
+                                </div>
                             </div>
                             <h6 class="card-title text-truncate">${epic.subject || 'Untitled Epik'}</h6>
                             <p class="card-text text-muted taiga-card-description small mb-0">${epic.description || ''}</p>
@@ -67,7 +72,7 @@ $(document).ready(function () {
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">
-                            <button class="btn btn-sm btn-outline-primary view-epic" data-epic-id="${epic.id}">View</button>
+                            <button class="btn btn-sm btn-outline-primary view-epic" data-epic-id="${epic.id}" data-epic-ref="${epic.ref}">View</button>
                             <button class="btn btn-sm btn-outline-secondary edit-epic" data-epic-id="${epic.id}" data-bs-toggle="modal" data-bs-target="#singleEpicModal">Edit</button>
                         </div>
                     </div>

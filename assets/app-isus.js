@@ -43,18 +43,23 @@ $(document).ready(function () {
             issues.forEach(issue => {
                 const statusInfo = taigaGetStatusInfo(issue);
                 const statusBadge = taigaRenderStatusBadge(statusInfo);
-                const assignedTo = issue.assigned_to_extra ? issue.assigned_to_extra.full_name_display : (issue.assigned_to ? 'User ID: ' + issue.assigned_to : 'Unassigned');
-                const owner = issue.owner_extra ? issue.owner_extra.full_name_display : 'Unknown';
+                const assignedTo = issue.assigned_to_extra_info ? issue.assigned_to_extra_info.full_name_display : (issue.assigned_to ? 'User ID: ' + issue.assigned_to : 'Unassigned');
+                const owner = issue.owner_extra_info ? issue.owner_extra_info.full_name_display : 'Unknown';
+
+                const refHtml = issue.ref ? `<small class="text-muted mt-1">#${issue.ref}</small>` : '';
 
                 html += `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card taiga-list-card issue-card h-100" data-issue-id="${issue.id}">
+                    <div class="card taiga-list-card issue-card h-100" data-issue-id="${issue.id}" data-issue-ref="${issue.ref}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
                                     <input class="form-check-input issue-checkbox" type="checkbox" value="${issue.id}" data-version="${issue.version}" id="issue-${issue.id}">
                                 </div>
-                                ${statusBadge}
+                                <div class="d-flex flex-column align-items-end">
+                                    ${statusBadge}
+                                    ${refHtml}
+                                </div>
                             </div>
                             <h6 class="card-title text-truncate">${issue.subject || 'Untitled Isu'}</h6>
                             <p class="card-text text-muted taiga-card-description small mb-0">${issue.description || ''}</p>

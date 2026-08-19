@@ -340,7 +340,7 @@ require __DIR__ . '/app/init.php';
 				stories.forEach(story => {
 					const statusInfo = taigaGetStatusInfo(story);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
-					const assignedTo = story.assigned_to_extra ? story.assigned_to_extra.full_name_display : (story.assigned_to ? 'User ID: ' + story.assigned_to : 'Unassigned');
+					const assignedTo = story.assigned_to_extra_info ? story.assigned_to_extra_info.full_name_display : (story.assigned_to ? 'User ID: ' + story.assigned_to : 'Unassigned');
 					html += `
 				<div class="card user-story-card mb-2">
 					<div class="card-body py-2">

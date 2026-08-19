@@ -72,10 +72,10 @@ $bulkActions = '
 	<!-- Select2 JS -->
 	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-	<script src="assets/taiga.js"></script>
+	<script src="assets/taiga.js?v=<?php echo filemtime(__DIR__ . '/assets/taiga.js'); ?>"></script>
 	    <!-- New Architecture -->
-    <script src="assets/taiga-core.js"></script>
-    <script src="assets/app-isus.js"></script>
+    <script src="assets/taiga-core.js?v=<?php echo filemtime(__DIR__ . '/assets/taiga-core.js'); ?>"></script>
+    <script src="assets/app-isus.js?v=<?php echo filemtime(__DIR__ . '/assets/app-isus.js'); ?>"></script>
 
 
 	<?php include __DIR__ . '/app/partials/isu_multiple_form.php'; ?>

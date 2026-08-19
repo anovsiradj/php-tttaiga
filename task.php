@@ -156,7 +156,7 @@ require __DIR__ . '/app/init.php';
 			function displayTaskHeader(task) {
 				const statusInfo = taigaGetStatusInfo(task);
 				const statusBadge = taigaRenderStatusBadge(statusInfo);
-				const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+				const assignedTo = task.assigned_to_extra_info ? task.assigned_to_extra_info.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
 				const headerHtml = `
 					<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
 						<div class="me-3">
@@ -190,9 +190,9 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayTaskDetails(task) {
-				const projectName = task.project_extra?.name || (task.project ? ('Project ID: ' + task.project) : 'N/A');
-				const usorLabel = task.user_story_extra ? `#${task.user_story_extra.ref}: ${task.user_story_extra.subject}` : (task.user_story ? ('Usor ID: ' + task.user_story) : 'None');
-				const sprintLabel = task.milestone_extra?.name || (task.milestone ? ('Sprint ID: ' + task.milestone) : 'None');
+				const projectName = task.project_extra_info?.name || (task.project ? ('Project ID: ' + task.project) : 'N/A');
+				const usorLabel = task.user_story_extra_info ? `#${task.user_story_extra_info.ref}: ${task.user_story_extra_info.subject}` : (task.user_story ? ('Usor ID: ' + task.user_story) : 'None');
+				const sprintLabel = task.milestone_extra_info?.name || (task.milestone ? ('Sprint ID: ' + task.milestone) : 'None');
 
 				const detailsHtml = `
 					<div class="row">
@@ -220,21 +220,21 @@ require __DIR__ . '/app/init.php';
 				`;
 				$('#taskDetailsContent').html(detailsHtml);
 
-				if (task.project && !task.project_extra?.name) {
+				if (task.project && !task.project_extra_info?.name) {
 					apiGet('api.php/projects/' + encodeURIComponent(task.project))
 						.done(function(project) {
 							$('#taskProjectName').text(project.name || ('Project ID: ' + task.project));
 						});
 				}
 
-				if (task.user_story && !task.user_story_extra) {
+				if (task.user_story && !task.user_story_extra_info) {
 					apiGet('api.php/userstories/' + encodeURIComponent(task.user_story))
 						.done(function(usor) {
 							$('#taskUsorName').text(`#${usor.ref}: ${usor.subject || 'Untitled Usor'}`);
 						});
 				}
 
-				if (task.milestone && !task.milestone_extra?.name) {
+				if (task.milestone && !task.milestone_extra_info?.name) {
 					apiGet('api.php/milestones/' + encodeURIComponent(task.milestone))
 						.done(function(sprint) {
 							$('#taskSprintName').text(sprint.name || ('Sprint ID: ' + task.milestone));
@@ -250,8 +250,8 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayTaskMetadata(task) {
-				const owner = task.owner_extra ? task.owner_extra.full_name_display : (task.owner ? 'User ID: ' + task.owner : 'N/A');
-				const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+				const owner = task.owner_extra_info ? task.owner_extra_info.full_name_display : (task.owner ? 'User ID: ' + task.owner : 'N/A');
+				const assignedTo = task.assigned_to_extra_info ? task.assigned_to_extra_info.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
 				const metadataHtml = `
 					<div class="small">
 						<div class="mb-2">
@@ -282,19 +282,21 @@ require __DIR__ . '/app/init.php';
 			function displayTaskBelongsTo(task) {
 				let html = '<div class="d-grid gap-2">';
 
-				if (task.project) {
+				if (task.project_extra_info) {
 					html += `<a class="btn btn-outline-primary btn-sm" href="project.php?id=${encodeURIComponent(task.project)}">View Project Details</a>`;
 				}
 
-				if (task.user_story) {
+				if (task.user_story_extra_info) {
 					html += `<a class="btn btn-outline-primary btn-sm" href="usor.php?id=${encodeURIComponent(task.user_story)}">View Usor Details</a>`;
 				}
 
-				if (task.milestone) {
-					html += `<a class="btn btn-outline-primary btn-sm" href="sprint.php?id=${encodeURIComponent(task.milestone)}">View Sprint Details</a>`;
+				if (task.milestone_extra_info) {
+					html += `<a class="btn btn-outline-primary btn-sm" href="sprint.php?id=${encodeURIComponent(task.milestone_extra_info.name)}">View Sprint Details</a>`;
+				} else if (task.milestone_slug) {
+					html += `<a class="btn btn-outline-primary btn-sm" href="sprint.php?id=${encodeURIComponent(task.milestone_slug)}">View Sprint Details</a>`;
 				}
 
-				if (!task.project && !task.user_story && !task.milestone) {
+				if (!task.project_extra_info && !task.user_story_extra_info && !task.milestone_extra_info && !task.milestone_slug) {
 					html += `<div class="text-muted italic"><em>(kosong)</em></div>`;
 				}
 

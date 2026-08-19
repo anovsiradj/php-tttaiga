@@ -297,7 +297,7 @@ require __DIR__ . '/app/init.php';
 				tasks.forEach(task => {
 					const statusInfo = taigaGetStatusInfo(task);
 					const statusBadge = taigaRenderStatusBadge(statusInfo);
-					const assignedTo = task.assigned_to_extra ? task.assigned_to_extra.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
+					const assignedTo = task.assigned_to_extra_info ? task.assigned_to_extra_info.full_name_display : (task.assigned_to ? 'User ID: ' + task.assigned_to : 'Unassigned');
 					html += `
 				<div class="card task-card mb-2">
 					<div class="card-body py-2">
