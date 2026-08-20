@@ -79,10 +79,7 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#usorsContent').html(html);
-            $('.story-checkbox').off('change').on('change', this.updateSelectionCount);
-        },
-        updateSelectionCount: function() {
-            $('#selectedUsorsCount').text($('#usorsContent input:checked').length);
+            taigaBindSelectionLogic('story-checkbox', taigaBulkSelectionCallback);
         },
         populateBulkCreateDropdowns: function() {
             TTTaiga.Form.populateDropdowns({
@@ -242,7 +239,7 @@ $(document).ready(function () {
     });
     $('#singleUsorModal').on('show.bs.modal', function (e) {
         const id = $(e.relatedTarget).data('usor-id');
-        if (!id) {
+        if (!id || Number(id) <= 0) {
             $('#singleUsorModalLabel').text('Create User Story');
             $('#singleUsorId').val('');
             $('#singleUsorVersion').val('');

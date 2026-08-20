@@ -80,11 +80,8 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#epicsContent').html(html);
-            $('.epic-checkbox').off('change').on('change', this.updateSelectionCount);
+            taigaBindSelectionLogic('epic-checkbox', taigaBulkSelectionCallback);
             $('.view-epic').off('click').on('click', function() { window.location.href = `epik.php?id=${$(this).data('epic-id')}`; });
-        },
-        updateSelectionCount: function() {
-            $('#selectedEpicsCount').text($('#epicsContent input.epic-checkbox:checked').length);
         },
         populateBulkCreateDropdowns: function() {
             TTTaiga.Form.populateDropdowns({
@@ -221,7 +218,7 @@ $(document).ready(function () {
             });
             $('#singleEpicModal').on('show.bs.modal', function (e) {
                 const id = $(e.relatedTarget).data('epic-id');
-                if (!id) {
+                if (!id || Number(id) <= 0) {
                     $('#singleEpicModalLabel').text('Create Epic');
                     $('#singleEpicId').val('');
                     $('#singleEpicVersion').val('');

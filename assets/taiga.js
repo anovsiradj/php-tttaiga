@@ -350,11 +350,23 @@ function taigaGetPaginationTotal(xhr, fallbackCount) {
 	return Number.isFinite(total) ? total : fallback;
 }
 
+var taigaBulkBarIds = { totalId: '', filteredId: '', selectionId: '' };
+
 function taigaUpdateListCounts(xhr, visibleCount, totalId, filteredId, selectionId) {
 	const shown = Number.isFinite(Number(visibleCount)) ? Number(visibleCount) : 0;
 	const total = taigaGetPaginationTotal(xhr, shown);
 
+	taigaBulkBarIds.totalId = totalId || taigaBulkBarIds.totalId;
+	taigaBulkBarIds.filteredId = filteredId || taigaBulkBarIds.filteredId;
+	taigaBulkBarIds.selectionId = selectionId || taigaBulkBarIds.selectionId;
+
 	taigaUpdateSelectionUI(total, shown, 0, totalId, filteredId, selectionId);
+}
+
+function taigaBulkSelectionCallback(checkedCount) {
+	const total = parseInt($('#' + taigaBulkBarIds.totalId).text()) || 0;
+	const filtered = parseInt($('#' + taigaBulkBarIds.filteredId).text()) || 0;
+	taigaUpdateSelectionUI(total, filtered, checkedCount, taigaBulkBarIds.totalId, taigaBulkBarIds.filteredId, taigaBulkBarIds.selectionId);
 }
 
 /**

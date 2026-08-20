@@ -76,10 +76,7 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#issuesContent').html(html);
-            $('.issue-checkbox').off('change').on('change', this.updateSelectionCount);
-        },
-        updateSelectionCount: function() {
-            $('#selectionCount').text($('#issuesContent input.issue-checkbox:checked').length);
+            taigaBindSelectionLogic('issue-checkbox', taigaBulkSelectionCallback);
         },
         populateBulkCreateDropdowns: function() {
             TTTaiga.Form.populateDropdowns({
@@ -213,7 +210,7 @@ $(document).ready(function () {
     });
     $('#singleIsuModal').on('show.bs.modal', function (e) {
         const id = $(e.relatedTarget).data('isu-id');
-        if (!id) {
+        if (!id || Number(id) <= 0) {
             $('#singleIsuModalLabel').text('Create Issue');
             $('#singleIsuId').val('');
             $('#singleIsuVersion').val('');

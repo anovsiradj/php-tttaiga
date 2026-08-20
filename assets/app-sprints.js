@@ -57,12 +57,8 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#sprintsContent').html(html);
-            $('.sprint-checkbox').off('change').on('change', this.updateSelectionCount);
+            taigaBindSelectionLogic('sprint-checkbox', taigaBulkSelectionCallback);
             $('.view-sprint').off('click').on('click', function() { window.location.href = `sprint.php?id=${$(this).data('sprint-id')}`; });
-        },
-        updateSelectionCount: function() {
-            $('#selectedSprintsCount').text($('#sprintsContent input.sprint-checkbox:checked').length);
-            $('#bulkDeleteBtn').toggleClass('d-none', $('#sprintsContent input.sprint-checkbox:checked').length === 0);
         },
         populateBulkCreateDropdowns: function() {
             TTTaiga.Form.populateDropdowns({

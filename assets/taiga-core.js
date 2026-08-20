@@ -35,7 +35,8 @@ window.TTTaiga = {
         request: function (method, endpoint, data, opts = {}) {
             const settings = {
                 url: endpoint,
-                type: method,
+                type: method.toUpperCase(),
+                method: method.toUpperCase(),
                 headers: this._headers(),
                 dataType: 'json',
                 error: function (xhr) {
@@ -92,20 +93,33 @@ window.TTTaiga = {
         }
     },
     Form: {
-        _getFormData: function (formId) {
+        _toFieldName: function (key, aliases) {
+            if (aliases && aliases[key]) return aliases[key];
+            return key.split('_').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+        },
+        _fromFieldName: function (field, aliases) {
+            if (aliases) {
+                for (const key in aliases) {
+                    if (aliases[key] === field) return key;
+                }
+            }
+            return field.charAt(0).toLowerCase() + field.slice(1);
+        },
+        _getFormData: function (formId, aliases) {
             const data = {};
             const prefix = formId.replace('Form', '');
-            $('#' + formId).find('input, select, textarea').each(function () {
-                const $el = $(this);
+            $('#' + formId).find('input, select, textarea').each((_index, el) => {
+                const $el = $(el);
                 const id = $el.attr('id') || '';
                 if (!id || $el.is(':disabled')) return;
                 const field = id.replace(prefix, '');
                 if (!field || field === 'Id' || field === 'Version') return;
+                const key = this._fromFieldName(field, aliases);
                 const val = $el.val();
                 if ($el.is(':checkbox')) {
-                    data[field.charAt(0).toLowerCase() + field.slice(1)] = $el.is(':checked');
+                    data[key] = $el.is(':checked');
                 } else {
-                    data[field.charAt(0).toLowerCase() + field.slice(1)] = val;
+                    data[key] = val;
                 }
             });
             return data;
@@ -113,12 +127,13 @@ window.TTTaiga = {
         saveModal: function (opts) {
             const { endpoint, formId, modalId, listFn } = opts;
             const $form = $('#' + formId);
-            const id = $('#' + formId + 'Id').val();
-            const version = $('#' + formId + 'Version').val();
-            const formData = opts.data || this._getFormData(formId);
-            const method = id ? 'PATCH' : 'POST';
-            const url = id ? endpoint + '/' + id : endpoint;
-            const payload = id && version ? { ...formData, version: parseInt(version) } : formData;
+            const prefix = formId.replace('Form', '');
+            const id = $('#' + prefix + 'Id').val();
+            const version = $('#' + prefix + 'Version').val();
+            const formData = opts.data || this._getFormData(formId, opts.aliases);
+            const method = id && Number(id) > 0 ? 'PATCH' : 'POST';
+            const url = id && Number(id) > 0 ? endpoint + '/' + id : endpoint;
+            const payload = id && Number(id) > 0 && version ? { ...formData, version: parseInt(version) } : formData;
 
             const $btn = $form.closest('.modal').find('[type="submit"], .btn-primary').last();
             $btn.prop('disabled', true).text('Saving...');
@@ -129,8 +144,8 @@ window.TTTaiga = {
                     $('#' + modalId).modal('hide');
                     TTTaiga.UI.notify(id ? 'Updated successfully' : 'Created successfully', 'success');
                     $form[0].reset();
-                    $('#' + formId + 'Id').val('');
-                    $('#' + formId + 'Version').val('');
+                    $('#' + prefix + 'Id').val('');
+                    $('#' + prefix + 'Version').val('');
                     if (typeof listFn === 'function') listFn();
                 },
                 onError: function (xhr) {
@@ -140,11 +155,10 @@ window.TTTaiga = {
                 }
             });
         },
-        populate: function (formId, data) {
+        populate: function (formId, data, aliases) {
             const prefix = formId.replace('Form', '');
             Object.keys(data).forEach(key => {
-                const field = key.charAt(0).toUpperCase() + key.slice(1);
-                const $el = $('#' + prefix + field);
+                const $el = $('#' + prefix + this._toFieldName(key, aliases));
                 if (!$el.length) return;
                 if ($el.is(':checkbox')) {
                     $el.prop('checked', !!data[key]);

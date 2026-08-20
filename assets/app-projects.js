@@ -55,12 +55,8 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#projectsContent').html(html);
-            $('.project-checkbox').off('change').on('change', this.updateSelectionCount);
+            taigaBindSelectionLogic('project-checkbox', taigaBulkSelectionCallback);
             $('.view-project').off('click').on('click', function() { window.location.href = `project.php?id=${$(this).data('project-id')}`; });
-        },
-        updateSelectionCount: function() {
-            $('#selectedProjectsCount').text($('#projectsContent input.project-checkbox:checked').length);
-            $('#selectedProjectsCountLabel').text($('#projectsContent input.project-checkbox:checked').length);
         },
         submitBulkCreate: function() {
             const text = $('#bulkCreateProjectText').val().trim();

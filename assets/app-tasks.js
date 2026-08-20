@@ -80,10 +80,7 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#tasksContent').html(html);
-            $('.task-checkbox').off('change').on('change', this.updateSelectionCount);
-        },
-        updateSelectionCount: function() {
-            $('#selectedTasksCount').text($('#tasksContent input:checked').length);
+            taigaBindSelectionLogic('task-checkbox', taigaBulkSelectionCallback);
         },
         populateBulkCreateDropdowns: function() {
             $('#bulkTaskProject').closest('.col-md-6').show();
@@ -317,7 +314,7 @@ $(document).ready(function () {
     });
     $('#singleTaskModal').on('show.bs.modal', function (e) {
         const id = $(e.relatedTarget).data('task-id');
-        if (!id) {
+        if (!id || Number(id) <= 0) {
             $('#singleTaskModalLabel').text('Create Task');
             $('#singleTaskId').val('');
             $('#singleTaskVersion').val('');
