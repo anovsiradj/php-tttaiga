@@ -22,7 +22,7 @@ function tttaiga_require_auth(): void
 		return;
 	}
 
-	header('Location: login.php');
+	header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
 	exit;
 }
 

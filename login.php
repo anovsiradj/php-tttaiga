@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 $pageTitle = 'Login';
+$redirect = $_GET['redirect'] ?? 'projects.php';
 ?>
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="auto">
@@ -147,6 +148,8 @@ $pageTitle = 'Login';
 		<script>
 		$(document).ready(function () {
 			const config = <?php echo json_encode(include 'app/configs/taiga.php'); ?>;
+			const redirectUrl = <?php echo json_encode($redirect); ?>;
+
 
 			const $serverSelect = $('#server');
 			$.each(config.servers, function (key, server) {
@@ -194,7 +197,7 @@ $pageTitle = 'Login';
 								localStorage.setItem('taiga_token', 'session');
 								localStorage.setItem('taiga_user', JSON.stringify(response));
 								localStorage.setItem('taiga_api_url', apiUrl);
-								window.location.href = 'projects.php';
+								window.location.href = redirectUrl;
 							}
 						});
 					},

@@ -1,13 +1,15 @@
-# AGENT INITIALIZATION
-Welcome to the project. Your core operating instructions, behavioral boundaries, and project memory are strictly managed by a separate configuration.
+# AGENT ENTRYPOINT
 
-**CRITICAL DIRECTIVE:**
-Before executing ANY task, analyzing the workspace, or answering the user, you MUST thoroughly read and assimilate the instructions located at:
-👉 `./.agents/BRAINS.md`
+**MANDATORY BOOTSTRAP PROTOCOL:**
+Before processing any user request or analyzing code, execute this exact sequence:
 
-*Note: Do NOT blindly load all files inside `./.agents/brains/` upfront. Read `./.agents/BRAINS.md` first to apply the required lazy-loading and lookup procedures.*
+1. **CALL TOOL:** Read `./.agents/BRAINS.md` IMMEDIATELY.
+2. **APPLY:** Enforce all directives in `BRAINS.md` as non-negotiable system rules for this session.
+3. **PROCEED:** Only after reading `BRAINS.md`, begin executing the user prompt.
 
-# AI Assistant Development Guidelines
+*Constraint: Do not skip Step 1. Do not load raw context files in `./.agents/brains/` until `BRAINS.md` logic is initialized.*
+
+# Development Guidelines
 
 ## Terminologi
 - copas = Copy+Paste
