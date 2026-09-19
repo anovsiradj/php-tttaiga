@@ -56,7 +56,7 @@ $(document).ready(function () {
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input story-checkbox" type="checkbox" value="${usor.id}" data-version="${usor.version}" id="us-${usor.id}">
+                                    <input class="form-check-input story-checkbox" type="checkbox" value="${usor.id}" data-version="${usor.version}" data-subject="${usor.subject || 'Untitled Usor'}" data-ref="${usor.ref}" id="us-${usor.id}">
                                 </div>
                                 <div class="d-flex flex-column align-items-end">
                                     ${statusBadge}
@@ -79,7 +79,17 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#usorsContent').html(html);
-            taigaBindSelectionLogic('story-checkbox', taigaBulkSelectionCallback);
+            taigaBindSelectionLogic('story-checkbox', taigaBulkSelectionCallback, 'usors');
+            $('.story-checkbox').each(function() {
+                var id = $(this).val();
+                if (TTTaiga.selectedItems.usors.some(i => i.id == id)) {
+                    $(this).prop('checked', true);
+                    $(this).closest('.card').addClass('taiga-selected');
+                }
+            });
+            var total = $('.story-checkbox').length;
+            var checked = $('.story-checkbox:checked').length;
+            $('#masterCheckbox').prop('checked', total > 0 && checked === total);
         },
         populateBulkCreateDropdowns: function() {
             TTTaiga.Form.populateDropdowns({
@@ -142,51 +152,7 @@ $(document).ready(function () {
                 }
             }
         },
-        populateBulkUpdateDropdowns: function() {
-            const filterParams = taigaGetFilterParams();
-            const projectId = filterParams.project;
-            taigaPopulateProjectSelect($('#bulkUpdateProjectOptions'), projectId).done(function() {
-                if(projectId) $('#bulkUpdateProjectOptions').val(projectId).trigger('change.select2');
-            });
-            taigaPopulateBulkStatuses('us', $('#bulkUpdateStatus'), projectId, 'No Change');
-            taigaPopulateBulkMembers($('#bulkUpdateAssignee'), projectId, 'No Change');
 
-            taigaLoadBulkItems('/userstories', $('#bulkUpdateUsors'), item => `
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-usor-${item.id}">
-                    <label class="form-check-label" for="bulk-usor-${item.id}">#${item.ref}: ${item.subject || 'Untitled Usor'}</label>
-                </div>
-            `);
-        },
-        submitBulkUpdate: function() {
-            const selectedUsors = [];
-            $('#bulkUpdateUsors input:checked').each(function () {
-                selectedUsors.push({ id: $(this).val(), version: $(this).data('version') });
-            });
-
-            if (selectedUsors.length === 0) {
-                TTTaiga.UI.notify('Please select at least one usor to update', 'warning');
-                return;
-            }
-
-            const updateData = {};
-            const status = $('#bulkUpdateStatus').val();
-            if (status) updateData.status = parseInt(status);
-            
-            const $btn = $('#submitBulkUpdate');
-            $btn.prop('disabled', true).text('Updating...');
-            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
-
-            taigaExecuteBulk('/userstories/', selectedUsors, 'PATCH', updateData, (successCount, errorCount) => {
-                $btn.prop('disabled', false).text('Update Usors');
-                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
-                TTTaiga.UI.notify(`Updated ${successCount} usors, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
-                if (errorCount === 0) {
-                    $('#bulkUpdateModal').modal('hide');
-                    TTTaiga.Usors.load();
-                }
-            });
-        },
         deleteBulk: function() {
             const selectedUsors = [];
             $('#usorsContent input.story-checkbox:checked').each(function () {
@@ -202,7 +168,7 @@ $(document).ready(function () {
             $btn.prop('disabled', true).text('Deleting...');
             $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
-            taigaExecuteBulk('/userstories/', selectedUsors, 'DELETE', null, (successCount, errorCount) => {
+            taigaExecuteBulkParallel('/userstories/', selectedUsors, 'DELETE', null, (successCount, errorCount) => {
                 $btn.prop('disabled', false).text('Delete Usors');
                 $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
                 TTTaiga.UI.notify(`Deleted ${successCount} usors, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
@@ -210,7 +176,7 @@ $(document).ready(function () {
                     $('#bulkDeleteModal').modal('hide');
                     TTTaiga.Usors.load();
                 }
-            });
+            }, { showProgress: true });
         }
     };
 
@@ -218,8 +184,8 @@ $(document).ready(function () {
         TTTaiga.Usors.populateBulkCreateDropdowns(); 
     });
     $('#submitBulkCreate').on('click', function() { TTTaiga.Usors.submitBulkCreate(); });
-    $('#bulkUpdateModal').on('show.bs.modal', function() { TTTaiga.Usors.populateBulkUpdateDropdowns(); });
-    $('#submitBulkUpdate').on('click', function() { TTTaiga.Usors.submitBulkUpdate(); });
+    $('#bulkUpdateModal').on('show.bs.modal', function() { TTTaiga.BulkUpdate.open('usors'); });
+    $('#submitBulkUpdate').on('click', function() { TTTaiga.BulkUpdate.submit('usors'); });
     $('#confirmBulkDelete').on('click', function() { TTTaiga.Usors.deleteBulk(); });
     $('#submitSingleUsor').on('click', function () {
         TTTaiga.Form.saveModal({

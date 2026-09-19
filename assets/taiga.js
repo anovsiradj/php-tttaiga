@@ -1,3 +1,251 @@
+window.TTTaiga = window.TTTaiga || {};
+TTTaiga.selectedItems = {
+    tasks: [],
+    usors: [],
+    epics: [],
+    issues: [],
+    sprints: [],
+    projects: []
+};
+
+TTTaiga.BulkUpdate = {
+    config: {
+        tasks: {
+            fields: [
+                { key: 'status', label: 'Status', type: 'select', statusType: 'task', param: 'status' },
+                { key: 'assignee', label: 'Assign To', type: 'select', member: true, param: 'assigned_to' },
+                { key: 'usor', label: 'User Story', type: 'select', remote: '/userstories', param: 'user_story', format: (item) => `#${item.ref}: ${item.subject}` },
+                { key: 'sprint', label: 'Sprint', type: 'select', remote: '/milestones', param: 'milestone' },
+                { key: 'description', label: 'Description', type: 'textarea', param: 'description' },
+                { key: 'priority', label: 'Priority', type: 'select', param: 'priority', options: [{value:'', label:'No Change'}, {value:'1', label:'1 - Highest'}, {value:'2', label:'2'}, {value:'3', label:'3'}, {value:'4', label:'4'}, {value:'5', label:'5 - Lowest'}] }
+            ],
+            endpoint: '/tasks/',
+            key: 'tasks',
+            label: 'Tasks',
+            modalId: 'bulkUpdateTaskModal',
+            listId: 'bulkUpdateTaskList',
+            projectSel: '#bulkUpdateTaskProject'
+        },
+        usors: {
+            fields: [
+                { key: 'status', label: 'Status', type: 'select', statusType: 'us', param: 'status' },
+                { key: 'assignee', label: 'Assign To', type: 'select', member: true, param: 'assigned_to' },
+                { key: 'epic', label: 'Epic', type: 'select', remote: '/epics', param: 'epic', format: (item) => `#${item.ref}: ${item.subject}` },
+                { key: 'description', label: 'Description', type: 'textarea', param: 'description' },
+                { key: 'priority', label: 'Priority', type: 'select', param: 'priority', options: [{value:'', label:'No Change'}, {value:'1', label:'1 - Highest'}, {value:'2', label:'2'}, {value:'3', label:'3'}, {value:'4', label:'4'}, {value:'5', label:'5 - Lowest'}] }
+            ],
+            endpoint: '/userstories/',
+            key: 'usors',
+            label: 'Usors',
+            modalId: 'bulkUpdateModal',
+            listId: 'bulkUpdateUsors',
+            projectSel: '#bulkUpdateProjectOptions'
+        },
+        epics: {
+            fields: [
+                { key: 'status', label: 'Status', type: 'select', statusType: 'epic', param: 'status' },
+                { key: 'assignee', label: 'Assign To', type: 'select', member: true, param: 'assigned_to' },
+                { key: 'description', label: 'Description', type: 'textarea', param: 'description' },
+                { key: 'priority', label: 'Priority', type: 'select', param: 'priority', options: [{value:'', label:'No Change'}, {value:'1', label:'1 - Highest'}, {value:'2', label:'2'}, {value:'3', label:'3'}, {value:'4', label:'4'}, {value:'5', label:'5 - Lowest'}] },
+                { key: 'color', label: 'Color', type: 'color', param: 'color' }
+            ],
+            endpoint: '/epics/',
+            key: 'epics',
+            label: 'Epics',
+            modalId: 'bulkUpdateEpicModal',
+            listId: 'bulkUpdateEpics',
+            projectSel: '#bulkUpdateEpicProject'
+        },
+        issues: {
+            fields: [
+                { key: 'status', label: 'Status', type: 'select', statusType: 'issue', param: 'status' },
+                { key: 'assignee', label: 'Assign To', type: 'select', member: true, param: 'assigned_to' },
+                { key: 'description', label: 'Description', type: 'textarea', param: 'description' },
+                { key: 'priority', label: 'Priority', type: 'select', param: 'priority', options: [{value:'', label:'No Change'}, {value:'1', label:'1 - Highest'}, {value:'2', label:'2'}, {value:'3', label:'3'}, {value:'4', label:'4'}, {value:'5', label:'5 - Lowest'}] }
+            ],
+            endpoint: '/issues/',
+            key: 'issues',
+            label: 'Issues',
+            modalId: 'issueBulkUpdateModal',
+            listId: 'bulkUpdateIssueList',
+            projectSel: '#bulkUpdateIssueProject'
+        },
+        sprints: {
+            fields: [
+                { key: 'closed', label: 'Closed', type: 'select', options: [{value:'', label:'No Change'}, {value:'true', label:'Closed'}, {value:'false', label:'Open'}], param: 'closed' },
+                { key: 'description', label: 'Description', type: 'textarea', param: 'description' },
+                { key: 'name', label: 'Name', type: 'text', param: 'name' }
+            ],
+            endpoint: '/milestones/',
+            key: 'sprints',
+            label: 'Sprints',
+            modalId: 'bulkUpdateSprintModal',
+            listId: 'bulkUpdateSprints',
+            projectSel: '#bulkUpdateSprintProject'
+        },
+        projects: {
+            fields: [
+                { key: 'prefix', label: 'Prefix', type: 'text', param: 'prefix' },
+                { key: 'description', label: 'Description', type: 'textarea', param: 'description' }
+            ],
+            endpoint: '/projects/',
+            key: 'projects',
+            label: 'Projects',
+            modalId: 'bulkUpdateProjectModal',
+            listId: null
+        }
+    },
+    open: function(type) {
+        if (this._opening) return;
+        this._opening = true;
+        try {
+            var cfg = this.config[type];
+            if (!cfg) { TTTaiga.UI.notify('Invalid type', 'error'); return; }
+            var items = TTTaiga.selectedItems[cfg.key] || [];
+            if (items.length === 0) {
+                TTTaiga.UI.notify('No items selected', 'warning');
+                return;
+            }
+            var $modal = $('#' + cfg.modalId);
+            if (!$modal.length) {
+                TTTaiga.UI.notify('Modal not found', 'error');
+                return;
+            }
+            var $list = $modal.find('#' + cfg.listId);
+            if ($list.length) {
+                var html = items.map(item => `<div class="form-check disabled"><input class="form-check-input" type="checkbox" checked disabled><label class="form-check-label">#${item.ref}: ${item.subject}</label></div>`).join('');
+                $list.html(html);
+            }
+            var populateFields = function(projectId) {
+                cfg.fields.forEach(function(field) {
+                    var $el = $modal.find('[data-field="' + field.key + '"]');
+                    if (!$el.length) return;
+                    if (field.type === 'select') {
+                        if (field.options) {
+                            var optHtml = '';
+                            field.options.forEach(function(opt) { optHtml += `<option value="${opt.value}">${opt.label}</option>`; });
+                            $el.html(optHtml);
+                        } else if (field.statusType) {
+                            taigaPopulateBulkStatuses(field.statusType, $el, projectId, 'No Change');
+                        } else if (field.member) {
+                            taigaPopulateBulkMembers($el, projectId, 'No Change');
+                        } else if (field.remote) {
+                            // remote select2
+                            if ($el.data('select2')) $el.select2('destroy');
+                            $el.empty().append(new Option(projectId ? 'No Change' : 'Select project first', ''));
+                            $el.prop('disabled', !projectId);
+                            taigaInitRemoteSelect2('#' + $el.attr('id'), field.remote, {
+                                placeholder: projectId ? 'No Change' : 'Select project first',
+                                formatText: field.format || function(item) { return item.name || item.subject || item.full_name; },
+                                additionalParams: function() { return projectId ? { project: projectId } : {}; }
+                            });
+                        }
+                    } else if (field.type === 'textarea') {
+                        $el.val('');
+                    } else if (field.type === 'text') {
+                        $el.val('');
+                    } else if (field.type === 'color') {
+                        $el.val('#fd7e14');
+                    }
+                });
+            };
+
+            var projectId = taigaGetFilterParams().project;
+            var projectLabel = null;
+            if (projectId) {
+                var $headerProject = $('#projectSelect');
+                if ($headerProject.length) {
+                    var $opt = $headerProject.find('option:selected');
+                    if ($opt.length && String($opt.val()) === String(projectId)) {
+                        projectLabel = $opt.text();
+                    }
+                }
+            }
+
+            if (cfg.projectSel) {
+                var $projectSel = $modal.find(cfg.projectSel);
+                if ($projectSel.length) {
+                    $projectSel.off('change.bulkShared').on('change.bulkShared', function() {
+                        populateFields($(this).val());
+                    });
+                    taigaPopulateProjectSelect($projectSel, projectId, projectLabel);
+                }
+            }
+
+            populateFields(projectId);
+        } finally {
+            this._opening = false;
+        }
+    },
+    submit: function(type) {
+        var cfg = this.config[type];
+        if (!cfg) { TTTaiga.UI.notify('Invalid type', 'error'); return; }
+        var $modal = $('#' + cfg.modalId);
+        var items = TTTaiga.selectedItems[cfg.key] || [];
+        if (items.length === 0) {
+            TTTaiga.UI.notify('No items selected', 'warning');
+            return;
+        }
+        var updateData = {};
+        var prefix = null;
+        var hasField = false;
+        cfg.fields.forEach(function(field) {
+            var $el = $modal.find('[data-field="' + field.key + '"]');
+            var val = $el.val();
+            if (val && val !== '' && val !== 'null') {
+                if (field.param === 'closed') {
+                    updateData[field.param] = val === 'true';
+                    hasField = true;
+                } else if (field.param === 'prefix') {
+                    prefix = val.trim();
+                    if (prefix) hasField = true;
+                } else if (field.type === 'color') {
+                    if (val && val !== '#fd7e14') {
+                        updateData[field.param] = val;
+                        hasField = true;
+                    }
+                } else {
+                    updateData[field.param] = field.type === 'select' ? parseInt(val) : val;
+                    hasField = true;
+                }
+            }
+        });
+        if (!hasField) {
+            TTTaiga.UI.notify('Please select at least one field to update', 'warning');
+            return;
+        }
+                var $btn = $modal.find('#submitBulkUpdate, #submitBulkTaskUpdate, #submitBulkUpdateEpic, #submitBulkIssueUpdate, #submitBulkUpdateSprint, #submitBulkProjectUpdate');
+                if (!$btn.length) $btn = $modal.find('.btn-primary[data-action="submit"]');
+        $btn.prop('disabled', true).text('Updating...');
+        $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
+
+        var dataFn = updateData;
+        if (type === 'projects' && prefix) {
+            dataFn = function(item) {
+                var cleanName = item.name.replace(/^\[.*?\]\s*/, '');
+                return { name: '[' + prefix + '] ' + cleanName };
+            };
+        }
+
+        taigaExecuteBulkParallel(cfg.endpoint, items, 'PATCH', dataFn, function(successCount, errorCount) {
+            $btn.prop('disabled', false).text('Update ' + cfg.label);
+            $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
+            if (errorCount === 0) {
+                TTTaiga.UI.notify('Successfully updated ' + successCount + ' ' + cfg.label.toLowerCase() + '!', 'success');
+                $modal.modal('hide');
+                if (type === 'tasks') TTTaiga.Tasks.load();
+                else if (type === 'usors') TTTaiga.Usors.load();
+                else if (type === 'epics') TTTaiga.Epiks.load();
+                else if (type === 'issues') TTTaiga.Issues.load();
+                else if (type === 'sprints') TTTaiga.Sprints.load();
+                else if (type === 'projects') TTTaiga.Projects.load();
+            } else {
+                TTTaiga.UI.notify('Updated ' + successCount + ' ' + cfg.label.toLowerCase() + ', but ' + errorCount + ' failed.', 'danger');
+            }
+        }, { showProgress: true });
+    }
+};
+
 function taigaLoadProjects(apiUrl, token, targetSelectId = '#projectSelect') {
 	$.ajax({
 		url: `api.php/projects`,
@@ -367,6 +615,10 @@ function taigaBulkSelectionCallback(checkedCount) {
 	const total = parseInt($('#' + taigaBulkBarIds.totalId).text()) || 0;
 	const filtered = parseInt($('#' + taigaBulkBarIds.filteredId).text()) || 0;
 	taigaUpdateSelectionUI(total, filtered, checkedCount, taigaBulkBarIds.totalId, taigaBulkBarIds.filteredId, taigaBulkBarIds.selectionId);
+	// Fallback: also update generic selected count if specific ID not found
+	if (!taigaBulkBarIds.selectionId || !$('#' + taigaBulkBarIds.selectionId).length) {
+		$('#selectedCount').text(checkedCount);
+	}
 }
 
 /**
@@ -446,7 +698,7 @@ function taigaInitRemoteSelect2(selector, endpoint, options = {}) {
 		placeholder: options.placeholder || 'Select an option',
 		allowClear: true,
 		width: '100%',
-		dropdownParent: options.dropdownParent || ($el.closest('.modal').length ? $el.closest('.modal') : $(document.body))
+		dropdownParent: options.dropdownParent || (() => { const m = $el.closest('.modal'); return m.length && m.attr('id') ? $('#' + m.attr('id')) : $(document.body); })()
 	});
 }
 
@@ -462,7 +714,7 @@ function taigaInitStaticSelect2($el, options = {}) {
 		placeholder: options.placeholder || 'Select an option',
 		allowClear: true,
 		width: '100%',
-		dropdownParent: options.dropdownParent || ($el.closest('.modal').length ? $el.closest('.modal') : $(document.body))
+		dropdownParent: options.dropdownParent || (() => { const m = $el.closest('.modal'); return m.length && m.attr('id') ? $('#' + m.attr('id')) : $(document.body); })()
 	});
 }
 
@@ -485,7 +737,7 @@ function taigaEnhanceFormSelects(context) {
 			width: '100%',
 			placeholder: placeholder,
 			allowClear: !$select.prop('required'),
-			dropdownParent: $modal.length ? $modal : $(document.body)
+			dropdownParent: $modal.length && $modal.attr('id') ? $('#' + $modal.attr('id')) : $(document.body)
 		});
 	});
 }
@@ -550,7 +802,8 @@ function taigaBindFilters(onFilterChange) {
 		const refreshAssignedToFilter = function () {
 			const pid = $('#projectSelect').val();
 			const $assigned = $('#assignedToSelect');
-			const dropdownParent = $assigned.closest('.modal').length ? $assigned.closest('.modal') : $(document.body);
+			const $aModal = $assigned.closest('.modal');
+			const dropdownParent = $aModal.length && $aModal.attr('id') ? $('#' + $aModal.attr('id')) : $(document.body);
 
 			$assigned.val(null);
 
@@ -613,7 +866,8 @@ function taigaBindFilters(onFilterChange) {
 			const pid = $('#projectSelect').val();
 			const $status = $('#statusSelect');
 			const type = $status.data('status-type');
-			const dropdownParent = $status.closest('.modal').length ? $status.closest('.modal') : $(document.body);
+			const $sModal = $status.closest('.modal');
+			const dropdownParent = $sModal.length && $sModal.attr('id') ? $('#' + $sModal.attr('id')) : $(document.body);
 
 			$status.val(null);
 
@@ -844,13 +1098,16 @@ function taigaPopulateBulkStatuses(type, $select, projectId, defaultText = 'Sele
 			}
 
 			// Initialize Select2
-			$select.select2({
-				theme: 'bootstrap-5',
-				width: '100%',
-				placeholder: defaultText,
-				allowClear: true,
-				dropdownParent: $select.closest('.modal')
-			});
+			setTimeout(function() {
+				const $modal = $select.closest('.modal');
+				$select.select2({
+					theme: 'bootstrap-5',
+					width: '100%',
+					placeholder: defaultText,
+					allowClear: true,
+					dropdownParent: $modal.length && $modal.attr('id') ? $('#' + $modal.attr('id')) : $(document.body)
+				});
+			}, 0);
 		})
 		.fail(function (xhr) {
 			console.error(`Failed to fetch statuses for ${type} in project ${projectId}:`, xhr);
@@ -967,6 +1224,92 @@ function taigaPopulateProjectSelect($select, selectedProjectId, selectedLabel) {
 	});
 }
 
+var taigaBulkExecuting = false;
+
+function taigaExecuteBulkParallel(endpoint, items, method, data, onComplete, opts = {}) {
+	if (taigaBulkExecuting) {
+		console.warn('Bulk operation already in progress');
+		return;
+	}
+	taigaBulkExecuting = true;
+
+	const batchSize = opts.batchSize || 10;
+	const showProgress = opts.showProgress !== false;
+	const progressContainer = opts.progressContainer || '#bulkProgressContainer';
+	let successCount = 0;
+	let errorCount = 0;
+	let doneCount = 0;
+	const total = items.length;
+
+	const cleanup = function() {
+		taigaBulkExecuting = false;
+	};
+
+	if (total === 0) {
+		cleanup();
+		if (typeof onComplete === 'function') onComplete(0, 0);
+		return;
+	}
+
+	if (showProgress) {
+		const $progress = $(progressContainer);
+		if ($progress.length) {
+			$progress.html(`
+				<div class="progress mt-2" style="height: 20px;">
+					<div class="progress-bar progress-bar-striped progress-bar-animated" id="bulkProgressBar" role="progressbar" style="width: 0%">0/${total}</div>
+				</div>
+			`);
+		}
+	}
+
+	const processBatch = function(start) {
+		const end = Math.min(start + batchSize, total);
+		const batch = items.slice(start, end);
+		const promises = batch.map(item => {
+			const id = typeof item === 'object' ? item.id : item;
+			const version = typeof item === 'object' ? item.version : null;
+			let requestData = typeof data === 'function' ? data(item) : data;
+			if (method === 'PATCH' && version !== null) {
+				requestData = { ...requestData, version: version };
+			}
+			const endpointUrl = method === 'POST' ? 'api.php' + endpoint.replace(/\/$/, '') : 'api.php' + endpoint + id;
+			return $.ajax({
+				url: endpointUrl,
+				type: method,
+				headers: {
+					'Authorization': `Bearer ${window.taigaToken}`,
+					'Content-Type': 'application/json',
+					'X-Taiga-Api-Url': window.apiUrl
+				},
+				data: requestData ? JSON.stringify(requestData) : undefined
+			}).then(function() {
+				successCount++;
+			}).fail(function(xhr) {
+				console.error(`Bulk operation failed for ${endpoint}${id}:`, xhr.responseJSON);
+				errorCount++;
+			}).always(function() {
+				doneCount++;
+				if (showProgress) {
+					const pct = Math.round((doneCount / total) * 100);
+					$('#bulkProgressBar').css('width', pct + '%').text(`${doneCount}/${total}`);
+				}
+			});
+		});
+
+		$.when.apply($, promises).always(function() {
+			if (end < total) {
+				// Use setTimeout to avoid deep recursion
+				setTimeout(function() { processBatch(end); }, 0);
+			} else {
+				cleanup();
+				if (typeof onComplete === 'function') onComplete(successCount, errorCount);
+			}
+		});
+	};
+
+	processBatch(0);
+}
+
 function taigaExecuteBulkCreate(endpoint, items, dataFactory, onComplete) {
 	let doneCount = 0;
 	let successCount = 0;
@@ -1034,12 +1377,13 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
 			}
 
 			// Initialize Select2
+			const $modal = $select.closest('.modal');
 			$select.select2({
 				theme: 'bootstrap-5',
 				width: '100%',
 				placeholder: defaultText,
 				allowClear: true,
-				dropdownParent: $select.closest('.modal')
+				dropdownParent: $modal.length && $modal.attr('id') ? $('#' + $modal.attr('id')) : $(document.body)
 			});
 		})
 		.fail(function (xhr) {
@@ -1057,32 +1401,42 @@ function taigaPopulateBulkMembers($select, projectId, defaultText = 'Assign to..
  * @param {string} filteredId - The base DOM id for filtered count (e.g. 'filteredProjects')
  * @param {string} selectionId - The DOM id for selected count (e.g. 'selectedProjectsCount')
  */
+var taigaUpdateLock = false;
+
 function taigaUpdateSelectionUI(total, filtered, selected, totalId, filteredId, selectionId) {
-	selectionId = selectionId || 'selectedCount';
+	if (taigaUpdateLock) return;
+	taigaUpdateLock = true;
+	try {
+		selectionId = selectionId || 'selectedCount';
 
-	if (totalId) {
-		$('#' + totalId + '_simple').text(total);
-		$('#' + totalId).text(total);
-	}
-	if (filteredId) {
-		$('#' + filteredId + '_simple').text(filtered);
-		$('#' + filteredId).text(filtered);
-	}
-	if (selectionId) {
-		$('#' + selectionId).text(selected);
-	}
+		if (totalId) {
+			$('#' + totalId + '_simple').text(total);
+			$('#' + totalId).text(total);
+		}
+		if (filteredId) {
+			$('#' + filteredId + '_simple').text(filtered);
+			$('#' + filteredId).text(filtered);
+		}
+		if (selectionId) {
+			$('#' + selectionId).text(selected);
+		}
 
-	var $bulkBar = $('#bulkActionsBar');
-	if ($bulkBar.length) {
-		$bulkBar.toggleClass('has-selection', selected > 0);
-	}
+		var $bulkBar = $('#bulkActionsBar');
+		if ($bulkBar.length) {
+			$bulkBar.toggleClass('has-selection', selected > 0);
+		}
 
-	$('#clearSelectionBtn').prop('disabled', selected === 0);
-	$('#bulkActionsDropdown').prop('disabled', false);
-	taigaUpdateBulkActionAvailability(selected);
+		$('#clearSelectionBtn').prop('disabled', selected === 0);
+		// Bulk Actions dropdown tetap enabled agar Bulk Create selalu accessible
+		if (typeof taigaUpdateBulkActionAvailability === 'function') {
+			taigaUpdateBulkActionAvailability(selected);
+		}
 
-	if (selected === 0) {
-		$('#masterCheckbox').prop('checked', false);
+		if (selected === 0) {
+			$('#masterCheckbox').prop('checked', false);
+		}
+	} finally {
+		taigaUpdateLock = false;
 	}
 }
 
@@ -1097,8 +1451,13 @@ function taigaBulkActionRequiresSelection($item) {
 
 function taigaUpdateBulkActionAvailability(selected) {
 	const hasSelection = selected > 0;
-	$('#bulkActionsDropdownContainer .dropdown-item').each(function () {
+	// Find dropdown items in common containers
+	const $items = $('#bulkActionsDropdownContainer .dropdown-item, #bulkActionsDropdown .dropdown-item, .bulk-actions-dropdown .dropdown-item, [data-bulk-actions] .dropdown-item, .dropdown-menu .dropdown-item');
+	// Also find the dropdown toggle button
+
+	$items.each(function () {
 		const $item = $(this);
+		// Skip items that don't require selection (like create)
 		if (!taigaBulkActionRequiresSelection($item)) {
 			$item.removeClass('disabled').attr('aria-disabled', 'false');
 			if ($item.data('bulk-toggle')) {
@@ -1137,7 +1496,17 @@ function taigaUpdateBulkActionAvailability(selected) {
  * @param {string} itemCheckboxClass - CSS class of individual checkboxes
  * @param {Function} onSelectionChange - Callback receives (checkedCount)
  */
-function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
+function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange, type) {
+	if (!type) {
+		if (itemCheckboxClass.includes('task')) type = 'tasks';
+		else if (itemCheckboxClass.includes('story')) type = 'usors';
+		else if (itemCheckboxClass.includes('epic')) type = 'epics';
+		else if (itemCheckboxClass.includes('issue')) type = 'issues';
+		else if (itemCheckboxClass.includes('sprint')) type = 'sprints';
+		else if (itemCheckboxClass.includes('project')) type = 'projects';
+		else type = 'items';
+	}
+
 	taigaUpdateBulkActionAvailability(0);
 
 	$(document).off('click.bulkAvailability', '#bulkActionsDropdownContainer .dropdown-item.disabled').on('click.bulkAvailability', '#bulkActionsDropdownContainer .dropdown-item.disabled', function (e) {
@@ -1146,22 +1515,91 @@ function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
 		return false;
 	});
 
+	var taigaMasterLock = false;
+
 	$(document).off('change', '#masterCheckbox').on('change', '#masterCheckbox', function () {
-		var isChecked = $(this).is(':checked');
-		$('#masterCheckbox').prop('checked', isChecked);
-		$('.' + itemCheckboxClass).prop('checked', isChecked).trigger('change.selection');
-		var checkedCount = isChecked ? $('.' + itemCheckboxClass).length : 0;
-		if (typeof onSelectionChange === 'function') {
-			onSelectionChange(checkedCount);
+		if (taigaMasterLock) return;
+		taigaMasterLock = true;
+		try {
+			var isChecked = $(this).is(':checked');
+			$('#masterCheckbox').prop('checked', isChecked);
+			$('.' + itemCheckboxClass).prop('checked', isChecked).trigger('change.selection');
+			var totalCount = $('.' + itemCheckboxClass).length;
+			var checkedCount = isChecked ? totalCount : 0;
+			// Update global state for all checkboxes on the page
+			$('.' + itemCheckboxClass).each(function() {
+				var $cb = $(this);
+				var id = $cb.val();
+				var version = $cb.data('version');
+				var subject = $cb.data('subject') || 'Untitled';
+				var ref = $cb.data('ref') || '';
+				var item = { id: id, version: version, subject: subject, ref: ref };
+				if (!TTTaiga.selectedItems[type]) {
+					TTTaiga.selectedItems[type] = [];
+				}
+				if (isChecked) {
+					if (!TTTaiga.selectedItems[type].some(i => i.id == id)) {
+						TTTaiga.selectedItems[type].push(item);
+					}
+				} else {
+					TTTaiga.selectedItems[type] = TTTaiga.selectedItems[type].filter(i => i.id != id);
+				}
+			});
+			// Directly update UI counts
+			taigaUpdateSelectionUI(
+				parseInt($('#' + taigaBulkBarIds.totalId).text()) || 0,
+				totalCount,
+				checkedCount,
+				taigaBulkBarIds.totalId,
+				taigaBulkBarIds.filteredId,
+				taigaBulkBarIds.selectionId
+			);
+			if (typeof onSelectionChange === 'function') {
+				onSelectionChange(checkedCount);
+			}
+		} finally {
+			taigaMasterLock = false;
 		}
 	});
 
 	$(document).off('change.selection', '.' + itemCheckboxClass).on('change.selection', '.' + itemCheckboxClass, function () {
-		$(this).closest('.card').toggleClass('taiga-selected', $(this).is(':checked'));
+		var $cb = $(this);
+		var id = $cb.val();
+		var version = $cb.data('version');
+		var subject = $cb.data('subject') || 'Untitled';
+		var ref = $cb.data('ref') || '';
+		var item = { id: id, version: version, subject: subject, ref: ref };
+
+		if (!TTTaiga.selectedItems[type]) {
+			TTTaiga.selectedItems[type] = [];
+		}
+		if (!TTTaiga.selectedItems[type]) {
+			TTTaiga.selectedItems[type] = [];
+		}
+		if ($cb.is(':checked')) {
+			if (!TTTaiga.selectedItems[type].some(i => i.id == id)) {
+				TTTaiga.selectedItems[type].push(item);
+			}
+		} else {
+			TTTaiga.selectedItems[type] = TTTaiga.selectedItems[type].filter(i => i.id != id);
+		}
+
+		$cb.closest('.card').toggleClass('taiga-selected', $cb.is(':checked'));
 		var totalCount = $('.' + itemCheckboxClass).length;
 		var checkedCount = $('.' + itemCheckboxClass + ':checked').length;
 		var allChecked = totalCount > 0 && checkedCount === totalCount;
-		$('#masterCheckbox').prop('checked', allChecked);
+		if ($('#masterCheckbox').prop('checked') !== allChecked) {
+			$('#masterCheckbox').prop('checked', allChecked);
+		}
+		// Directly update UI counts
+		taigaUpdateSelectionUI(
+			parseInt($('#' + taigaBulkBarIds.totalId).text()) || 0,
+			totalCount,
+			checkedCount,
+			taigaBulkBarIds.totalId,
+			taigaBulkBarIds.filteredId,
+			taigaBulkBarIds.selectionId
+		);
 		if (typeof onSelectionChange === 'function') {
 			onSelectionChange(checkedCount);
 		}
@@ -1173,6 +1611,7 @@ function taigaBindSelectionLogic(itemCheckboxClass, onSelectionChange) {
 		if (typeof onSelectionChange === 'function') {
 			onSelectionChange(0);
 		}
+		TTTaiga.selectedItems[type] = [];
 	});
 }
 

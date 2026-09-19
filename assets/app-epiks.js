@@ -58,7 +58,7 @@ $(document).ready(function () {
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input epic-checkbox" type="checkbox" value="${epic.id}" data-version="${epic.version}" id="epic-${epic.id}">
+                                    <input class="form-check-input epic-checkbox" type="checkbox" value="${epic.id}" data-version="${epic.version}" data-subject="${epic.subject || 'Untitled Epik'}" data-ref="${epic.ref}" id="epic-${epic.id}">
                                 </div>
                                 <div class="d-flex flex-column align-items-end">
                                     ${statusBadge}
@@ -80,7 +80,17 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#epicsContent').html(html);
-            taigaBindSelectionLogic('epic-checkbox', taigaBulkSelectionCallback);
+            taigaBindSelectionLogic('epic-checkbox', taigaBulkSelectionCallback, 'epics');
+            $('.epic-checkbox').each(function() {
+                var id = $(this).val();
+                if (TTTaiga.selectedItems.epics.some(i => i.id == id)) {
+                    $(this).prop('checked', true);
+                    $(this).closest('.card').addClass('taiga-selected');
+                }
+            });
+            var total = $('.epic-checkbox').length;
+            var checked = $('.epic-checkbox:checked').length;
+            $('#masterCheckbox').prop('checked', total > 0 && checked === total);
             $('.view-epic').off('click').on('click', function() { window.location.href = `epik.php?id=${$(this).data('epic-id')}`; });
         },
         populateBulkCreateDropdowns: function() {
@@ -130,44 +140,7 @@ $(document).ready(function () {
                 }
             }
         },
-        populateBulkUpdateDropdowns: function() {
-            const projectId = $('#projectSelect').val();
-            taigaPopulateBulkStatuses('epic', $('#bulkUpdateEpicStatus'), projectId, 'No Change');
-            taigaPopulateBulkMembers($('#bulkUpdateEpicAssignee'), projectId, 'No Change');
 
-            const selectedIds = $('#epicsContent input.epic-checkbox:checked').map(function(){ return $(this).val(); }).get();
-            taigaLoadBulkItems('/epics', $('#bulkUpdateEpics'), item => `
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-epic-${item.id}" ${selectedIds.includes(String(item.id)) ? 'checked' : ''}>
-                    <label class="form-check-label" for="bulk-epic-${item.id}">#${item.ref}: ${item.subject || 'Untitled Epik'}</label>
-                </div>
-            `);
-        },
-        submitBulkUpdate: function() {
-            const selectedEpics = [];
-            $('#bulkUpdateEpics input:checked').each(function () {
-                selectedEpics.push({ id: $(this).val(), version: $(this).data('version') });
-            });
-
-            if (selectedEpics.length === 0) { TTTaiga.UI.notify('Please select at least one epik', 'warning'); return; }
-
-            const updateData = {};
-            if ($('#bulkUpdateEpicStatus').val()) updateData.status = parseInt($('#bulkUpdateEpicStatus').val());
-            if ($('#bulkUpdateEpicAssignee').val()) updateData.assigned_to = parseInt($('#bulkUpdateEpicAssignee').val());
-
-            if (Object.keys(updateData).length === 0) { TTTaiga.UI.notify('No fields to update', 'warning'); return; }
-
-            const $btn = $('#submitBulkUpdateEpic');
-            $btn.prop('disabled', true).text('Updating...');
-            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
-
-            taigaExecuteBulk('/epics/', selectedEpics, 'PATCH', updateData, (successCount, errorCount) => {
-                $btn.prop('disabled', false).text('Update Epiks');
-                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
-                TTTaiga.UI.notify(`Updated ${successCount} epiks, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
-                if (errorCount === 0) { $('#bulkUpdateEpicModal').modal('hide'); TTTaiga.Epiks.load(); }
-            });
-        },
         deleteBulk: function() {
             const selectedEpics = [];
             $('#epicsContent input.epic-checkbox:checked').each(function () {
@@ -180,12 +153,12 @@ $(document).ready(function () {
             $btn.prop('disabled', true).text('Deleting...');
             $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
-            taigaExecuteBulk('/epics/', selectedEpics, 'DELETE', null, (successCount, errorCount) => {
+            taigaExecuteBulkParallel('/epics/', selectedEpics, 'DELETE', null, (successCount, errorCount) => {
                 $btn.prop('disabled', false).text('Delete Epiks');
                 $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
                 TTTaiga.UI.notify(`Deleted ${successCount} epiks, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
                 if (errorCount === 0) { $('#bulkDeleteEpicModal').modal('hide'); TTTaiga.Epiks.load(); }
-            });
+            }, { showProgress: true });
         }
     };
 
@@ -198,8 +171,8 @@ $(document).ready(function () {
                 TTTaiga.Epiks.populateBulkCreateDropdowns(); 
             });
             $('#submitBulkCreateEpic').on('click', () => TTTaiga.Epiks.submitBulkCreate());
-            $('#bulkUpdateEpicModal').on('show.bs.modal', () => TTTaiga.Epiks.populateBulkUpdateDropdowns());
-            $('#submitBulkUpdateEpic').on('click', () => TTTaiga.Epiks.submitBulkUpdate());
+            $('#bulkUpdateEpicModal').on('show.bs.modal', () => TTTaiga.BulkUpdate.open('epics'));
+            $('#submitBulkUpdateEpic').on('click', () => TTTaiga.BulkUpdate.submit('epics'));
             $('#confirmBulkDeleteEpics').on('click', () => TTTaiga.Epiks.deleteBulk());
             $('#submitSingleEpic').on('click', function () {
                 TTTaiga.Form.saveModal({

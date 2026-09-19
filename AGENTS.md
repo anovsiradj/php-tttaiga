@@ -12,6 +12,7 @@ Before processing any user request or analyzing code, execute this exact sequenc
 # Development Guidelines
 
 ## Terminologi
+- SSoT = Single Source of Truth
 - copas = Copy+Paste
 - Bulk = Batch/Multiple
 - Usor = User Story

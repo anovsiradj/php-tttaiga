@@ -98,7 +98,7 @@
 
 				<div class="mb-3">
 					<label for="bulkUpdateTaskStatus" class="form-label">Update Status</label>
-					<select class="form-select" id="bulkUpdateTaskStatus">
+					<select class="form-select" id="bulkUpdateTaskStatus" data-field="status">
 						<option value="">No Change</option>
 					</select>
 					<div class="form-text">Leave as "No Change" to keep current status</div>
@@ -106,7 +106,7 @@
 
 				<div class="mb-3">
 					<label for="bulkUpdateTaskUsor" class="form-label">Update Usor</label>
-					<select class="form-select" id="bulkUpdateTaskUsor">
+					<select class="form-select" id="bulkUpdateTaskUsor" data-field="usor">
 						<option value="">No Change</option>
 						<option value="null">None (Unassign)</option>
 					</select>
@@ -115,7 +115,7 @@
 
 				<div class="mb-3">
 					<label for="bulkUpdateTaskSprint" class="form-label">Update Sprint</label>
-					<select class="form-select" id="bulkUpdateTaskSprint">
+					<select class="form-select" id="bulkUpdateTaskSprint" data-field="sprint">
 						<option value="">No Change</option>
 						<option value="null">None (Unassign)</option>
 					</select>
@@ -125,7 +125,7 @@
 
 				<div class="mb-3">
 					<label for="bulkUpdateTaskAssignee" class="form-label">Assign To</label>
-					<select class="form-select" id="bulkUpdateTaskAssignee">
+					<select class="form-select" id="bulkUpdateTaskAssignee" data-field="assignee">
 						<option value="">No Change</option>
 					</select>
 					<div class="form-text">Leave as "No Change" to keep current assignment</div>

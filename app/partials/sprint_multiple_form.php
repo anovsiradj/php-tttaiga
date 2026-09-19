@@ -50,23 +50,27 @@
 						<select class="form-select" id="bulkUpdateSprintProject"></select>
 					</div>
 					<div class="mb-3">
-						<label class="form-label">Select Sprints to Update</label>
-						<select class="form-select" id="bulkUpdateSprints" multiple size="8">
-							<option value="">Loading sprints...</option>
-						</select>
-						<small class="form-text text-muted">Hold Ctrl/Cmd to select multiple sprints</small>
+						<label class="form-label">Selected Sprints to Update</label>
+						<div id="bulkUpdateSprints" class="border p-3" style="max-height: 200px; overflow-y: auto;">
+							<div class="text-center text-muted">Loading selected sprints...</div>
+						</div>
+						<div class="form-text">Sprints you selected in the list will appear here.</div>
 					</div>
 					<div class="mb-3">
 						<label class="form-label">Status</label>
-						<select class="form-select" id="bulkUpdateClosed">
+						<select class="form-select" id="bulkUpdateClosed" data-field="closed">
 							<option value="">No Change</option>
 							<option value="false">Open</option>
 							<option value="true">Closed</option>
 						</select>
 					</div>
 					<div class="mb-3">
+						<label class="form-label">Name</label>
+						<input type="text" class="form-control" id="bulkUpdateSprintName" placeholder="Leave empty for no change" data-field="name">
+					</div>
+					<div class="mb-3">
 						<label class="form-label">Description (optional)</label>
-						<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change"></textarea>
+						<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change" data-field="description"></textarea>
 					</div>
 				</form>
 			</div>

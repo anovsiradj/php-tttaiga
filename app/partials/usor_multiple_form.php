@@ -96,24 +96,31 @@
 					<div class="row">
 						<div class="col-md-4">
 							<label class="form-label">Status</label>
-							<select class="form-select" id="bulkUpdateStatus">
+							<select class="form-select" id="bulkUpdateStatus" data-field="status">
 								<option value="">No Change</option>
 							</select>
 						</div>
 						<div class="col-md-4">
 							<label class="form-label">Assigned To</label>
-							<select class="form-select" id="bulkUpdateAssignee">
+							<select class="form-select" id="bulkUpdateAssignee" data-field="assignee">
 								<option value="">No Change</option>
 							</select>
 						</div>
 						<div class="col-md-4">
 							<label class="form-label">Priority</label>
-							<input type="number" class="form-control" id="bulkUpdatePriority" placeholder="No change">
+							<select class="form-select" id="bulkUpdatePriority" data-field="priority">
+								<option value="">No Change</option>
+								<option value="1">1 - Highest</option>
+								<option value="2">2</option>
+								<option value="3">3</option>
+								<option value="4">4</option>
+								<option value="5">5 - Lowest</option>
+							</select>
 						</div>
 					</div>
 					<div class="mb-3 mt-3">
 						<label class="form-label">Description (optional)</label>
-						<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change"></textarea>
+						<textarea class="form-control" id="bulkUpdateDescription" rows="3" placeholder="Leave empty for no change" data-field="description"></textarea>
 					</div>
 				</form>
 			</div>

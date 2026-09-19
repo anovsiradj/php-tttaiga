@@ -57,7 +57,7 @@ $(document).ready(function () {
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" data-version="${task.version}" id="task-${task.id}">
+                                    <input class="form-check-input task-checkbox" type="checkbox" value="${task.id}" data-version="${task.version}" data-subject="${task.subject || 'Untitled Task'}" data-ref="${task.ref}" id="task-${task.id}">
                                 </div>
                                 <div class="d-flex flex-column align-items-end">
                                     ${statusBadge}
@@ -80,7 +80,17 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#tasksContent').html(html);
-            taigaBindSelectionLogic('task-checkbox', taigaBulkSelectionCallback);
+            taigaBindSelectionLogic('task-checkbox', taigaBulkSelectionCallback, 'tasks');
+            $('.task-checkbox').each(function() {
+                var id = $(this).val();
+                if (TTTaiga.selectedItems.tasks.some(i => i.id == id)) {
+                    $(this).prop('checked', true);
+                    $(this).closest('.card').addClass('taiga-selected');
+                }
+            });
+            var total = $('.task-checkbox').length;
+            var checked = $('.task-checkbox:checked').length;
+            $('#masterCheckbox').prop('checked', total > 0 && checked === total);
         },
         populateBulkCreateDropdowns: function() {
             $('#bulkTaskProject').closest('.col-md-6').show();
@@ -170,101 +180,7 @@ $(document).ready(function () {
                 });
             });
         },
-        populateBulkUpdateDropdowns: function() {
-            const filterParams = taigaGetFilterParams();
-            const projectId = filterParams.project;
 
-            const refreshUpdateInputs = function (selectedProjectId) {
-                taigaPopulateBulkStatuses('task', $('#bulkUpdateTaskStatus'), selectedProjectId, 'No Change');
-                taigaPopulateBulkMembers($('#bulkUpdateTaskAssignee'), selectedProjectId, 'No Change');
-
-                $('#bulkUpdateTaskUsor, #bulkUpdateTaskSprint').each(function () {
-                    const $select = $(this);
-                    if ($select.data('select2')) {
-                        $select.select2('destroy');
-                    }
-                    $select.empty().append(new Option(selectedProjectId ? 'No Change' : 'Select project first', '', false, false));
-                    $select.prop('disabled', !selectedProjectId);
-                });
-
-                taigaInitRemoteSelect2('#bulkUpdateTaskUsor', '/userstories', {
-                    placeholder: selectedProjectId ? 'No Change' : 'Select project first',
-                    formatText: (item) => `#${item.ref}: ${item.subject}`,
-                    additionalParams: () => selectedProjectId ? { project: selectedProjectId } : {}
-                });
-
-                taigaInitRemoteSelect2('#bulkUpdateTaskSprint', '/milestones', {
-                    placeholder: selectedProjectId ? 'No Change' : 'Select project first',
-                    additionalParams: () => selectedProjectId ? { project: selectedProjectId } : {}
-                });
-                $('#bulkUpdateTaskUsor, #bulkUpdateTaskSprint').prop('disabled', !selectedProjectId);
-            };
-
-            $('#bulkUpdateTaskProject').off('change.bulkTaskShared').on('change.bulkTaskShared', function () {
-                refreshUpdateInputs($(this).val());
-            });
-
-            taigaPopulateProjectSelect($('#bulkUpdateTaskProject'), projectId).done(function () {
-                if (projectId) {
-                    $('#bulkUpdateTaskProject').val(String(projectId)).trigger('change.select2');
-                }
-                refreshUpdateInputs(projectId);
-            });
-
-            taigaLoadBulkItems('/tasks', $('#bulkUpdateTaskList'), item => {
-                return `
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${item.id}" data-version="${item.version}" id="bulk-task-${item.id}">
-                        <label class="form-check-label" for="bulk-task-${item.id}">
-                            #${item.ref}: ${item.subject}
-                        </label>
-                    </div>
-                `;
-            });
-        },
-        submitBulkUpdate: function() {
-            const selectedTasks = [];
-            $('#bulkUpdateTaskList input:checked').each(function () {
-                selectedTasks.push({ id: $(this).val(), version: $(this).data('version') });
-            });
-
-            if (selectedTasks.length === 0) {
-                TTTaiga.UI.notify('Please select at least one task to update', 'warning');
-                return;
-            }
-
-            const updateData = {};
-            const status = $('#bulkUpdateTaskStatus').val();
-            if (status) updateData.status = parseInt(status);
-            const assignee = $('#bulkUpdateTaskAssignee').val();
-            if (assignee) updateData.assigned_to = parseInt(assignee);
-            const usor = $('#bulkUpdateTaskUsor').val();
-            if (usor) updateData.user_story = usor === 'null' ? null : parseInt(usor);
-            const sprint = $('#bulkUpdateTaskSprint').val();
-            if (sprint) updateData.milestone = sprint === 'null' ? null : parseInt(sprint);
-
-            if (Object.keys(updateData).length === 0) {
-                TTTaiga.UI.notify('Please select at least one field to update', 'warning');
-                return;
-            }
-
-            const $btn = $('#submitBulkTaskUpdate');
-            $btn.prop('disabled', true).text('Updating...');
-            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
-
-            taigaExecuteBulk('/tasks/', selectedTasks, 'PATCH', updateData, (successCount, errorCount) => {
-                $btn.prop('disabled', false).text('Update Tasks');
-                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
-                
-                if (errorCount === 0) {
-                    TTTaiga.UI.notify(`Successfully updated ${successCount} tasks!`, 'success');
-                    $('#bulkUpdateTaskModal').modal('hide');
-                    TTTaiga.Tasks.load();
-                } else {
-                    TTTaiga.UI.notify(`Updated ${successCount} tasks, but ${errorCount} failed.`, 'danger');
-                }
-            });
-        },
         deleteBulk: function() {
             const selectedTasks = [];
             $('.task-checkbox:checked').each(function () {
@@ -280,7 +196,7 @@ $(document).ready(function () {
             $btn.prop('disabled', true).text('Deleting...');
             $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
-            taigaExecuteBulk('/tasks/', selectedTasks, 'DELETE', null, (successCount, errorCount) => {
+            taigaExecuteBulkParallel('/tasks/', selectedTasks, 'DELETE', null, (successCount, errorCount) => {
                 $btn.prop('disabled', false).text('Delete Tasks');
                 $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
                 if (errorCount === 0) {
@@ -290,7 +206,7 @@ $(document).ready(function () {
                 } else {
                     TTTaiga.UI.notify(`Deleted ${successCount} tasks, but ${errorCount} failed.`, 'danger');
                 }
-            });
+            }, { showProgress: true });
         }
     };
 
@@ -360,8 +276,8 @@ $(document).ready(function () {
         TTTaiga.Tasks.populateBulkCreateDropdowns(); 
     });
     $('#submitBulkTaskCreate').on('click', function() { TTTaiga.Tasks.submitBulkCreate(); });
-    $('#bulkUpdateTaskModal').on('show.bs.modal', function() { TTTaiga.Tasks.populateBulkUpdateDropdowns(); });
-    $('#submitBulkTaskUpdate').on('click', function() { TTTaiga.Tasks.submitBulkUpdate(); });
+    $('#bulkUpdateTaskModal').on('show.bs.modal', function() { TTTaiga.BulkUpdate.open('tasks'); });
+    $('#submitBulkTaskUpdate').on('click', function() { TTTaiga.BulkUpdate.submit('tasks'); });
     $('#confirmBulkDeleteTasks').on('click', function() { TTTaiga.Tasks.deleteBulk(); });
 
     taigaBindFilters((page) => TTTaiga.Tasks.load(page));

@@ -61,19 +61,32 @@
 				</div>
 
 				<div class="row">
-					<div class="col-md-6">
+					<div class="col-md-4">
 						<div class="mb-3">
 							<label for="bulkUpdateIssueStatus" class="form-label">Status</label>
-							<select class="form-select" id="bulkUpdateIssueStatus">
+							<select class="form-select" id="bulkUpdateIssueStatus" data-field="status">
 								<option value="">No Change</option>
 							</select>
 						</div>
 					</div>
-					<div class="col-md-6">
+					<div class="col-md-4">
 						<div class="mb-3">
 							<label for="bulkUpdateIssueAssignee" class="form-label">Assign To</label>
-							<select class="form-select" id="bulkUpdateIssueAssignee">
+							<select class="form-select" id="bulkUpdateIssueAssignee" data-field="assignee">
 								<option value="">No Change</option>
+							</select>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="mb-3">
+							<label for="bulkUpdateIssuePriority" class="form-label">Priority</label>
+							<select class="form-select" id="bulkUpdateIssuePriority" data-field="priority">
+								<option value="">No Change</option>
+								<option value="1">1 - Highest</option>
+								<option value="2">2</option>
+								<option value="3">3</option>
+								<option value="4">4</option>
+								<option value="5">5 - Lowest</option>
 							</select>
 						</div>
 					</div>

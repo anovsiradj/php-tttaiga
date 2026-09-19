@@ -35,7 +35,7 @@ require __DIR__ . '/app/init.php';
 $bulkActions = '
 			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCreateSprintModal"><i class="bi bi-plus-lg me-2"></i> Bulk Create</a></li>
 			<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUpdateSprintModal"><i class="bi bi-pencil-square me-2"></i> Bulk Update</a></li>
-			<li><a class="dropdown-item text-danger" href="#" id="bulkDeleteBtn"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
+			<li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#bulkDeleteSprintModal"><i class="bi bi-trash me-2"></i> Bulk Delete</a></li>
 		';
 		include __DIR__ . '/app/partials/list_header.php';
 		?>

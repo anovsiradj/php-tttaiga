@@ -181,7 +181,7 @@ $curl->exec();
 $statusCode = $curl->code();
 $responseBody = $curl->data;
 
-if (!$isAuthRequest && in_array($statusCode, [401, 403], true)) {
+if (!$isAuthRequest && $statusCode === 401) {
 	unset($_SESSION['taiga_token'], $_SESSION['taiga_user'], $_SESSION['taiga_api_url']);
 }
 

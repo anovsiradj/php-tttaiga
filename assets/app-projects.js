@@ -39,7 +39,7 @@ $(document).ready(function () {
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input project-checkbox" type="checkbox" value="${project.id}" data-version="${project.version}" data-name="${project.name}">
+                                    <input class="form-check-input project-checkbox" type="checkbox" value="${project.id}" data-version="${project.version}" data-subject="${project.name}" data-name="${project.name}">
                                 </div>
                                 <span class="badge bg-${project.is_private ? 'secondary' : 'primary'}">${project.is_private ? 'Private' : 'Public'}</span>
                             </div>
@@ -55,7 +55,17 @@ $(document).ready(function () {
             });
             html += '</div>';
             $('#projectsContent').html(html);
-            taigaBindSelectionLogic('project-checkbox', taigaBulkSelectionCallback);
+            taigaBindSelectionLogic('project-checkbox', taigaBulkSelectionCallback, 'projects');
+            $('.project-checkbox').each(function() {
+                var id = $(this).val();
+                if (TTTaiga.selectedItems.projects.some(i => i.id == id)) {
+                    $(this).prop('checked', true);
+                    $(this).closest('.card').addClass('taiga-selected');
+                }
+            });
+            var total = $('.project-checkbox').length;
+            var checked = $('.project-checkbox:checked').length;
+            $('#masterCheckbox').prop('checked', total > 0 && checked === total);
             $('.view-project').off('click').on('click', function() { window.location.href = `project.php?id=${$(this).data('project-id')}`; });
         },
         submitBulkCreate: function() {
@@ -85,34 +95,7 @@ $(document).ready(function () {
                 }
             }
         },
-        submitBulkUpdate: function() {
-            const prefix = $('#projectPrefixInput').val().trim();
-            if (!prefix) { TTTaiga.UI.notify('Please enter a prefix', 'warning'); return; }
 
-            const selectedProjects = [];
-            $('#projectsContent input.project-checkbox:checked').each(function () {
-                selectedProjects.push({ id: $(this).val(), version: $(this).data('version'), name: $(this).data('name') });
-            });
-
-            if (selectedProjects.length === 0) { TTTaiga.UI.notify('Please select at least one project', 'warning'); return; }
-
-            const $btn = $('#submitBulkProjectUpdate');
-            $btn.prop('disabled', true).text('Applying...');
-            $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
-
-            taigaExecuteBulk('/projects/', selectedProjects, 'PATCH', (item) => {
-                const cleanName = item.name.replace(/^\[.*?\]\s*/, '');
-                return { name: `[${prefix}] ${cleanName}` };
-            }, (successCount, errorCount) => {
-                $btn.prop('disabled', false).text('Apply Prefix');
-                $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
-                TTTaiga.UI.notify(`Updated ${successCount} projects, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
-                if (errorCount === 0) {
-                    $('#bulkUpdateProjectModal').modal('hide');
-                    TTTaiga.Projects.load();
-                }
-            });
-        },
         deleteBulk: function() {
             const selectedProjects = [];
             $('#projectsContent input.project-checkbox:checked').each(function () {
@@ -125,7 +108,7 @@ $(document).ready(function () {
             $btn.prop('disabled', true).text('Deleting...');
             $('.filter-toolbar, .btn, .dropdown-item').addClass('disabled');
 
-            taigaExecuteBulk('/projects/', selectedProjects, 'DELETE', null, (successCount, errorCount) => {
+            taigaExecuteBulkParallel('/projects/', selectedProjects, 'DELETE', null, (successCount, errorCount) => {
                 $btn.prop('disabled', false).text('Delete Projects');
                 $('.filter-toolbar, .btn, .dropdown-item').removeClass('disabled');
                 TTTaiga.UI.notify(`Deleted ${successCount} projects, ${errorCount} failed.`, errorCount === 0 ? 'success' : 'danger');
@@ -133,7 +116,7 @@ $(document).ready(function () {
                     $('#bulkDeleteProjectModal').modal('hide');
                     TTTaiga.Projects.load();
                 }
-            });
+            }, { showProgress: true });
         }
     };
 
@@ -170,7 +153,8 @@ $(document).ready(function () {
             }
         });
     });
-    $('#submitBulkProjectUpdate').on('click', () => TTTaiga.Projects.submitBulkUpdate());
+    $('#bulkUpdateProjectModal').on('show.bs.modal', () => TTTaiga.BulkUpdate.open('projects'));
+    $('#submitBulkProjectUpdate').on('click', () => TTTaiga.BulkUpdate.submit('projects'));
     $('#confirmBulkDeleteProjects').on('click', () => TTTaiga.Projects.deleteBulk());
     $('#submitBulkCreateProjects').on('click', () => TTTaiga.Projects.submitBulkCreate());
     $('#previewBulkCreateProjects').on('click', function() {

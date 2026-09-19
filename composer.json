@@ -21,7 +21,7 @@
         },
         {
             "type": "path",
-            "url": "../php-skit",
+            "url": "C:\\works\\phpmono\\pkgs\\php-skit",
             "options": {
                 "symlink": true
             }

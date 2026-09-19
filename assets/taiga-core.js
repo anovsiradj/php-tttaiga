@@ -11,7 +11,7 @@
     if (!globalThis.apiUrl) globalThis.apiUrl = session.apiUrl || localStorage.getItem('taiga_api_url');
 })();
 
-window.TTTaiga = {
+window.TTTaiga = { ...window.TTTaiga,
     API: {
         _clearAuth: function () {
             localStorage.removeItem('taiga_token');
@@ -191,12 +191,13 @@ window.TTTaiga = {
                         }
                     }
                     $sel.prop('disabled', false);
+                    const $modal = $sel.closest('.modal');
                     $sel.select2({
                         theme: 'bootstrap-5',
                         width: '100%',
                         placeholder: placeholder,
                         allowClear: true,
-                        dropdownParent: $sel.closest('.modal')
+                        dropdownParent: $modal.length && $modal.attr('id') ? $('#' + $modal.attr('id')) : $(document.body)
                     });
                 }
             });
@@ -433,7 +434,7 @@ $(document).ready(function () {
 
     $(document).ajaxError(function (_event, xhr, settings) {
         const url = settings && settings.url ? String(settings.url) : '';
-        if ((xhr.status === 401 || xhr.status === 403) && url.indexOf('api.php') !== -1 && !window.location.pathname.endsWith('login.php')) {
+        if (xhr.status === 401 && url.indexOf('api.php') !== -1 && !window.location.pathname.endsWith('login.php')) {
             tttaigaClearAuthState();
             window.location.href = 'login.php';
         }

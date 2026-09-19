@@ -216,7 +216,7 @@ $(document).ready(function () {
 
 	$(document).ajaxError(function (_event, xhr, settings) {
 		const url = settings && settings.url ? String(settings.url) : '';
-		if ((xhr.status === 401 || xhr.status === 403) && url.indexOf('api.php') !== -1 && !window.location.pathname.endsWith('login.php')) {
+		if (xhr.status === 401 && url.indexOf('api.php') !== -1 && !window.location.pathname.endsWith('login.php')) {
 			tttaigaClearAuthState();
 			window.location.href = 'login.php';
 		}

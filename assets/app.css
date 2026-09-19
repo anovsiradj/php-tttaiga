@@ -494,7 +494,7 @@ textarea.form-control::placeholder {
 	border: 1px solid var(--bs-border-color);
 	border-radius: 8px;
 	box-shadow: var(--card-shadow-hover);
-	overflow: hidden;
+	overflow: visible;
 }
 
 .modal-header {
