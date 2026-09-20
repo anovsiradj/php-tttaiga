@@ -60,13 +60,14 @@ $(document).ready(function () {
                                 </div>
                             </div>
                             <h6 class="card-title text-truncate">${usor.subject || 'Untitled Usor'}</h6>
-                            <p class="card-text taiga-card-description text-muted small mb-0">${usor.description || ''}</p>
+                            <div class="card-text taiga-card-description text-muted small mb-0">${usor.description ? taigaRenderContent(usor.description) : ''}</div>
                             <div class="taiga-card-meta">
                                 <small class="text-muted d-block text-truncate">Assigned: <strong>${assignedTo}</strong></small>
                                 ${epicHtml}
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">
+                            <a href="${taigaItemPermalink('usor', usor, window.apiUrl) || '#'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Taiga</a>
                             <a href="usor.php?id=${usor.id}" class="btn btn-sm btn-outline-primary">View</a>
                             <button class="btn btn-sm btn-outline-secondary edit-usor" data-usor-id="${usor.id}" data-bs-toggle="modal" data-bs-target="#singleUsorModal">Edit</button>
                         </div>

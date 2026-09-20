@@ -263,7 +263,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayProjectDescription(project) {
-				const html = taigaRenderMarkdown(project.description || '');
+				const html = taigaRenderContent(project.description);
 				$('#projectDescriptionContent').html(html);
 			}
 

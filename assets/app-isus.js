@@ -58,12 +58,13 @@ $(document).ready(function () {
                                 </div>
                             </div>
                             <h6 class="card-title text-truncate">${issue.subject || 'Untitled Isu'}</h6>
-                            <p class="card-text text-muted taiga-card-description small mb-0">${issue.description || ''}</p>
+                            <div class="card-text text-muted taiga-card-description small mb-0">${issue.description ? taigaRenderContent(issue.description) : ''}</div>
                             <div class="taiga-card-meta">
                                 <small class="text-muted d-block text-truncate">Assigned: <strong>${assignedTo}</strong></small>
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">
+                            <a href="${taigaItemPermalink('issue', issue, window.apiUrl) || '#'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Taiga</a>
                             <a href="isu.php?id=${issue.id}" class="btn btn-sm btn-outline-primary">View</a>
                             <button class="btn btn-sm btn-outline-secondary edit-isu" data-isu-id="${issue.id}" data-bs-toggle="modal" data-bs-target="#singleIsuModal">Edit</button>
                         </div>

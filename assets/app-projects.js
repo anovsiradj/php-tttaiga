@@ -41,9 +41,10 @@ $(document).ready(function () {
                                 <span class="badge bg-${project.is_private ? 'secondary' : 'primary'}">${project.is_private ? 'Private' : 'Public'}</span>
                             </div>
                             <h6 class="card-title text-truncate">${project.name}</h6>
-                            <p class="card-text text-muted small mb-0">${project.description || ''}</p>
+                            <div class="card-text taiga-card-description text-muted small mb-0">${project.description ? taigaRenderContent(project.description) : ''}</div>
                         </div>
                         <div class="card-footer taiga-card-actions">
+                            <a href="${taigaItemPermalink('project', project, window.apiUrl) || '#'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Taiga</a>
                             <button class="btn btn-sm btn-outline-primary view-project" data-project-id="${project.id}">View</button>
                             <button class="btn btn-sm btn-outline-secondary edit-project" data-project-id="${project.id}" data-bs-toggle="modal" data-bs-target="#singleProjectModal">Edit</button>
                         </div>

@@ -243,7 +243,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayTaskDescription(task) {
-				const html = taigaRenderMarkdown(task.description_html);
+				const html = taigaRenderContent(task.description_html);
 				$('#taskDescriptionContent').html(html);
 
 				taigaViewAdjustTable('#taskDescriptionContent')

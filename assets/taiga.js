@@ -443,6 +443,7 @@ function taigaItemPermalink(type, item, apiUrl, options) {
 
 	const projectSlug = options.projectSlug
 		|| item?.project_extra?.slug
+		|| item?.project_extra_info?.slug
 		|| (item?.project && window.taigaCache?.projectSlugById ? window.taigaCache.projectSlugById[String(item.project)] : null)
 		|| null;
 
@@ -488,6 +489,15 @@ function taigaRenderMarkdown(text) {
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;');
 	return escaped.replace(/\n/g, '<br>');
+}
+
+function taigaRenderContent(text) {
+	const raw = String(text || '').trim();
+	if (!raw) return '<p class="text-muted"><em>(kosong)</em></p>';
+	if (/<[a-zA-Z!\/][\s\S]*>/.test(raw)) {
+		return raw;
+	}
+	return taigaRenderMarkdown(raw);
 }
 
 /**
@@ -806,17 +816,6 @@ function taigaBindFilters(onFilterChange) {
 			const dropdownParent = $aModal.length && $aModal.attr('id') ? $('#' + $aModal.attr('id')) : $(document.body);
 
 			$assigned.val(null);
-
-			if (!pid) {
-				$assigned.prop('disabled', true);
-				$assigned.html('<option value="">(Pilih Project dulu)</option>');
-				taigaInitStaticSelect2($assigned, {
-					placeholder: '(Pilih Project dulu)',
-					dropdownParent: dropdownParent
-				});
-				return;
-			}
-
 			$assigned.prop('disabled', true);
 			$assigned.html('<option value="">Loading...</option>');
 			taigaInitStaticSelect2($assigned, {
@@ -824,22 +823,28 @@ function taigaBindFilters(onFilterChange) {
 				dropdownParent: dropdownParent
 			});
 
-			taigaFetchMembers(window.apiUrl, window.taigaToken, pid)
-				.done(function (memberships) {
-					let html = '<option value="">(Semua User)</option>';
-					if (Array.isArray(memberships)) {
-						memberships.forEach(m => {
-							const name = m.full_name || m.user_email || 'Unknown';
-							html += `<option value="${m.user}">${name}</option>`;
-						});
-					}
-					$assigned.html(html);
-					$assigned.prop('disabled', false);
-					taigaInitStaticSelect2($assigned, {
-						placeholder: '(Semua User)',
-						dropdownParent: dropdownParent
+			const populate = function (users) {
+				let html = '<option value="">(Semua User)</option>';
+				if (Array.isArray(users)) {
+					users.forEach(u => {
+						const name = u.full_name || u.user_email || u.username || 'Unknown';
+						html += `<option value="${u.id ?? u.user}">${name}</option>`;
 					});
-				})
+				}
+				$assigned.html(html);
+				$assigned.prop('disabled', false);
+				taigaInitStaticSelect2($assigned, {
+					placeholder: '(Semua User)',
+					dropdownParent: dropdownParent
+				});
+			};
+
+			const source = pid
+				? taigaFetchMembers(window.apiUrl, window.taigaToken, pid)
+				: TTTaiga.API.get('api.php/users');
+
+			source
+				.done(populate)
 				.fail(function () {
 					$assigned.html('<option value="">Error loading users</option>');
 					$assigned.prop('disabled', true);
@@ -1175,9 +1180,9 @@ function taigaRenderBulkPreview($target, items, labelKey) {
 	const list = $('<ol class="mb-0"></ol>');
 	items.forEach(item => {
 		const text = item[labelKey] || item.subject || item.name || '';
-		const li = $('<li></li>').text(text);
+const li = $('<li></li>').text(text);
 		if (item.description) {
-			li.append($('<div class="text-muted small"></div>').text(item.description));
+			li.append($('<div class="text-muted small"></div>').html(taigaRenderContent(item.description)));
 		}
 		list.append(li);
 	});
@@ -1908,7 +1913,7 @@ function taigaExtractHistoryComments(historyEntries) {
 			: null;
 
 		const date = entry.created_at || entry.created_date || entry.created || entry.date || entry.modified_at || null;
-		const bodyHtml = html ? taigaEscapeHtml(html).replace(/\n/g, '<br>') : taigaRenderMarkdown(String(text || ''));
+		const bodyHtml = html ? html : taigaRenderContent(String(text || ''));
 
 		comments.push({
 			id: entry.id || entry.comment_id || entry.pk || null,

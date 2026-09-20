@@ -225,7 +225,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayIssueDescription(issue) {
-				const html = taigaRenderMarkdown(issue.description || '');
+				const html = taigaRenderContent(issue.description);
 				$('#issueDescriptionContent').html(html);
 			}
 

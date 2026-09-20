@@ -294,7 +294,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayEpicDescription(epic) {
-				const html = taigaRenderMarkdown(epic.description || '');
+				const html = taigaRenderContent(epic.description);
 				$('#epicDescriptionContent').html(html);
 			}
 

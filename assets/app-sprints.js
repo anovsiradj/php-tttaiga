@@ -42,9 +42,10 @@ $(document).ready(function () {
                                 ${statusBadge}
                             </div>
                             <h6 class="card-title text-truncate">${sprint.name || 'Untitled Sprint'}</h6>
-                            <p class="card-text text-muted small mb-0">${sprint.description || ''}</p>
+                            <div class="card-text taiga-card-description text-muted small mb-0">${sprint.description ? taigaRenderContent(sprint.description) : ''}</div>
                         </div>
                         <div class="card-footer taiga-card-actions">
+                            <a href="${taigaItemPermalink('sprint', sprint, window.apiUrl) || '#'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Taiga</a>
                             <button class="btn btn-sm btn-outline-primary view-sprint" data-sprint-id="${sprint.id}">View</button>
                             <button class="btn btn-sm btn-outline-secondary edit-sprint" data-sprint-id="${sprint.id}" data-bs-toggle="modal" data-bs-target="#singleSprintModal">Edit</button>
                         </div>

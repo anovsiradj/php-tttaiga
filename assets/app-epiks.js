@@ -62,12 +62,13 @@ $(document).ready(function () {
                                 </div>
                             </div>
                             <h6 class="card-title text-truncate">${epic.subject || 'Untitled Epik'}</h6>
-                            <p class="card-text text-muted taiga-card-description small mb-0">${epic.description || ''}</p>
+                            <div class="card-text text-muted taiga-card-description small mb-0">${epic.description ? taigaRenderContent(epic.description) : ''}</div>
                             <div class="taiga-card-meta">
                                 <small class="text-muted d-block text-truncate">Assigned: <strong>${assignedTo}</strong></small>
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">
+                            <a href="${taigaItemPermalink('epic', epic, window.apiUrl) || '#'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Taiga</a>
                             <button class="btn btn-sm btn-outline-primary view-epic" data-epic-id="${epic.id}" data-epic-ref="${epic.ref}">View</button>
                             <button class="btn btn-sm btn-outline-secondary edit-epic" data-epic-id="${epic.id}" data-bs-toggle="modal" data-bs-target="#singleEpicModal">Edit</button>
                         </div>

@@ -220,7 +220,7 @@ require __DIR__ . '/app/init.php';
 			}
 
 			function displayUsorDescription(usor) {
-				const html = taigaRenderMarkdown(usor.description || '');
+				const html = taigaRenderContent(usor.description);
 				$('#usorDescriptionContent').html(html);
 			}
 

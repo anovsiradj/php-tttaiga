@@ -61,13 +61,14 @@ $(document).ready(function () {
                                 </div>
                             </div>
                             <h6 class="card-title text-truncate">${task.subject || 'Untitled Task'}</h6>
-                            <p class="card-text taiga-card-description task-description text-muted small mb-0">${task.description || ''}</p>
+                            <div class="card-text taiga-card-description task-description text-muted small mb-0">${task.description ? taigaRenderContent(task.description) : ''}</div>
                             <div class="taiga-card-meta">
                                 <small class="text-muted d-block text-truncate">Assigned: <strong>${assignedTo}</strong></small>
                                 ${usorHtml}
                             </div>
                         </div>
                         <div class="card-footer taiga-card-actions">
+                            <a href="${taigaItemPermalink('task', task, window.apiUrl) || '#'}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Taiga</a>
                             <a href="task.php?id=${task.id}" class="btn btn-sm btn-outline-secondary">View</a>
                             <button class="btn btn-outline-primary btn-sm edit-task" data-task-id="${task.id}" data-bs-toggle="modal" data-bs-target="#singleTaskModal">Edit</button>
                         </div>
