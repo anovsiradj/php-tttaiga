@@ -189,7 +189,8 @@ require __DIR__ . '/app/init.php';
 			function loadProjectMembers(projectId) {
 				// Load project members
 				$.ajax({
-					url: 'api.php/projects/' + projectId + '/memberships',
+					url: 'api.php/memberships',
+					data: { project: projectId },
 					type: 'GET',
 					headers: {
 						'Authorization': 'Bearer ' + token,

@@ -1876,7 +1876,8 @@ function taigaHistoryTypeFromItemType(type) {
 	if (t === 'task') return 'task';
 	if (t === 'issue' || t === 'isu') return 'issue';
 	if (t === 'wiki' || t === 'wikipage') return 'wiki';
-	return t;
+	if (t === 'epic') return 'epic';
+	return null;
 }
 
 function taigaFormatDateTime(value) {
@@ -1956,6 +1957,10 @@ function taigaLoadComments(targetSelector, itemType, itemId, apiUrl, token, opti
 	const historyType = taigaHistoryTypeFromItemType(itemType);
 	const id = itemId ? String(itemId) : '';
 	const $target = $(targetSelector);
+	if (!historyType) {
+		$target.html('<div class="text-muted italic"><em>(comment tidak tersedia)</em></div>');
+		return $.Deferred().resolve([]).promise();
+	}
 	if (!$target.length || !id) return $.Deferred().resolve([]).promise();
 
 	const cacheKey = taigaCacheKey(['history', apiUrl || window.apiUrl, historyType, id]);
