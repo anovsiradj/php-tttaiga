@@ -1,11 +1,8 @@
 $(document).ready(function () {
-    const token = localStorage.getItem('taiga_token');
-    const userData = localStorage.getItem('taiga_user');
-    if (!token || !userData) { window.location.href = 'login.php'; return; }
+    if (!window.taigaToken) { window.location.href = 'login.php'; return; }
 
     const config = window.taigaConfig || {};
-    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
-    window.taigaToken = token;
+    window.apiUrl = window.apiUrl || config.servers?.default?.api_url;
 
     TTTaiga.Projects = {
         load: function (page = 1) {

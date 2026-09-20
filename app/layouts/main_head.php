@@ -39,16 +39,6 @@ if (!empty($_SESSION['taiga_user'])) {
 			user: sessionUser,
 			apiUrl: sessionApiUrl
 		};
-
-		if (isAuthenticated) {
-			localStorage.setItem('taiga_token', 'session');
-			if (sessionUser) localStorage.setItem('taiga_user', JSON.stringify(sessionUser));
-			if (sessionApiUrl) localStorage.setItem('taiga_api_url', sessionApiUrl);
-		} else {
-			localStorage.removeItem('taiga_token');
-			localStorage.removeItem('taiga_user');
-			localStorage.removeItem('taiga_api_url');
-		}
 	})();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/commonmark@0.30.0/dist/commonmark.min.js"></script>

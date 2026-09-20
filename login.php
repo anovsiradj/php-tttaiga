@@ -194,9 +194,6 @@ $redirect = $_GET['redirect'] ?? 'projects.php';
 								taiga_api_url: apiUrl
 							},
 							success: function () {
-								localStorage.setItem('taiga_token', 'session');
-								localStorage.setItem('taiga_user', JSON.stringify(response));
-								localStorage.setItem('taiga_api_url', apiUrl);
 								window.location.href = redirectUrl;
 							}
 						});

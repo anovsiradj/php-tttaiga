@@ -115,16 +115,16 @@ require __DIR__ . '/app/init.php';
 
 	<script>
 		$(document).ready(function () {
-			const token = localStorage.getItem('taiga_token');
-			const userData = localStorage.getItem('taiga_user');
+			const session = window.TTTaigaSession || {};
+			const token = session.authenticated ? 'session' : null;
 
-			if (!token || !userData) {
+			if (!token) {
 				window.location.href = 'login.php';
 				return;
 			}
 
 			const config = <?php echo json_encode(include 'app/configs/taiga.php'); ?>;
-			const apiUrl = localStorage.getItem('taiga_api_url') || config.servers.default.api_url;
+			const apiUrl = session.apiUrl || config.servers.default.api_url;
 
 			// Get epic ID from URL
 			const urlParams = new URLSearchParams(window.location.search);

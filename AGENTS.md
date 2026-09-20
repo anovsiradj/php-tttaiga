@@ -10,6 +10,15 @@ Before processing any user request or analyzing code, execute this exact sequenc
 *Constraint: Do not skip Step 1. Do not load raw context files in `./.agents/brains/` until `BRAINS.md` logic is initialized.*
 
 # Development Guidelines
+I use Windows. If you need to run CLI commands, don't use bash commands, use CMD or PowerShell commands.
+
+- jangan tulis HTML di JS kecuali hanya kode simpel atau hanya beberapa baris kode. gunakan `<template>` atau gunakan `anovsiradj/wiet`.
+- gunakan `anovsiradj/php-skit`
+- gunakan `anovsiradj/web-skit`
+- modifikasi langsung vendor lokal (wiet,php-skit,web-skit) jika diperlukan penyesuaian/perbaikan/perubahan.
+- gunakan session PHP untuk otentikasi dan otorisasi
+- auto logout jika session expired/timeout, cek response dari API.
+- always provides unit testing, browser testing, integration testing.
 
 ## Terminologi
 - SSoT = Single Source of Truth
@@ -19,17 +28,12 @@ Before processing any user request or analyzing code, execute this exact sequenc
 - Epik = Epic
 - Isu = Issue
 
-## Local Server
-- **DILARANG** menjalankan manual local server seperti `php -S localhost:8000` atau `python -m http.server` atau sejenisnya.
-- local server harus menggunakan apache/httpd.
-- local server sudah disediakan, untuk mengetahuinya URL nya, selalu cek `APP_URL` di `.env`.
-
 ## Environment & CLI
-- penentuan versi PHP berdasarkan `./composer.json`
+- jangan menjalankan local server secara manual, karena sudah disediakan, untuk mengetahuinya URL nya, cek `DEBUG_URL` di `.env`.
+- jika lokal server belum tersedia, kamu harus minta aku untuk menjalankannya, jangan menjalankannya sendiri.
+- untuk kredensial login, cek `DEBUG_*` di `.env`.
 - untuk menjalankan perintah PHP gunakan `php84`.
 - untuk menjalankan perintah composer gunakan `php84c`.
-
-I use Windows. If you need to run CLI commands, don't use bash commands, use CMD or PowerShell commands.
 
 ## jenis/fitur/modul
 - user
@@ -57,15 +61,3 @@ shared input adalah autofill semua input di form berdasarkan shared filter.
 
 custom bulk action,
 salah satu tujuannya adalah memberi prefix kesemua judul pada suatu kelompok jenis.
-
-## development
-- jangan tulis HTML di JS kecuali hanya kode simpel atau hanya beberapa baris kode. gunakan `<template>` atau gunakan `anovsiradj/wiet`.
-- gunakan `anovsiradj/php-skit`
-- gunakan `anovsiradj/web-skit`
-- modifikasi langsung vendor lokal (wiet,php-skit,web-skit) jika perlu penyesuaian/perbaikan/perubahan.
-- gunakan session PHP untuk otentikasi dan otorisasi
-- auto logout jika session expired/timeout, cek response dari API.
-
-always provides unit testing, browser testing, integration testing.
-
-gunakan `DEBUG_USERNAME` dan `DEBUG_PASSWORD` di `.env` untuk login.

@@ -1,24 +1,13 @@
 
 (() => {
 	const session = globalThis.TTTaigaSession || {};
-	let model = session.user || localStorage.getItem('taiga_user')
-	if (typeof model === 'string' && model) {
-		try {
-			model = JSON.parse(model)
-		} catch (e) {
-			model = null
-		}
-	}
-
-	globalThis.taigaModel = model;
-	globalThis.taigaToken = session.authenticated ? 'session' : localStorage.getItem('taiga_token');
-	globalThis.apiUrl = session.apiUrl || localStorage.getItem('taiga_api_url');
+	globalThis.taigaModel = session.user || null;
+	globalThis.taigaToken = session.authenticated ? 'session' : null;
+	globalThis.apiUrl = session.apiUrl || null;
 })()
 
 function tttaigaClearAuthState() {
-	localStorage.removeItem('taiga_token');
-	localStorage.removeItem('taiga_user');
-	localStorage.removeItem('taiga_api_url');
+	window.location.href = 'login.php';
 }
 
 function tttaigaSanitizeHtml(html) {

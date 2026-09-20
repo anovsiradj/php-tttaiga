@@ -102,8 +102,8 @@ test('successful authentication creates a PHP session and opens projects', async
 	await expect(page).toHaveURL(/\/projects\.php$/);
 	await expect(page).toHaveTitle('Projek - TTTaiga');
 	await expect
-		.poll(() => page.evaluate(() => localStorage.getItem('taiga_token')))
-		.toBe('session');
+		.poll(() => page.context().cookies().then(cs => cs.some(c => c.name === 'PHPSESSID')))
+		.toBe(true);
 
 	await page.goto('projects.php');
 	await expect(page).toHaveURL(/\/projects\.php$/);

@@ -1,16 +1,12 @@
 $(document).ready(function () {
-    const token = localStorage.getItem('taiga_token');
-    const userData = localStorage.getItem('taiga_user');
-
-    if (!token || !userData) {
+    if (!window.taigaToken) {
         window.location.href = 'login.php';
         return;
     }
 
     const config = window.taigaConfig || {};
 
-    window.apiUrl = localStorage.getItem('taiga_api_url') || config.servers?.default?.api_url;
-    window.taigaToken = token;
+    window.apiUrl = window.apiUrl || config.servers?.default?.api_url;
 
     TTTaiga.Usors = {
         load: function (page = 1) {

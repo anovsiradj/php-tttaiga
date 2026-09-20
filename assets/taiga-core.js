@@ -2,21 +2,15 @@
 
 (() => {
     const session = globalThis.TTTaigaSession || {};
-    let model = session.user || localStorage.getItem('taiga_user');
-    if (typeof model === 'string' && model) {
-        try { model = JSON.parse(model); } catch (e) { model = null; }
-    }
-    globalThis.taigaModel = model;
-    if (!globalThis.taigaToken) globalThis.taigaToken = session.authenticated ? 'session' : localStorage.getItem('taiga_token');
-    if (!globalThis.apiUrl) globalThis.apiUrl = session.apiUrl || localStorage.getItem('taiga_api_url');
+    globalThis.taigaModel = session.user || null;
+    if (!globalThis.taigaToken) globalThis.taigaToken = session.authenticated ? 'session' : null;
+    if (!globalThis.apiUrl) globalThis.apiUrl = session.apiUrl || null;
 })();
 
 window.TTTaiga = { ...window.TTTaiga,
     API: {
         _clearAuth: function () {
-            localStorage.removeItem('taiga_token');
-            localStorage.removeItem('taiga_user');
-            localStorage.removeItem('taiga_api_url');
+            window.location.href = 'login.php';
         },
         _headers: function () {
             return {
@@ -28,7 +22,6 @@ window.TTTaiga = { ...window.TTTaiga,
         _handleError: function (xhr, url) {
             if ((xhr.status === 401 || xhr.status === 403) && url.indexOf('api.php') !== -1 && !window.location.pathname.endsWith('login.php')) {
                 this._clearAuth();
-                window.location.href = 'login.php';
             }
             return xhr;
         },
@@ -449,7 +442,4 @@ $(document).ready(function () {
 });
 
 function tttaigaClearAuthState() {
-    localStorage.removeItem('taiga_token');
-    localStorage.removeItem('taiga_user');
-    localStorage.removeItem('taiga_api_url');
 }

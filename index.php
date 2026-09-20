@@ -39,15 +39,15 @@ require __DIR__ . '/app/init.php';
 
 	<script>
 		$(document).ready(function() {
-			const token = localStorage.getItem('taiga_token');
-			const userData = localStorage.getItem('taiga_user');
+			const session = window.TTTaigaSession || {};
+			const token = session.authenticated ? 'session' : null;
 
-			if (!token || !userData) {
+			if (!token) {
 				window.location.href = 'login.php';
 				return;
 			}
 
-			const user = JSON.parse(userData);
+			const user = session.user || {};
 			$('#profileHeaderContent').html(`<h1 class="display-4 text-white mb-0">Me</h1>`);
 			renderProfile(user);
 
