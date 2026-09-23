@@ -1,14 +1,32 @@
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+<?php
+$currentPage = basename($_SERVER['PHP_SELF'] ?? '');
+$navItems = [
+	'index.php' => 'Me',
+	'projects.php' => 'Project',
+	'sprints.php' => 'Sprint',
+	'epiks.php' => 'Epik',
+	'usors.php' => 'Usor',
+	'tasks.php' => 'Task',
+	'isus.php' => 'Isu',
+];
+// Detail pages (project.php, sprint.php, ...) highlight their list nav item.
+$detailToList = [
+	'project.php' => 'projects.php',
+	'sprint.php' => 'sprints.php',
+	'epik.php' => 'epiks.php',
+	'usor.php' => 'usors.php',
+	'task.php' => 'tasks.php',
+	'isu.php' => 'isus.php',
+];
+$activePage = $detailToList[$currentPage] ?? $currentPage;
+?>
+<nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary border-bottom">
 	<div class="container">
 		<a class="navbar-brand" href="index.php">TTTaiga</a>
 		<div class="navbar-nav ms-auto">
-			<a class="nav-link active" href="index.php">Me</a>
-			<a class="nav-link" href="projects.php">Project</a>
-			<a class="nav-link" href="sprints.php">Sprint</a>
-			<a class="nav-link" href="epiks.php">Epik</a>
-			<a class="nav-link" href="usors.php">Usor</a>
-			<a class="nav-link" href="tasks.php">Task</a>
-			<a class="nav-link" href="isus.php">Isu</a>
+			<?php foreach ($navItems as $href => $label) { ?>
+				<a class="nav-link<?php echo $activePage === $href ? ' active' : ''; ?>" href="<?php echo $href; ?>"><?php echo $label; ?></a>
+			<?php } ?>
 
 			<?php include __DIR__ . '/../../vendor/anovsiradj/web-skit/widgets/twbs/v5-dark-mode-toggle.html'; ?>
 			<button class="btn btn-outline-danger btn-sm" id="logoutBtn" title="Logout" data-bs-toggle="tooltip">

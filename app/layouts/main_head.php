@@ -12,6 +12,11 @@ if (!empty($_SESSION['taiga_user'])) {
 <title><?php echo (isset($pageTitle) ? $pageTitle . ' - ' : '') . 'TTTaiga'; ?></title>
 <link rel="icon" href="assets/logo.png" type="image/png">
 
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -23,7 +28,7 @@ if (!empty($_SESSION['taiga_user'])) {
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
 <!-- Custom CSS -->
-<link href="assets/app.css" rel="stylesheet">
+<link href="assets/app.css?v=<?php echo filemtime(__DIR__ . '/../../assets/app.css'); ?>" rel="stylesheet">
 
 <!-- Web-skit: Dark Mode Toggle -->
 <link href="vendor/anovsiradj/web-skit/widgets/twbs/v5-dark-mode-toggle.css" rel="stylesheet">

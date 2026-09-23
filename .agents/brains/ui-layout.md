@@ -1,7 +1,7 @@
 # UI LAYOUT: List Pages (projects/sprints/epiks/usors/tasks/isus)
 
 ## Stack (top -> bottom, list pages)
-1. navbar (`app/layouts/main_navbar.php`)
+1. navbar (`app/layouts/main_navbar.php`) — sticky-top glass, active link di-set PHP via basename(PHP_SELF) + detail→list map
 2. header = `.page-title-row` (H1 title + refresh `#refreshBtn` + Add New)
 3. toolbar = `.list-toolbar` (search `#searchInput` + sort `#sortSelect` wrapped in `.sort-select-wrap`)
 4. filter bar = `.filter-toolbar` (domain selects: project/epic/userStory/status/assigned/additionalControls) — RENDERED ONLY IF `$hasFilters`
