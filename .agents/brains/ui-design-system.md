@@ -23,7 +23,12 @@
 - `.btn-primary` in BS5.3 has hardcoded hex in `--bs-btn-*` — overriding `--bs-primary` alone does NOTHING. MUST override `.btn-primary` full var set (done, bound to `--app-brand`). Same for `.btn-outline-primary`, `.btn-outline-secondary`.
 - `.form-check-input:checked` hardcoded `#0d6efd` → overridden to brand.
 - `.bg-light` does NOT theme → overridden to `--app-surface-muted` (fixes white boxes on Me page in dark).
-- select2-bootstrap-5: disabled selection + `__rendered` color + dropdown/highlight overridden to theme vars.
+- select2-bootstrap-5-theme@1.3.0 dark-mode breakers (hardcoded, MUST override with EQUAL specificity — app.css loads after CDN so same-specificity wins):
+  - `.select2-dropdown` color `#212529` → override `color: var(--app-text)` (bg-only override = invisible text on dark surface).
+  - `.select2-dropdown .select2-search .select2-search__field` (4 classes) `#212529`/`#fff`/border `#ced4da` → old 3-class app.css override LOSES specificity → use full 4-class selector + `:focus` variant.
+  - message (`Searching…`/no results)/disabled option/group header/placeholder `#6c757d` → `var(--app-text-muted)`.
+  - highlighted + selected options: already overridden to brand vars (OK).
+  - Verify pattern: probe getComputedStyle on open `.select2-dropdown` + options in BOTH themes (done 2026-10-20, tasks.php Project filter).
 - `.pagination` themed via `--bs-pagination-*` CSS vars (works, no hardcode issue).
 
 ## Components
