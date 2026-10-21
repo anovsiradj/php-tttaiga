@@ -1000,8 +1000,22 @@ textarea.form-control::placeholder {
 }
 
 /* Select2 dropdown follows theme */
-.select2-container--bootstrap-5 .select2-selection__rendered {
+/* Select2 selection rendered text (single + multi-select) — theme hardcodes #212529 with higher specificity */
+.select2-container--bootstrap-5 .select2-selection__rendered,
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice {
 	color: var(--app-text);
+}
+
+/* multi-select choice pill border in dark mode — theme hardcodes #ced4da */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+	border-color: var(--app-border);
+}
+
+/* disabled choice pill text in multi-select — theme only sets cursor, not muted color */
+.select2-container--bootstrap-5.select2-container--disabled .select2-selection--multiple .select2-selection__choice,
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice:disabled {
+	color: var(--app-text-muted);
 }
 
 .select2-container--bootstrap-5.select2-container--disabled .select2-selection,
