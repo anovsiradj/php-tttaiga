@@ -27,6 +27,8 @@
   - `.select2-dropdown` color `#212529` → override `color: var(--app-text)` (bg-only override = invisible text on dark surface).
   - `.select2-dropdown .select2-search .select2-search__field` (4 classes) `#212529`/`#fff`/border `#ced4da` → old 3-class app.css override LOSES specificity → use full 4-class selector + `:focus` variant.
   - message (`Searching…`/no results)/disabled option/group header/placeholder `#6c757d` → `var(--app-text-muted)`.
+  - `.select2-selection--single .select2-selection__rendered` (single-select text) → already overridden in app.css.
+  - `.select2-selection__choice` (multi-select choice pill text + border) → text `#212529` → `var(--app-text)`; border `#ced4da` → `var(--app-border)`; disabled state → `var(--app-text-muted)`.
   - highlighted + selected options: already overridden to brand vars (OK).
   - Verify pattern: probe getComputedStyle on open `.select2-dropdown` + options in BOTH themes (done 2026-10-20, tasks.php Project filter).
 - `.pagination` themed via `--bs-pagination-*` CSS vars (works, no hardcode issue).
