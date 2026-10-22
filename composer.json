@@ -21,14 +21,14 @@
         },
         {
             "type": "path",
-            "url": "C:\\works\\phpmono\\pkgs\\php-skit",
+            "url": "/home/anoop/works/phpmono/pkgs/php-skit",
             "options": {
                 "symlink": true
             }
         },
         {
             "type": "path",
-            "url": "../web-skit",
+            "url": "/home/anoop/works/pkgs/web-skit",
             "options": {
                 "symlink": true
             }
